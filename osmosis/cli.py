@@ -9,6 +9,7 @@ def main():
         print("  analyze   Run sensitivity analysis only")
         print("  pipeline  Run full overnight pipeline (download → analyze → crush)")
         print("  load      Load crushed model and generate / compare")
+        print("  gguf      Convert crush output to GGUF format")
         sys.exit(1)
 
     command = sys.argv[1]
@@ -23,6 +24,9 @@ def main():
     elif command == "load":
         from osmosis.loader import main as loader_main
         loader_main()
+    elif command == "gguf":
+        from osmosis.gguf_writer import main as gguf_main
+        gguf_main()
     else:
         print(f"Unknown command: {command}")
         sys.exit(1)
