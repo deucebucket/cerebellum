@@ -10,54 +10,91 @@ from safetensors import safe_open
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-def unpack_1bit(data: bytes, shape: list, scale: float) -> torch.Tensor:
+BLOCK_SIZE = 32
+
+
+def _unpack_blocks(data: bytes, shape: list, bits: int) -> torch.Tensor:
+    """Unpack block-wise quantized data: [f16 scale | packed data] per block."""
     num_elements = int(np.prod(shape))
-    raw = np.frombuffer(data, dtype=np.uint8)
-    bits = np.zeros(len(raw) * 8, dtype=np.float32)
-    for bit in range(8):
-        bits[bit::8] = (raw >> bit) & 1
-    bits = bits[:num_elements]
-    return torch.tensor((bits * 2 - 1) * scale).reshape(shape)
+    n_blocks = (num_elements + BLOCK_SIZE - 1) // BLOCK_SIZE
 
+    if bits == 1:
+        data_bytes_per_block = BLOCK_SIZE // 8  # 4
+    elif bits == 2:
+        data_bytes_per_block = BLOCK_SIZE // 4  # 8
+    else:
+        data_bytes_per_block = BLOCK_SIZE // 2  # 16
+    block_bytes = 2 + data_bytes_per_block  # 2 for f16 scale
 
-def unpack_2bit(data: bytes, shape: list, scale: float) -> torch.Tensor:
-    num_elements = int(np.prod(shape))
-    raw = np.frombuffer(data, dtype=np.uint8)
-    levels = np.zeros(len(raw) * 4, dtype=np.float32)
-    for pos in range(4):
-        levels[pos::4] = (raw >> (pos * 2)) & 0x3
-    levels = levels[:num_elements]
-    return torch.tensor((levels - 1.5) * scale).reshape(shape)
+    out = np.zeros(n_blocks * BLOCK_SIZE, dtype=np.float32)
+    for i in range(n_blocks):
+        offset = i * block_bytes
+        scale = np.frombuffer(data[offset:offset + 2], dtype=np.float16).astype(np.float32)[0]
+        raw = np.frombuffer(data[offset + 2:offset + block_bytes], dtype=np.uint8)
 
+        if bits == 1:
+            vals = np.zeros(BLOCK_SIZE, dtype=np.float32)
+            for bit in range(8):
+                vals[bit::8] = (raw >> bit) & 1
+            out[i * BLOCK_SIZE:(i + 1) * BLOCK_SIZE] = (vals * 2 - 1) * scale
+        elif bits == 2:
+            vals = np.zeros(BLOCK_SIZE, dtype=np.float32)
+            for pos in range(4):
+                vals[pos::4] = (raw >> (pos * 2)) & 0x3
+            out[i * BLOCK_SIZE:(i + 1) * BLOCK_SIZE] = (vals - 1.5) * scale
+        else:
+            low = (raw & 0xF).astype(np.float32)
+            high = (raw >> 4).astype(np.float32)
+            vals = np.empty(BLOCK_SIZE, dtype=np.float32)
+            vals[0::2] = low
+            vals[1::2] = high
+            out[i * BLOCK_SIZE:(i + 1) * BLOCK_SIZE] = (vals - 7.5) * scale
 
-def unpack_4bit(data: bytes, shape: list, scale: float) -> torch.Tensor:
-    num_elements = int(np.prod(shape))
-    raw = np.frombuffer(data, dtype=np.uint8)
-    low = (raw & 0xF).astype(np.float32)
-    high = (raw >> 4).astype(np.float32)
-    interleaved = np.empty(len(raw) * 2, dtype=np.float32)
-    interleaved[0::2] = low
-    interleaved[1::2] = high
-    interleaved = interleaved[:num_elements]
-    return torch.tensor((interleaved - 7.5) * scale).reshape(shape)
+    return torch.tensor(out[:num_elements]).reshape(shape)
 
 
 def load_osm_tensor(path: Path) -> torch.Tensor:
     with open(path, "rb") as f:
-        header = f.read(13)
-        bits, scale, rows, cols = struct.unpack("<BfII", header)
-        data = f.read()
+        first_byte = struct.unpack("<B", f.read(1))[0]
 
-    shape = [rows, cols] if cols > 1 else [rows]
+        if first_byte == 2:
+            bits, ndims = struct.unpack("<BB", f.read(2))
+            shape = list(struct.unpack(f"<{ndims}I", f.read(ndims * 4)))
+            data = f.read()
+            return _unpack_blocks(data, shape, bits)
+        else:
+            f.seek(0)
+            header = f.read(13)
+            bits, scale, rows, cols = struct.unpack("<BfII", header)
+            data = f.read()
+            shape = [rows, cols] if cols > 1 else [rows]
+            return _unpack_blocks_v1(data, shape, bits, scale)
 
+
+def _unpack_blocks_v1(data: bytes, shape: list, bits: int, scale: float) -> torch.Tensor:
+    """Legacy v1 global-scale unpack."""
+    num_elements = int(np.prod(shape))
+    raw = np.frombuffer(data, dtype=np.uint8)
     if bits == 1:
-        return unpack_1bit(data, shape, scale)
+        vals = np.zeros(len(raw) * 8, dtype=np.float32)
+        for bit in range(8):
+            vals[bit::8] = (raw >> bit) & 1
+        vals = vals[:num_elements]
+        return torch.tensor((vals * 2 - 1) * scale).reshape(shape)
     elif bits == 2:
-        return unpack_2bit(data, shape, scale)
-    elif bits == 4:
-        return unpack_4bit(data, shape, scale)
+        vals = np.zeros(len(raw) * 4, dtype=np.float32)
+        for pos in range(4):
+            vals[pos::4] = (raw >> (pos * 2)) & 0x3
+        vals = vals[:num_elements]
+        return torch.tensor((vals - 1.5) * scale).reshape(shape)
     else:
-        raise ValueError(f"Unsupported bit depth: {bits}")
+        low = (raw & 0xF).astype(np.float32)
+        high = (raw >> 4).astype(np.float32)
+        interleaved = np.empty(len(raw) * 2, dtype=np.float32)
+        interleaved[0::2] = low
+        interleaved[1::2] = high
+        interleaved = interleaved[:num_elements]
+        return torch.tensor((interleaved - 7.5) * scale).reshape(shape)
 
 
 class OsmosisModel:

@@ -1,7 +1,7 @@
-"""GGUF reader for Osmosis custom quant types.
+"""GGUF reader for Osmosis block-wise quant types.
 
 Reads GGUF v3 files written by gguf_writer.py, extracts osmosis tensors,
-and unpacks them back to float using the loader's unpack functions.
+and unpacks them back to float using block-wise dequantization.
 """
 import struct
 from pathlib import Path
@@ -11,14 +11,17 @@ import torch
 
 from osmosis.gguf_writer import (
     GGUF_MAGIC, GGML_TYPE_F16, GGML_TYPE_F32,
-    OSMOSIS_1BIT, OSMOSIS_2BIT, OSMOSIS_4BIT,  # 43, 44, 45
+    OSMOSIS_1BIT, OSMOSIS_2BIT, OSMOSIS_4BIT,
 )
-from osmosis.loader import unpack_1bit, unpack_2bit, unpack_4bit
+from osmosis.loader import _unpack_blocks, BLOCK_SIZE
 
 GGUF_TYPE_UINT32 = 4
 GGUF_TYPE_FLOAT32 = 6
 GGUF_TYPE_STRING = 8
 GGUF_TYPE_ARRAY = 9
+
+OSMOSIS_BITS = {OSMOSIS_1BIT: 1, OSMOSIS_2BIT: 2, OSMOSIS_4BIT: 4}
+OSMOSIS_BLOCK_BYTES = {1: 6, 2: 10, 4: 18}
 
 
 def _read_string(f) -> str:
@@ -102,26 +105,16 @@ def read_osmosis_gguf(path: str) -> dict:
                 raw = np.frombuffer(f.read(n_bytes), dtype=np.float16)
                 tensors[name] = torch.tensor(raw.reshape(info["shape"]))
 
-            elif info["type"] in (OSMOSIS_1BIT, OSMOSIS_2BIT, OSMOSIS_4BIT):
-                scale_bytes = f.read(4)
-                scale = struct.unpack("<f", scale_bytes)[0]
-
+            elif info["type"] in OSMOSIS_BITS:
+                bits = OSMOSIS_BITS[info["type"]]
                 safe_key = name.replace(".", "_")
                 shape = metadata[f"osmosis.shape.{safe_key}"]
-
                 num_elements = int(np.prod(shape))
-                if info["type"] == OSMOSIS_1BIT:
-                    n_bytes = (num_elements + 7) // 8
-                    data = f.read(n_bytes)
-                    tensors[name] = unpack_1bit(data, shape, scale)
-                elif info["type"] == OSMOSIS_2BIT:
-                    n_bytes = (num_elements + 3) // 4
-                    data = f.read(n_bytes)
-                    tensors[name] = unpack_2bit(data, shape, scale)
-                elif info["type"] == OSMOSIS_4BIT:
-                    n_bytes = (num_elements + 1) // 2
-                    data = f.read(n_bytes)
-                    tensors[name] = unpack_4bit(data, shape, scale)
+                n_blocks = (num_elements + BLOCK_SIZE - 1) // BLOCK_SIZE
+                block_bytes = OSMOSIS_BLOCK_BYTES[bits]
+                n_bytes = n_blocks * block_bytes
+                data = f.read(n_bytes)
+                tensors[name] = _unpack_blocks(data, shape, bits)
             else:
                 raise ValueError(
                     f"Unknown type {info['type']} for tensor {name}"

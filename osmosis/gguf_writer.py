@@ -230,19 +230,25 @@ def convert_osmosis_to_gguf(crush_dir: str, output_path: str,
                     tensor_sources[tk] = ("safetensors", str(st_path), tk)
         else:
             osm_path = crush_path / file_name
+            fmt_version = info.get("format", 1)
             with open(osm_path, "rb") as of:
-                header = of.read(13)
-                file_bits, scale, rows, cols = struct.unpack("<BfII", header)
-                data_size = of.seek(0, 2) - 13
+                if fmt_version == 2:
+                    of.read(1)  # version byte
+                    file_bits, ndims = struct.unpack("<BB", of.read(2))
+                    of.read(ndims * 4)  # skip shape
+                    header_size = 3 + ndims * 4
+                else:
+                    of.read(13)
+                    file_bits = bits
+                    header_size = 13
+                data_size = of.seek(0, 2) - header_size
 
-            nbytes = 4 + data_size  # 4 bytes scale prefix + packed data
             ggml_type = osmosis_type_for_bits(file_bits)
-            writer.add_tensor_info(key, nbytes, ggml_type, shape)
-            tensor_sources[key] = ("osm", str(osm_path), scale)
+            writer.add_tensor_info(key, data_size, ggml_type, shape)
+            tensor_sources[key] = ("osm", str(osm_path), header_size)
 
-            safe_key = key.replace(".", "_")
-            writer.add_metadata_float32(f"osmosis.scale.{safe_key}", scale)
-            writer.add_metadata_uint32_array(f"osmosis.shape.{safe_key}", shape)
+            writer.add_metadata_uint32_array(
+                f"osmosis.shape.{key.replace('.', '_')}", shape)
 
     print(f"  {len(tensor_sources)} tensors registered")
 
@@ -264,10 +270,9 @@ def convert_osmosis_to_gguf(crush_dir: str, output_path: str,
                 f.write(pt_tensor.numpy().tobytes())
 
         elif source[0] == "osm":
-            _, osm_path, scale = source
-            f.write(struct.pack("<f", scale))
+            _, osm_path, header_size = source
             with open(osm_path, "rb") as of:
-                of.seek(13)  # skip .osm header
+                of.seek(header_size)
                 while True:
                     chunk = of.read(1024 * 1024)
                     if not chunk:

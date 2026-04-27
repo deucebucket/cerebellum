@@ -127,19 +127,22 @@ def phase2_sensitivity(model_path: str, act_dir: Path, output_dir: Path,
 
     tokenizer = AutoTokenizer.from_pretrained(model_path, trust_remote_code=True)
 
-    print("Loading model on CPU for streaming analysis...")
+    print("Loading model for streaming analysis...")
     model = AutoModelForCausalLM.from_pretrained(
         model_path,
         torch_dtype=torch.float16,
-        device_map="cpu",
+        device_map="auto",
         trust_remote_code=True,
     )
     model.eval()
+    model_device = next(model.parameters()).device
+    print(f"  Model on: {model_device}")
 
-    print("Capturing baseline logits (CPU, slow)...")
+    print("Capturing baseline logits...")
     baseline_logits = []
     for prompt in tqdm(CALIBRATION_PROMPTS[:4], desc="Baseline"):
         tokens = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_length)
+        tokens = {k: v.to(model_device) for k, v in tokens.items()}
         output = model(**tokens)
         log_probs = F.log_softmax(output.logits[0].float(), dim=-1)
         baseline_logits.append(log_probs)
@@ -203,6 +206,7 @@ def phase2_sensitivity(model_path: str, act_dir: Path, output_dir: Path,
             module.weight.data = crushed.to(module.weight.device)
             for i, prompt in enumerate(CALIBRATION_PROMPTS[:4]):
                 tokens = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=max_length)
+                tokens = {k: v.to(model_device) for k, v in tokens.items()}
                 output = model(**tokens)
                 crushed_logits = F.log_softmax(output.logits[0].float(), dim=-1)
                 baseline_probs = torch.exp(baseline_logits[i])
@@ -232,19 +236,33 @@ def phase2_sensitivity(model_path: str, act_dir: Path, output_dir: Path,
     gc.collect()
     torch.cuda.empty_cache()
 
+    total_params = sum(g["param_count"] for g in all_groups)
+    total_model_params = total_params  # approximation from weight groups
+
     kl_values = [g["kl_divergence"] for g in all_groups if np.isfinite(g["kl_divergence"])]
     p25 = np.percentile(kl_values, 25)
+    p50 = np.percentile(kl_values, 50)
     p75 = np.percentile(kl_values, 75)
+
+    if total_model_params < 3e9:
+        bit_levels = (4, 4, 4)
+        print(f"  Small model ({total_model_params/1e9:.1f}B) — using 4-bit floor")
+    elif total_model_params < 10e9:
+        bit_levels = (4, 4, 2)
+        print(f"  Medium model ({total_model_params/1e9:.1f}B) — 4/4/2 bit allocation")
+    else:
+        bit_levels = (4, 2, 1)
+        print(f"  Large model ({total_model_params/1e9:.1f}B) — 4/2/1 bit allocation")
+
     for g in all_groups:
         kl = g["kl_divergence"]
         if not np.isfinite(kl) or kl > p75:
-            g["recommended_bits"] = 4
+            g["recommended_bits"] = bit_levels[0]
         elif kl > p25:
-            g["recommended_bits"] = 2
+            g["recommended_bits"] = bit_levels[1]
         else:
-            g["recommended_bits"] = 1
+            g["recommended_bits"] = bit_levels[2]
 
-    total_params = sum(g["param_count"] for g in all_groups)
     weighted = sum(g["param_count"] * g["recommended_bits"] for g in all_groups)
     avg_bits = weighted / total_params if total_params else 0
 
@@ -275,51 +293,69 @@ def phase2_sensitivity(model_path: str, act_dir: Path, output_dir: Path,
     return report
 
 
-def pack_1bit(tensor: torch.Tensor) -> tuple:
-    """Quantize to 1-bit and pack 8 values per byte."""
-    scale = tensor.abs().mean()
-    signs = (tensor > 0).to(torch.uint8)
-    flat = signs.flatten()
-    pad_len = (8 - len(flat) % 8) % 8
+BLOCK_SIZE = 32
+
+
+def _pack_blocks(tensor: torch.Tensor, bits: int) -> bytes:
+    """Vectorized block-wise quantization: per-32-element scale + packed data."""
+    flat = tensor.flatten().float().cpu()
+    n = len(flat)
+    pad_len = (BLOCK_SIZE - n % BLOCK_SIZE) % BLOCK_SIZE
     if pad_len:
-        flat = torch.cat([flat, torch.zeros(pad_len, dtype=torch.uint8)])
-    packed = torch.zeros(len(flat) // 8, dtype=torch.uint8)
-    for bit in range(8):
-        packed |= flat[bit::8] << bit
-    return packed.numpy().tobytes(), float(scale), list(tensor.shape)
+        flat = torch.cat([flat, torch.zeros(pad_len)])
+    blocks = flat.reshape(-1, BLOCK_SIZE)
+    n_blocks = blocks.shape[0]
+
+    amax = blocks.abs().amax(dim=1)
+
+    if bits == 1:
+        scales = blocks.abs().mean(dim=1)
+        scales[amax == 0] = 1.0
+        signs = (blocks > 0).to(torch.uint8)
+        packed_all = torch.zeros(n_blocks, BLOCK_SIZE // 8, dtype=torch.uint8)
+        for bit in range(8):
+            packed_all |= signs[:, bit::8] << bit
+        data_bytes_per_block = BLOCK_SIZE // 8
+    elif bits == 2:
+        scales = amax / 1.5
+        scales[scales == 0] = 1.0
+        normalized = (blocks / scales.unsqueeze(1)).clamp(-1.5, 1.5)
+        levels = torch.round(normalized + 1.5).clamp(0, 3).to(torch.uint8)
+        packed_all = torch.zeros(n_blocks, BLOCK_SIZE // 4, dtype=torch.uint8)
+        for pos in range(4):
+            packed_all |= levels[:, pos::4] << (pos * 2)
+        data_bytes_per_block = BLOCK_SIZE // 4
+    else:
+        scales = amax / 7.5
+        scales[scales == 0] = 1.0
+        normalized = (blocks / scales.unsqueeze(1)).clamp(-7.5, 7.5)
+        levels = torch.round(normalized + 7.5).clamp(0, 15).to(torch.uint8)
+        packed_all = levels[:, 0::2] | (levels[:, 1::2] << 4)
+        data_bytes_per_block = BLOCK_SIZE // 2
+
+    scales_f16 = scales.to(torch.float16).cpu().numpy().tobytes()
+    packed_np = packed_all.cpu().numpy()
+
+    out = bytearray(n_blocks * (2 + data_bytes_per_block))
+    block_total = 2 + data_bytes_per_block
+    for i in range(n_blocks):
+        offset = i * block_total
+        out[offset:offset + 2] = scales_f16[i * 2:(i + 1) * 2]
+        out[offset + 2:offset + block_total] = packed_np[i].tobytes()
+
+    return bytes(out)
+
+
+def pack_1bit(tensor: torch.Tensor) -> tuple:
+    return _pack_blocks(tensor, 1), 0.0, list(tensor.shape)
 
 
 def pack_2bit(tensor: torch.Tensor) -> tuple:
-    """Quantize to 2-bit (4 levels) and pack 4 values per byte."""
-    scale = tensor.abs().max() / 1.5
-    if scale == 0:
-        scale = torch.tensor(1.0)
-    normalized = (tensor / scale).clamp(-1.5, 1.5)
-    levels = torch.round((normalized + 1.5) * (3.0 / 3.0)).clamp(0, 3).to(torch.uint8)
-    flat = levels.flatten()
-    pad_len = (4 - len(flat) % 4) % 4
-    if pad_len:
-        flat = torch.cat([flat, torch.zeros(pad_len, dtype=torch.uint8)])
-    packed = torch.zeros(len(flat) // 4, dtype=torch.uint8)
-    for pos in range(4):
-        packed |= flat[pos::4] << (pos * 2)
-    return packed.numpy().tobytes(), float(scale), list(tensor.shape)
+    return _pack_blocks(tensor, 2), 0.0, list(tensor.shape)
 
 
 def pack_4bit(tensor: torch.Tensor) -> tuple:
-    """Quantize to 4-bit (16 levels) and pack 2 values per byte."""
-    scale = tensor.abs().max() / 7.5
-    if scale == 0:
-        scale = torch.tensor(1.0)
-    normalized = (tensor / scale).clamp(-7.5, 7.5)
-    levels = torch.round(normalized + 7.5).clamp(0, 15).to(torch.uint8)
-    flat = levels.flatten()
-    pad_len = (2 - len(flat) % 2) % 2
-    if pad_len:
-        flat = torch.cat([flat, torch.zeros(pad_len, dtype=torch.uint8)])
-    packed = torch.zeros(len(flat) // 2, dtype=torch.uint8)
-    packed = flat[0::2] | (flat[1::2] << 4)
-    return packed.numpy().tobytes(), float(scale), list(tensor.shape)
+    return _pack_blocks(tensor, 4), 0.0, list(tensor.shape)
 
 
 def phase3_crush(model_path: str, report_path: Path, output_dir: Path):
@@ -396,19 +432,18 @@ def phase3_crush(model_path: str, report_path: Path, output_dir: Path):
 
                 out_path = crush_dir / f"{key.replace('.', '_')}.osm"
                 with open(out_path, "wb") as out_f:
-                    header = struct.pack("<BfII",
-                                        bits,
-                                        scale,
-                                        shape[0],
-                                        shape[1] if len(shape) > 1 else 1)
+                    ndims = len(shape)
+                    header = struct.pack("<BBB", 2, bits, ndims)
+                    for d in shape:
+                        header += struct.pack("<I", d)
                     out_f.write(header)
                     out_f.write(packed_bytes)
 
-                total_packed += len(packed_bytes) + 13
+                total_packed += len(packed_bytes) + len(header)
                 manifest["layers"][key] = {
                     "bits": bits,
                     "file": out_path.name,
-                    "scale": scale,
+                    "format": 2,
                     "shape": shape,
                     "original_bytes": original_bytes,
                     "packed_bytes": len(packed_bytes),
