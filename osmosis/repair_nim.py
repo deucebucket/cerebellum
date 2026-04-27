@@ -337,10 +337,28 @@ def tokenize_training_data(pairs, tokenizer, max_length=256):
 
 # --- Training ---
 
+def build_targeted_lora_config(targeted_config_path, default_r=4, default_alpha=8):
+    """Build PEFT LoraConfig from sensitivity-guided targeted config."""
+    with open(targeted_config_path) as f:
+        config = json.load(f)
+
+    return LoraConfig(
+        task_type=TaskType.CAUSAL_LM,
+        r=config.get("default_r", default_r),
+        lora_alpha=config.get("default_alpha", default_alpha),
+        lora_dropout=0.05,
+        target_modules=config["target_modules"],
+        rank_pattern=config.get("rank_pattern", {}),
+        alpha_pattern=config.get("alpha_pattern", {}),
+        bias="none",
+    )
+
+
 def train_nim_lora(
     model_path: str,
     output_dir: str,
     tensor_types_path: str = None,
+    targeted_lora_config: str = None,
     nim_card: str = "carl",
     domain: str = "repair",
     system_prompt: str = None,
@@ -364,6 +382,8 @@ def train_nim_lora(
     print(f"NIM card:   {nim_card}")
     print(f"Domain:     {domain}")
     print(f"LoRA:       r={lora_r}, alpha={lora_alpha}, lr={lr}")
+    if targeted_lora_config:
+        print(f"LoRA mode:  TARGETED (sensitivity-guided)")
     print(f"Training:   {num_samples} samples, max_length={max_length}, {epochs} epochs")
     if tensor_types_path:
         print(f"Quant map:  {tensor_types_path}")
@@ -430,15 +450,21 @@ def train_nim_lora(
     for param in model.parameters():
         param.requires_grad = False
 
-    lora_config = LoraConfig(
-        task_type=TaskType.CAUSAL_LM,
-        r=lora_r,
-        lora_alpha=lora_alpha,
-        lora_dropout=0.05,
-        target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
-                        "gate_proj", "up_proj", "down_proj"],
-        bias="none",
-    )
+    if targeted_lora_config:
+        print(f"Loading targeted LoRA config from {targeted_lora_config}")
+        lora_config = build_targeted_lora_config(targeted_lora_config, lora_r, lora_alpha)
+        print(f"  Targeting {len(lora_config.target_modules)} modules "
+              f"(rank pattern: {len(lora_config.rank_pattern)} overrides)")
+    else:
+        lora_config = LoraConfig(
+            task_type=TaskType.CAUSAL_LM,
+            r=lora_r,
+            lora_alpha=lora_alpha,
+            lora_dropout=0.05,
+            target_modules=["q_proj", "k_proj", "v_proj", "o_proj",
+                            "gate_proj", "up_proj", "down_proj"],
+            bias="none",
+        )
     model = get_peft_model(model, lora_config)
     model.gradient_checkpointing_enable()
     model.enable_input_require_grads()
@@ -569,6 +595,8 @@ def main():
     parser.add_argument("--output", required=True, help="Output directory for LoRA")
     parser.add_argument("--tensor-types", default=None,
                         help="Tensor type file from budget allocator (for simulated quant)")
+    parser.add_argument("--targeted-lora-config", default=None,
+                        help="JSON config for sensitivity-guided targeted LoRA (from budget analyzer)")
     parser.add_argument("--nim-card", default="carl", help="PMS card for NIM teacher")
     parser.add_argument("--domain", default="repair",
                         help="Training domain: repair, vadugwi, or path to prompts file")
@@ -587,6 +615,7 @@ def main():
     train_nim_lora(
         args.model, args.output,
         tensor_types_path=args.tensor_types,
+        targeted_lora_config=args.targeted_lora_config,
         nim_card=args.nim_card,
         domain=args.domain,
         system_prompt=args.system_prompt,
