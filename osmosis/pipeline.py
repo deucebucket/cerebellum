@@ -365,7 +365,12 @@ def phase3_crush(model_path: str, report_path: Path, output_dir: Path):
                 for group_key, bits in bit_map.items():
                     layer_part = group_key.split(".")[0].replace("layer_", "")
                     subpath = ".".join(group_key.split(".")[1:])
-                    if f"layers.{layer_part}.{subpath}.weight" == key.replace("model.", "", 1):
+                    stripped = key
+                    for prefix in ("model.language_model.", "model."):
+                        if stripped.startswith(prefix):
+                            stripped = stripped[len(prefix):]
+                            break
+                    if f"layers.{layer_part}.{subpath}.weight" == stripped:
                         matched_group = (group_key, bits)
                         break
 

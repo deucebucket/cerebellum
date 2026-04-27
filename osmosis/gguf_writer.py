@@ -3,15 +3,13 @@
 Writes GGUF v3 files with custom quant types for osmosis 1/2/4-bit tensors.
 Standard tensors (embeddings, norms) are stored as F16/F32.
 
-Custom type IDs (above llama.cpp's enum range):
-  OSMOSIS_1BIT = 1001  — 1 sign bit + per-tensor f32 scale
-  OSMOSIS_2BIT = 1002  — 2-bit levels (0-3) + per-tensor f32 scale
-  OSMOSIS_4BIT = 1004  — 4-bit levels (0-15) + per-tensor f32 scale
+Custom type IDs (must match ggml.h enum in osmosis llama.cpp fork):
+  OSMOSIS_1BIT = 43
+  OSMOSIS_2BIT = 44
+  OSMOSIS_4BIT = 45
 
-Each osmosis tensor stores:
-  - Packed uint8 data (same layout as .osm files, minus the header)
-  - Scale stored as GGUF metadata: "osmosis.scale.<tensor_name>" = float32
-  - Original shape stored as metadata: "osmosis.shape.<tensor_name>" = uint32 array
+Data layout for osmosis tensors: 4-byte float32 scale prefix + packed data.
+Scale also stored as GGUF metadata for the Python reader.
 """
 import json
 import struct
@@ -83,7 +81,11 @@ def osmosis_type_for_bits(bits: int) -> int:
 
 
 class OsmosisGGUFWriter:
-    """Writes an Osmosis-compressed model to GGUF format."""
+    """Writes an Osmosis-compressed model to GGUF format.
+
+    Supports both buffered mode (small models, for tests) and streaming
+    mode (large models, one tensor at a time via callbacks).
+    """
 
     def __init__(self):
         self.metadata = {}
@@ -110,7 +112,23 @@ class OsmosisGGUFWriter:
             "shape": shape,
         })
 
-    def write(self, path: str):
+    def add_tensor_info(self, name: str, nbytes: int, ggml_type: int,
+                        shape: list):
+        """Register tensor metadata without holding data in memory."""
+        self.tensors.append({
+            "name": name,
+            "data": None,
+            "nbytes": nbytes,
+            "type": ggml_type,
+            "shape": shape,
+        })
+
+    def write(self, path: str, data_callback=None):
+        """Write GGUF file.
+
+        If data_callback is provided, it's called for each tensor that has
+        data=None, with (f, tensor_info) and must write the tensor data.
+        """
         with open(path, "wb") as f:
             n_tensors = len(self.tensors)
             n_kv = len(self.metadata)
@@ -148,7 +166,12 @@ class OsmosisGGUFWriter:
             for t in self.tensors:
                 _align(f, 32)
                 data_offsets.append(f.tell() - data_start)
-                f.write(t["data"].tobytes())
+                if t["data"] is not None:
+                    f.write(t["data"].tobytes())
+                elif data_callback:
+                    data_callback(f, t)
+                else:
+                    raise ValueError(f"No data for tensor {t['name']}")
 
             for i, pos in enumerate(data_offset_positions):
                 f.seek(pos)
@@ -159,7 +182,7 @@ class OsmosisGGUFWriter:
 
 def convert_osmosis_to_gguf(crush_dir: str, output_path: str,
                             architecture: str = "qwen3_5"):
-    """Convert Osmosis crush directory to GGUF file."""
+    """Convert Osmosis crush directory to GGUF file (streaming, low memory)."""
     crush_path = Path(crush_dir)
     with open(crush_path / "manifest.json") as f:
         manifest = json.load(f)
@@ -178,7 +201,10 @@ def convert_osmosis_to_gguf(crush_dir: str, output_path: str,
                                 compression.get("ratio", 0.0))
 
     layers = manifest["layers"]
-    loaded = 0
+
+    # Pass 1: collect tensor info (names, types, sizes) without loading data
+    print("Pass 1: collecting tensor metadata...")
+    tensor_sources = {}
 
     for key, info in layers.items():
         bits = info["bits"]
@@ -188,37 +214,72 @@ def convert_osmosis_to_gguf(crush_dir: str, output_path: str,
         if bits == 16:
             from safetensors import safe_open
             st_path = crush_path / file_name
-            with safe_open(str(st_path), framework="numpy", device="cpu") as sf:
+            with safe_open(str(st_path), framework="pt", device="cpu") as sf:
                 for tk in sf.keys():
-                    tensor = sf.get_tensor(tk)
-                    if tensor.dtype == np.float16:
+                    sl = sf.get_slice(tk)
+                    tensor_shape = sl.get_shape()
+                    dtype_str = str(sl.get_dtype())
+                    if "F16" in dtype_str or "BF16" in dtype_str:
                         ggml_type = GGML_TYPE_F16
+                        nbytes = int(np.prod(tensor_shape)) * 2
                     else:
                         ggml_type = GGML_TYPE_F32
-                    writer.add_tensor(tk, tensor, ggml_type, list(tensor.shape))
-                    loaded += 1
+                        nbytes = int(np.prod(tensor_shape)) * 4
+
+                    writer.add_tensor_info(tk, nbytes, ggml_type, tensor_shape)
+                    tensor_sources[tk] = ("safetensors", str(st_path), tk)
         else:
             osm_path = crush_path / file_name
             with open(osm_path, "rb") as of:
                 header = of.read(13)
                 file_bits, scale, rows, cols = struct.unpack("<BfII", header)
-                packed_data = np.frombuffer(of.read(), dtype=np.uint8)
+                data_size = of.seek(0, 2) - 13
 
-            scale_bytes = np.frombuffer(
-                struct.pack("<f", scale), dtype=np.uint8
-            )
-            data_with_scale = np.concatenate([scale_bytes, packed_data])
-
+            nbytes = 4 + data_size  # 4 bytes scale prefix + packed data
             ggml_type = osmosis_type_for_bits(file_bits)
-            writer.add_tensor(key, data_with_scale, ggml_type, shape)
+            writer.add_tensor_info(key, nbytes, ggml_type, shape)
+            tensor_sources[key] = ("osm", str(osm_path), scale)
 
             safe_key = key.replace(".", "_")
             writer.add_metadata_float32(f"osmosis.scale.{safe_key}", scale)
             writer.add_metadata_uint32_array(f"osmosis.shape.{safe_key}", shape)
-            loaded += 1
 
-    print(f"Loaded {loaded} tensors from crush directory")
-    writer.write(output_path)
+    print(f"  {len(tensor_sources)} tensors registered")
+
+    # Pass 2: stream data to GGUF file, one tensor at a time
+    print("Pass 2: streaming tensor data to GGUF...")
+    written = [0]
+
+    def stream_tensor(f, tensor_info):
+        name = tensor_info["name"]
+        source = tensor_sources[name]
+
+        if source[0] == "safetensors":
+            import torch
+            _, st_path, tk = source
+            with safe_open(st_path, framework="pt", device="cpu") as sf:
+                pt_tensor = sf.get_tensor(tk)
+                if pt_tensor.dtype == torch.bfloat16:
+                    pt_tensor = pt_tensor.to(torch.float16)
+                f.write(pt_tensor.numpy().tobytes())
+
+        elif source[0] == "osm":
+            _, osm_path, scale = source
+            f.write(struct.pack("<f", scale))
+            with open(osm_path, "rb") as of:
+                of.seek(13)  # skip .osm header
+                while True:
+                    chunk = of.read(1024 * 1024)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+
+        written[0] += 1
+        if written[0] % 100 == 0:
+            print(f"  {written[0]}/{len(tensor_sources)} tensors written")
+
+    writer.write(output_path, data_callback=stream_tensor)
+    print(f"Done: {written[0]} tensors written")
     return output_path
 
 
