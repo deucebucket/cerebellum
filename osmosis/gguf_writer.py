@@ -206,18 +206,35 @@ def convert_osmosis_to_gguf(crush_dir: str, output_path: str,
     print("Pass 1: collecting tensor metadata...")
     tensor_sources = {}
 
+    skip_prefixes = ("model.visual.", "visual.", "model.merger.")
+    skipped = 0
+
     for key, info in layers.items():
         bits = info["bits"]
         file_name = info["file"]
         shape = info["shape"]
+
+        if any(key.startswith(p) for p in skip_prefixes):
+            skipped += 1
+            continue
+
+        if len(shape) > 4:
+            skipped += 1
+            continue
 
         if bits == 16:
             from safetensors import safe_open
             st_path = crush_path / file_name
             with safe_open(str(st_path), framework="pt", device="cpu") as sf:
                 for tk in sf.keys():
+                    if any(tk.startswith(p) for p in skip_prefixes):
+                        skipped += 1
+                        continue
                     sl = sf.get_slice(tk)
                     tensor_shape = sl.get_shape()
+                    if len(tensor_shape) > 4:
+                        skipped += 1
+                        continue
                     dtype_str = str(sl.get_dtype())
                     if "F16" in dtype_str or "BF16" in dtype_str:
                         ggml_type = GGML_TYPE_F16
@@ -250,7 +267,7 @@ def convert_osmosis_to_gguf(crush_dir: str, output_path: str,
             writer.add_metadata_uint32_array(
                 f"osmosis.shape.{key.replace('.', '_')}", shape)
 
-    print(f"  {len(tensor_sources)} tensors registered")
+    print(f"  {len(tensor_sources)} tensors registered, {skipped} skipped (vision/5D)")
 
     # Pass 2: stream data to GGUF file, one tensor at a time
     print("Pass 2: streaming tensor data to GGUF...")

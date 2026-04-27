@@ -8,3 +8,8 @@ CLAUDE.md
 .claude/
 .env
 *.secret
+*.gguf
+*.log
+osmosis-qwen3.5-9b/repair-lora/
+osmosis-qwen3.5-9b/activations/
+osmosis-qwen3.5-9b/crushed/

@@ -180,7 +180,10 @@ def phase2_sensitivity(model_path: str, act_dir: Path, output_dir: Path,
             print(f"\n  Layer 0 ({type(layer).__name__}): {list(modules.keys())}")
 
         for group_name, module in modules.items():
-            original = module.weight.data.clone()
+            w = module.weight.data
+            if w.device.type == "meta":
+                continue
+            original = w.to(device).clone()
             magnitude = original.abs().mean().item()
 
             crushed = quantize_1bit(original)
@@ -254,6 +257,9 @@ def phase2_sensitivity(model_path: str, act_dir: Path, output_dir: Path,
         bit_levels = (4, 2, 1)
         print(f"  Large model ({total_model_params/1e9:.1f}B) — 4/2/1 bit allocation")
 
+    ssm_keywords = ("linear_attn", "mamba", "ssm", "conv1d", "dt_", "A_log",
+                     "in_proj_a", "in_proj_b", "in_proj_z")
+
     for g in all_groups:
         kl = g["kl_divergence"]
         if not np.isfinite(kl) or kl > p75:
@@ -262,6 +268,9 @@ def phase2_sensitivity(model_path: str, act_dir: Path, output_dir: Path,
             g["recommended_bits"] = bit_levels[1]
         else:
             g["recommended_bits"] = bit_levels[2]
+
+        if any(kw in g["name"] for kw in ssm_keywords) and g["recommended_bits"] < 4:
+            g["recommended_bits"] = 4
 
     weighted = sum(g["param_count"] * g["recommended_bits"] for g in all_groups)
     avg_bits = weighted / total_params if total_params else 0
@@ -483,7 +492,7 @@ def run_pipeline(model_name: str, output_dir: str, cache_dir: Optional[str] = No
     print(f"  Started: {time.strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"{'#'*60}")
 
-    if skip_download:
+    if skip_download and "/" not in model_name:
         model_path = model_name
         print(f"Skipping download, using local path: {model_path}")
     else:

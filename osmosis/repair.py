@@ -1,9 +1,9 @@
 """Repair LoRA: distill original model knowledge into crushed model via LoRA adapter.
 
-Loads the original (teacher) and crushed (student) models, trains a LoRA on the
-student to minimize KL divergence against the teacher's output distribution.
+Two-phase offline distillation: cache teacher logits first (then free teacher),
+train student LoRA against cached logits. Fits on single GPU even for large models.
 """
-import json
+import gc
 import math
 import random
 import time
@@ -76,21 +76,55 @@ def train_repair_lora(
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    print("\nLoading teacher (original) model...")
+    print("\nLoading calibration data...")
+    samples = load_calibration_data(tokenizer, num_samples, max_length)
+
+    # Phase 1: cache teacher predictions, then free teacher
+    # Store top-K logprobs per token (not full vocab — that's 248K * samples * seq_len)
+    top_k = 64
+    print(f"\n--- Phase 1: Caching teacher top-{top_k} logprobs ---")
     teacher = AutoModelForCausalLM.from_pretrained(
         original_model_path, dtype=torch.float16,
         device_map=device, trust_remote_code=True,
     )
     teacher.eval()
-    for p in teacher.parameters():
-        p.requires_grad = False
 
-    print("Loading student (crushed) model...")
+    cached_teacher = []
+    with torch.no_grad():
+        for i, sample in enumerate(samples):
+            input_ids = sample["input_ids"].to(device)
+            attention_mask = sample["attention_mask"].to(device)
+            out = teacher(input_ids=input_ids, attention_mask=attention_mask)
+            logits = out.logits.float()
+            log_probs = F.log_softmax(logits, dim=-1)
+            topk_vals, topk_ids = log_probs.topk(top_k, dim=-1)
+            cached_teacher.append({
+                "topk_logp": topk_vals.cpu(),
+                "topk_ids": topk_ids.cpu(),
+                "argmax": logits.argmax(dim=-1).cpu(),
+            })
+            if (i + 1) % 100 == 0:
+                print(f"  {i+1}/{len(samples)} samples cached")
+
+    cache_mb = sum(
+        t["topk_logp"].nbytes + t["topk_ids"].nbytes + t["argmax"].nbytes
+        for t in cached_teacher
+    ) / 1e6
+    print(f"  Cached {len(cached_teacher)} samples ({cache_mb:.0f} MB)")
+    del teacher
+    gc.collect()
+    torch.cuda.empty_cache()
+    print("  Teacher freed")
+
+    # Phase 2: load student + LoRA, train against cached logits
+    print("\n--- Phase 2: Training student LoRA ---")
     student_wrapper = OsmosisModel(
         crush_dir, original_model_path,
-        device=device, dtype=torch.float16,
+        device="cpu", dtype=torch.float16,
     )
     student = student_wrapper.model
+    student = student.to(device)
+    print(f"  Student moved to {device}")
 
     lora_config = LoraConfig(
         task_type=TaskType.CAUSAL_LM,
@@ -102,13 +136,21 @@ def train_repair_lora(
         bias="none",
     )
     student = get_peft_model(student, lora_config)
+    student.gradient_checkpointing_enable()
+    student.enable_input_require_grads()
     trainable = sum(p.numel() for p in student.parameters() if p.requires_grad)
     total = sum(p.numel() for p in student.parameters())
-    print(f"\nLoRA params: {trainable:,} trainable / {total:,} total "
+    print(f"LoRA params: {trainable:,} trainable / {total:,} total "
           f"({100 * trainable / total:.2f}%)")
+    print("Gradient checkpointing enabled")
 
-    print("\nLoading calibration data...")
-    samples = load_calibration_data(tokenizer, num_samples, max_length)
+    if hasattr(student, "hf_device_map"):
+        input_device = next(iter(student.hf_device_map.values()))
+        if isinstance(input_device, int):
+            input_device = f"cuda:{input_device}"
+    else:
+        input_device = device
+    print(f"Input device: {input_device}")
 
     optimizer = torch.optim.AdamW(
         [p for p in student.parameters() if p.requires_grad],
@@ -128,7 +170,6 @@ def train_repair_lora(
     for epoch in range(epochs):
         epoch_loss = 0.0
         epoch_steps = 0
-
         indices = torch.randperm(len(samples))
 
         for i in range(0, len(samples), batch_size):
@@ -137,16 +178,12 @@ def train_repair_lora(
 
             for idx in batch_indices:
                 sample = samples[idx]
-                input_ids = sample["input_ids"].to(device)
-                attention_mask = sample["attention_mask"].to(device)
-
-                with torch.no_grad():
-                    teacher_out = teacher(
-                        input_ids=input_ids, attention_mask=attention_mask
-                    )
-                    teacher_logp = F.log_softmax(
-                        teacher_out.logits.float(), dim=-1
-                    )
+                input_ids = sample["input_ids"].to(input_device)
+                attention_mask = sample["attention_mask"].to(input_device)
+                teacher_cache = cached_teacher[idx]
+                teacher_argmax = teacher_cache["argmax"].to(input_device)
+                teacher_topk_logp = teacher_cache["topk_logp"].to(input_device)
+                teacher_topk_ids = teacher_cache["topk_ids"].to(input_device)
 
                 student_out = student(
                     input_ids=input_ids, attention_mask=attention_mask
@@ -155,14 +192,15 @@ def train_repair_lora(
                     student_out.logits.float(), dim=-1
                 )
 
-                kl = F.kl_div(
-                    student_logp, teacher_logp.exp(),
-                    reduction="batchmean", log_target=False,
-                )
+                # Sparse KL: gather student logprobs at teacher's top-K positions
+                student_at_topk = student_logp.gather(-1, teacher_topk_ids)
+                teacher_topk_probs = teacher_topk_logp.exp()
+                kl = (teacher_topk_probs * (teacher_topk_logp - student_at_topk)).sum(-1).mean()
 
+                # CE against teacher's hard predictions (shifted)
                 ce = F.cross_entropy(
                     student_out.logits[0, :-1].float(),
-                    input_ids[0, 1:],
+                    teacher_argmax[0, 1:],
                 )
                 loss = 0.7 * kl + 0.3 * ce
                 batch_loss += loss
@@ -224,21 +262,6 @@ def evaluate_repair(
         original_model_path, trust_remote_code=True
     )
 
-    print("Loading original...")
-    original = AutoModelForCausalLM.from_pretrained(
-        original_model_path, dtype=torch.float16,
-        device_map=device, trust_remote_code=True,
-    )
-    original.eval()
-
-    print("Loading crushed (no LoRA)...")
-    bare = OsmosisModel(crush_dir, original_model_path, device=device)
-
-    print("Loading crushed + repair LoRA...")
-    repaired_wrapper = OsmosisModel(crush_dir, original_model_path, device=device)
-    repaired = PeftModel.from_pretrained(repaired_wrapper.model, lora_path)
-    repaired.eval()
-
     prompts = [
         "The meaning of life is",
         "In a shocking finding, scientists discovered",
@@ -250,45 +273,78 @@ def evaluate_repair(
         "According to recent studies, climate change",
     ][:num_prompts]
 
-    print(f"\nEvaluating on {len(prompts)} prompts...")
-    print("=" * 70)
+    # Cache original logits then free
+    print("Loading original for logit caching...")
+    original = AutoModelForCausalLM.from_pretrained(
+        original_model_path, dtype=torch.float16,
+        device_map=device, trust_remote_code=True,
+    )
+    original.eval()
 
-    bare_kls, repaired_kls = [], []
-    bare_ppls, repaired_ppls, orig_ppls = [], [], []
+    orig_data = []
+    for prompt in prompts:
+        tokens = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=128)
+        tokens = {k: v.to(device) for k, v in tokens.items()}
+        out = original(**tokens)
+        orig_data.append({
+            "logp": F.log_softmax(out.logits.float(), dim=-1).cpu(),
+            "ppl": torch.exp(F.cross_entropy(
+                out.logits[0, :-1], tokens["input_ids"][0, 1:]
+            )).item(),
+            "input_ids": tokens["input_ids"].cpu(),
+        })
+    del original
+    gc.collect()
+    torch.cuda.empty_cache()
 
+    # Load crushed (no LoRA) and evaluate
+    print("Loading crushed (no LoRA)...")
+    bare = OsmosisModel(crush_dir, original_model_path, device=device)
+
+    bare_kls, bare_ppls = [], []
     for i, prompt in enumerate(prompts):
         tokens = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=128)
         tokens = {k: v.to(device) for k, v in tokens.items()}
-
-        orig_out = original(**tokens)
-        orig_logp = F.log_softmax(orig_out.logits.float(), dim=-1)
-
         bare_out = bare.model(**tokens)
         bare_logp = F.log_softmax(bare_out.logits.float(), dim=-1)
+        orig_logp = orig_data[i]["logp"].to(device)
+        bare_kls.append(F.kl_div(bare_logp, orig_logp.exp(), reduction="batchmean", log_target=False).item())
+        bare_ppls.append(torch.exp(F.cross_entropy(bare_out.logits[0, :-1], tokens["input_ids"][0, 1:])).item())
+    del bare
+    gc.collect()
+    torch.cuda.empty_cache()
 
+    # Load crushed + repair LoRA and evaluate
+    print("Loading crushed + repair LoRA...")
+    repaired_wrapper = OsmosisModel(crush_dir, original_model_path, device=device)
+    repaired = PeftModel.from_pretrained(repaired_wrapper.model, lora_path)
+    repaired.eval()
+
+    repaired_kls, repaired_ppls = [], []
+    for i, prompt in enumerate(prompts):
+        tokens = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=128)
+        tokens = {k: v.to(device) for k, v in tokens.items()}
         rep_out = repaired(**tokens)
         rep_logp = F.log_softmax(rep_out.logits.float(), dim=-1)
+        orig_logp = orig_data[i]["logp"].to(device)
+        repaired_kls.append(F.kl_div(rep_logp, orig_logp.exp(), reduction="batchmean", log_target=False).item())
+        repaired_ppls.append(torch.exp(F.cross_entropy(rep_out.logits[0, :-1], tokens["input_ids"][0, 1:])).item())
+    del repaired
+    gc.collect()
+    torch.cuda.empty_cache()
 
-        bare_kl = F.kl_div(bare_logp, orig_logp.exp(), reduction="batchmean", log_target=False).item()
-        rep_kl = F.kl_div(rep_logp, orig_logp.exp(), reduction="batchmean", log_target=False).item()
-
-        orig_ppl = torch.exp(F.cross_entropy(orig_out.logits[0, :-1], tokens["input_ids"][0, 1:])).item()
-        bare_ppl = torch.exp(F.cross_entropy(bare_out.logits[0, :-1], tokens["input_ids"][0, 1:])).item()
-        rep_ppl = torch.exp(F.cross_entropy(rep_out.logits[0, :-1], tokens["input_ids"][0, 1:])).item()
-
-        bare_kls.append(bare_kl)
-        repaired_kls.append(rep_kl)
-        orig_ppls.append(orig_ppl)
-        bare_ppls.append(bare_ppl)
-        repaired_ppls.append(rep_ppl)
-
+    # Print results
+    print(f"\nResults on {len(prompts)} prompts:")
+    print("=" * 70)
+    for i, prompt in enumerate(prompts):
         print(f"\n[{i+1}] {prompt[:50]}...")
-        print(f"  Original PPL:   {orig_ppl:8.2f}")
-        print(f"  Crushed PPL:    {bare_ppl:8.2f}  KL={bare_kl:.4f}")
-        print(f"  Repaired PPL:   {rep_ppl:8.2f}  KL={rep_kl:.4f}")
-        kl_reduction = (1 - rep_kl / max(bare_kl, 1e-8)) * 100
-        print(f"  KL reduction:   {kl_reduction:.1f}%")
+        print(f"  Original PPL:   {orig_data[i]['ppl']:8.2f}")
+        print(f"  Crushed PPL:    {bare_ppls[i]:8.2f}  KL={bare_kls[i]:.4f}")
+        print(f"  Repaired PPL:   {repaired_ppls[i]:8.2f}  KL={repaired_kls[i]:.4f}")
+        kl_red = (1 - repaired_kls[i] / max(bare_kls[i], 1e-8)) * 100
+        print(f"  KL reduction:   {kl_red:.1f}%")
 
+    orig_ppls = [d["ppl"] for d in orig_data]
     print(f"\n{'=' * 70}")
     print(f"Mean KL  -- bare: {sum(bare_kls)/len(bare_kls):.4f}  "
           f"repaired: {sum(repaired_kls)/len(repaired_kls):.4f}  "

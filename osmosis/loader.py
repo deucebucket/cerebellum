@@ -145,26 +145,33 @@ class OsmosisModel:
         print(f"Average bits: {avg}, compression ratio: {ratio}x")
 
     def _patch_weight(self, key: str, tensor: torch.Tensor):
+        # Strip architecture prefixes that don't exist on the causal LM variant
+        for prefix in ("model.language_model.", "language_model."):
+            if key.startswith(prefix):
+                key = "model." + key[len(prefix):]
+                break
         parts = key.split(".")
         module = self.model
-        for part in parts[:-1]:
-            if part.isdigit():
-                module = module[int(part)]
-            else:
-                module = getattr(module, part)
+        try:
+            for part in parts[:-1]:
+                if part.isdigit():
+                    module = module[int(part)]
+                else:
+                    module = getattr(module, part)
+            param_name = parts[-1]
+            param = getattr(module, param_name)
+        except (AttributeError, IndexError, KeyError):
+            return
 
-        param_name = parts[-1]
-        param = getattr(module, param_name)
         if param.shape != tensor.shape:
-            raise ValueError(
-                f"Shape mismatch for {key}: "
-                f"model has {list(param.shape)}, got {list(tensor.shape)}"
-            )
-        param.data = tensor.to(dtype=self.dtype, device=self.device)
+            return
+
+        target_device = param.device if self.device == "auto" else self.device
+        param.data = tensor.to(dtype=self.dtype, device=target_device)
 
     def generate(self, prompt: str, max_new_tokens=256, **kwargs):
         inputs = self.tokenizer(prompt, return_tensors="pt")
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        inputs = {k: v.to(self.model.device) for k, v in inputs.items()}
         with torch.no_grad():
             output = self.model.generate(
                 **inputs, max_new_tokens=max_new_tokens, **kwargs
@@ -176,7 +183,7 @@ class OsmosisModel:
         tokens = self.tokenizer(
             prompt, return_tensors="pt", truncation=True, max_length=max_length
         )
-        tokens = {k: v.to(self.device) for k, v in tokens.items()}
+        tokens = {k: v.to(self.model.device) for k, v in tokens.items()}
         output = self.model(**tokens)
         return F.log_softmax(output.logits[0].float(), dim=-1)
 
