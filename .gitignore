@@ -1,0 +1,6 @@
+.hf_cache/
+osmosis-qwen27b/
+osmosis.egg-info/
+__pycache__/
+*.pyc
+.pytest_cache/

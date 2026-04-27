@@ -1,6 +1,6 @@
 [build-system]
 requires = ["setuptools>=68.0"]
-build-backend = "setuptools.backends._legacy:_Backend"
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "osmosis"
@@ -19,6 +19,9 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
+
+[tool.setuptools.packages.find]
+include = ["osmosis*"]
 
 [project.scripts]
 osmosis = "osmosis.cli:main"
