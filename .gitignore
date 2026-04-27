@@ -11,5 +11,6 @@ CLAUDE.md
 *.gguf
 *.log
 osmosis-qwen3.5-9b/repair-lora/
+osmosis-qwen3.5-9b/repair-lora-targeted/
 osmosis-qwen3.5-9b/activations/
 osmosis-qwen3.5-9b/crushed/
