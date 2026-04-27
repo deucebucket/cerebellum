@@ -26,10 +26,10 @@ GGUF_VERSION = 3
 GGML_TYPE_F32 = 0
 GGML_TYPE_F16 = 1
 
-# Osmosis custom types
-OSMOSIS_1BIT = 1001
-OSMOSIS_2BIT = 1002
-OSMOSIS_4BIT = 1004
+# Osmosis custom types (must match ggml.h enum)
+OSMOSIS_1BIT = 43
+OSMOSIS_2BIT = 44
+OSMOSIS_4BIT = 45
 
 # GGUF metadata value types
 GGUF_TYPE_UINT32 = 4
@@ -204,8 +204,13 @@ def convert_osmosis_to_gguf(crush_dir: str, output_path: str,
                 file_bits, scale, rows, cols = struct.unpack("<BfII", header)
                 packed_data = np.frombuffer(of.read(), dtype=np.uint8)
 
+            scale_bytes = np.frombuffer(
+                struct.pack("<f", scale), dtype=np.uint8
+            )
+            data_with_scale = np.concatenate([scale_bytes, packed_data])
+
             ggml_type = osmosis_type_for_bits(file_bits)
-            writer.add_tensor(key, packed_data, ggml_type, shape)
+            writer.add_tensor(key, data_with_scale, ggml_type, shape)
 
             safe_key = key.replace(".", "_")
             writer.add_metadata_float32(f"osmosis.scale.{safe_key}", scale)

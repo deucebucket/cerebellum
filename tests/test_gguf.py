@@ -85,14 +85,15 @@ def test_gguf_write_read_roundtrip(tmp_path):
 
     t1 = torch.randn(64, 128)
     p1_bytes, s1, sh1 = pack_1bit(t1)
-    packed1 = np.frombuffer(p1_bytes, dtype=np.uint8)
+    scale1 = np.frombuffer(struct.pack("<f", s1), dtype=np.uint8)
+    packed1 = np.concatenate([scale1, np.frombuffer(p1_bytes, dtype=np.uint8)])
     writer.add_tensor("layer.0.q_proj", packed1, OSMOSIS_1BIT, sh1)
-    writer.add_metadata_float32("osmosis.scale.layer_0_q_proj", s1)
     writer.add_metadata_uint32_array("osmosis.shape.layer_0_q_proj", sh1)
 
     t2 = torch.randn(32, 64)
     p2_bytes, s2, sh2 = pack_2bit(t2)
-    packed2 = np.frombuffer(p2_bytes, dtype=np.uint8)
+    scale2 = np.frombuffer(struct.pack("<f", s2), dtype=np.uint8)
+    packed2 = np.concatenate([scale2, np.frombuffer(p2_bytes, dtype=np.uint8)])
     writer.add_tensor("layer.0.gate_proj", packed2, OSMOSIS_2BIT, sh2)
     writer.add_metadata_float32("osmosis.scale.layer_0_gate_proj", s2)
     writer.add_metadata_uint32_array("osmosis.shape.layer_0_gate_proj", sh2)

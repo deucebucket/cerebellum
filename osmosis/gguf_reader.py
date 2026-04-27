@@ -11,7 +11,7 @@ import torch
 
 from osmosis.gguf_writer import (
     GGUF_MAGIC, GGML_TYPE_F16, GGML_TYPE_F32,
-    OSMOSIS_1BIT, OSMOSIS_2BIT, OSMOSIS_4BIT,
+    OSMOSIS_1BIT, OSMOSIS_2BIT, OSMOSIS_4BIT,  # 43, 44, 45
 )
 from osmosis.loader import unpack_1bit, unpack_2bit, unpack_4bit
 
@@ -103,8 +103,10 @@ def read_osmosis_gguf(path: str) -> dict:
                 tensors[name] = torch.tensor(raw.reshape(info["shape"]))
 
             elif info["type"] in (OSMOSIS_1BIT, OSMOSIS_2BIT, OSMOSIS_4BIT):
+                scale_bytes = f.read(4)
+                scale = struct.unpack("<f", scale_bytes)[0]
+
                 safe_key = name.replace(".", "_")
-                scale = metadata[f"osmosis.scale.{safe_key}"]
                 shape = metadata[f"osmosis.shape.{safe_key}"]
 
                 num_elements = int(np.prod(shape))
