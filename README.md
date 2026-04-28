@@ -2,7 +2,7 @@
 
 Generate importance matrices for [llama.cpp](https://github.com/ggerganov/llama.cpp) quantization in **seconds**, not hours.
 
-Standard imatrix generation (`llama-imatrix`) requires running calibration text through the full model — hours of GPU time for large models. Osmosis computes importance directly from weight statistics, producing a compatible imatrix file in ~20 seconds on CPU.
+Standard imatrix generation (`llama-imatrix`) requires running calibration text through the full model — hours of GPU time for large models. Osmosis computes importance directly from weight statistics, producing a compatible imatrix file in **~60 seconds on CPU** for a 27B model. No GPU required, no calibration data needed.
 
 ## How It Works
 
@@ -24,16 +24,37 @@ Requires PyTorch and Transformers (for loading HuggingFace models).
 
 ## Usage
 
+### Streaming mode (recommended)
+
+Processes one tensor at a time via memory-mapped safetensors. Works on models of **any size** — a 671B model uses ~4GB RAM.
+
 ```bash
-# Generate imatrix from any HuggingFace model
+# Generate imatrix for any model, any size
+python -m osmosis.imatrix_stream \
+    --model Qwen/Qwen3.6-27B \
+    --output osmosis_imatrix.dat \
+    -v
+
+# Works on 671B models too — no GPU, ~4GB RAM
+python -m osmosis.imatrix_stream \
+    --model deepseek-ai/DeepSeek-V3 \
+    --output deepseek-v3-imatrix.dat \
+    -v
+
+# Then quantize with llama.cpp as usual
+llama-quantize --imatrix osmosis_imatrix.dat model-f16.gguf model-Q2_K.gguf Q2_K
+```
+
+### Standard mode
+
+Loads the full model into RAM. Faster for models that fit, supports optional activation calibration.
+
+```bash
 python -m osmosis.imatrix_gen \
     --model Qwen/Qwen3.6-27B \
     --output osmosis_imatrix.dat \
     --no-calibrate \
     -v
-
-# Then quantize with llama.cpp as usual
-llama-quantize --imatrix osmosis_imatrix.dat model-f16.gguf model-Q2_K.gguf Q2_K
 ```
 
 ### With activation calibration (optional)
