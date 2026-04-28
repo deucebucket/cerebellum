@@ -4,17 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "osmosis"
-version = "0.1.0"
-description = "Model Osmosis — push a model through a membrane, only the signal survives"
+version = "0.2.0"
+description = "Fast imatrix generation for llama.cpp quantization — compute weight sensitivity in seconds, not hours"
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.1",
     "transformers>=4.40",
-    "safetensors",
-    "datasets",
-    "numpy",
-    "tqdm",
-    "pyyaml",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +17,3 @@ dev = ["pytest", "ruff"]
 
 [tool.setuptools.packages.find]
 include = ["osmosis*"]
-
-[project.scripts]
-osmosis = "osmosis.cli:main"

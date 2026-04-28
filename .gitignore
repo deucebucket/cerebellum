@@ -1,16 +1,42 @@
-.hf_cache/
-osmosis-qwen27b/
+# Output directories
+osmosis-qwen*/
 osmosis.egg-info/
+
+# Cache
+.hf_cache/
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Claude / IDE
 CLAUDE.md
 .claude/
+
+# Secrets
 .env
 *.secret
+
+# Large files
 *.gguf
 *.log
-osmosis-qwen3.5-9b/repair-lora/
-osmosis-qwen3.5-9b/repair-lora-targeted/
-osmosis-qwen3.5-9b/activations/
-osmosis-qwen3.5-9b/crushed/
+*.dat
+
+# Experiment scripts (keep repo clean)
+scripts/
+tests/
+run_*.sh
+
+# Old experimental modules (kept locally, not in repo)
+osmosis/ab_test.py
+osmosis/benchmark.py
+osmosis/budget.py
+osmosis/cli.py
+osmosis/gguf_reader.py
+osmosis/gguf_writer.py
+osmosis/loader.py
+osmosis/micro_quant.py
+osmosis/pipeline.py
+osmosis/repair.py
+osmosis/repair_nim.py
+osmosis/sensitivity.py
+osmosis/sensitivity_multi.py
