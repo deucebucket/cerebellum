@@ -1,0 +1,9 @@
+{
+  "benchmark": "mmlu_redux",
+  "model": "cerebellum_v4",
+  "accuracy": 77.125,
+  "correct": 1851,
+  "total": 2400,
+  "elapsed_seconds": 1694.7222108840942,
+  "timestamp": "2026-04-29 11:43"
+}
