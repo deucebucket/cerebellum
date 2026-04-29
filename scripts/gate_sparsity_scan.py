@@ -217,7 +217,7 @@ def run_gate_scan(model_path, n_shards, device, max_tokens, output_path):
                 gini_values.append(pdata[layer]["gini_gate_activity"])
         if off_values:
             print(f"{layer:45s} {np.mean(off_values):8.1f} {np.mean(low_values):8.1f} "
-                  f"{np.mean(gini_values):9.3f} {min(off_values)}-{max(off_values):>8s}")
+                  f"{np.mean(gini_values):9.3f} {min(off_values)}-{max(off_values)}")
 
     # Verdict
     total_off = sum(d["gated_off_shards"] for pd in results["prompt_types"].values() for d in pd.values())
