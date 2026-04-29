@@ -1,5 +1,4 @@
 # Output directories
-osmosis-qwen*/
 osmosis.egg-info/
 
 # Cache
@@ -18,7 +17,6 @@ CLAUDE.md
 
 # Large files
 *.gguf
-*.log
 *.dat
 
 # Experiment scripts (keep repo clean)
@@ -29,7 +27,6 @@ run_*.sh
 # Old experimental modules (kept locally, not in repo)
 osmosis/ab_test.py
 osmosis/benchmark.py
-osmosis/budget.py
 osmosis/cli.py
 osmosis/gguf_reader.py
 osmosis/gguf_writer.py
