@@ -1,0 +1,94 @@
+def merge_sort(arr):
+    if len(arr) <= 1:
+        return arr
+    mid = len(arr) // 2
+    left = merge_sort(arr[:mid])
+    right = merge_sort(arr[mid:])
+    return merge(left, right)
+
+def merge(left, right):
+    result = []
+    i = j = 0
+    while i < len(left) and j < len(right):
+        if left[i] <= right[j]:
+            result.append(left[i])
+            i += 1
+        else:
+            result.append(right[j])
+            j += 1
+    result.extend(left[i:])
+    result.extend(right[j:])
+    return result
+
+class BinarySearchTree:
+    def __init__(self, value=None):
+        self.value = value
+        self.left = None
+        self.right = None
+
+    def insert(self, value):
+        if self.value is None:
+            self.value = value
+            return
+        if value < self.value:
+            if self.left is None:
+                self.left = BinarySearchTree(value)
+            else:
+                self.left.insert(value)
+        else:
+            if self.right is None:
+                self.right = BinarySearchTree(value)
+            else:
+                self.right.insert(value)
+
+    def search(self, value):
+        if self.value == value:
+            return True
+        if value < self.value and self.left:
+            return self.left.search(value)
+        if value > self.value and self.right:
+            return self.right.search(value)
+        return False
+
+    def inorder(self):
+        result = []
+        if self.left:
+            result.extend(self.left.inorder())
+        if self.value is not None:
+            result.append(self.value)
+        if self.right:
+            result.extend(self.right.inorder())
+        return result
+
+def fibonacci_matrix(n):
+    if n <= 1:
+        return n
+    def matrix_mult(A, B):
+        return [
+            [A[0][0]*B[0][0] + A[0][1]*B[1][0], A[0][0]*B[0][1] + A[0][1]*B[1][1]],
+            [A[1][0]*B[0][0] + A[1][1]*B[1][0], A[1][0]*B[0][1] + A[1][1]*B[1][1]]
+        ]
+    def matrix_pow(M, p):
+        if p == 1:
+            return M
+        if p % 2 == 0:
+            half = matrix_pow(M, p // 2)
+            return matrix_mult(half, half)
+        return matrix_mult(M, matrix_pow(M, p - 1))
+    result = matrix_pow([[1, 1], [1, 0]], n)
+    return result[0][1]
+
+import asyncio
+import aiohttp
+
+async def fetch_urls(urls, max_concurrent=10):
+    semaphore = asyncio.Semaphore(max_concurrent)
+    async with aiohttp.ClientSession() as session:
+        async def fetch_one(url):
+            async with semaphore:
+                try:
+                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=30)) as resp:
+                        return {"url": url, "status": resp.status, "body": await resp.text()}
+                except Exception as e:
+                    return {"url": url, "error": str(e)}
+        return await asyncio.gather(*[fetch_one(u) for u in urls])

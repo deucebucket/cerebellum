@@ -1,0 +1,15 @@
+
+============================================================
+Testing: cerebellum_v4
+GGUF: /var/home/deucebucket/games/osmosis-quants/qwen3.6-27b-cerebellum-v4.gguf
+============================================================
+  Starting server for cerebellum_v4...
+Traceback (most recent call last):
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_chat.py", line 260, in <module>
+    benchmark_model(model_name, gguf)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_chat.py", line 141, in benchmark_model
+    proc = start_server(gguf_path)
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_chat.py", line 89, in start_server
+    raise RuntimeError("Server failed to start")
+RuntimeError: Server failed to start

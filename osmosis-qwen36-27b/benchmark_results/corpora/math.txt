@@ -1,0 +1,15 @@
+The fundamental theorem of calculus establishes the relationship between differentiation and integration. If f is continuous on [a,b] and F is an antiderivative of f on [a,b], then the integral from a to b of f(x)dx equals F(b) - F(a).
+
+Consider the eigenvalue problem Ax = lambda x where A is an n x n matrix. The characteristic polynomial det(A - lambda I) = 0 gives us the eigenvalues. For a symmetric matrix, all eigenvalues are real and eigenvectors corresponding to distinct eigenvalues are orthogonal.
+
+The Cauchy-Schwarz inequality states that for vectors u and v in an inner product space, |<u,v>|^2 <= <u,u> * <v,v>. Equality holds if and only if u and v are linearly dependent.
+
+In probability theory, Bayes' theorem states P(A|B) = P(B|A)P(A)/P(B). This is fundamental to statistical inference. The posterior probability P(A|B) is proportional to the likelihood P(B|A) times the prior P(A).
+
+The central limit theorem states that the sum of n independent random variables with finite mean mu and variance sigma^2, when properly normalized, converges in distribution to a standard normal as n approaches infinity: (S_n - n*mu)/(sigma*sqrt(n)) -> N(0,1).
+
+Taylor's theorem: f(x) = f(a) + f'(a)(x-a) + f''(a)(x-a)^2/2! + ... + f^(n)(a)(x-a)^n/n! + R_n(x). The Lagrange form of the remainder is R_n(x) = f^(n+1)(c)(x-a)^(n+1)/(n+1)! for some c between a and x.
+
+The divergence theorem relates surface integrals to volume integrals: the surface integral of F dot n dS over a closed surface equals the volume integral of div F dV over the enclosed volume. Similarly, Stokes' theorem relates line integrals to surface integrals.
+
+Consider the optimization problem: minimize f(x) subject to g_i(x) <= 0 and h_j(x) = 0. The KKT conditions are necessary for optimality: gradient of f + sum of lambda_i * gradient of g_i + sum of mu_j * gradient of h_j = 0, with complementary slackness lambda_i * g_i(x) = 0 and lambda_i >= 0.
