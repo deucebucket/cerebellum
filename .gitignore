@@ -43,3 +43,4 @@ osmosis/sensitivity_multi.py
 # Ablation logs (large, not in repo)
 osmosis-qwen36-27b/ablation_logs/
 osmosis-qwen36-27b/*.log
+osmosis-qwen36-27b/brain_scan*.json

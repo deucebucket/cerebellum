@@ -68,6 +68,30 @@
     "layer_0.mlp.down_proj": {
       "ppl": 8.2015,
       "gguf_tensor": "blk.0.ffn_down.weight"
+    },
+    "layer_31.mlp.down_proj": {
+      "ppl": 8.2362,
+      "gguf_tensor": "blk.31.ffn_down.weight"
+    },
+    "layer_32.linear_attn.in_proj_qkv": {
+      "ppl": 8.1221,
+      "gguf_tensor": "blk.32.attn_qkv.weight"
+    },
+    "layer_63.self_attn.q_proj": {
+      "ppl": 8.4178,
+      "gguf_tensor": "blk.63.attn_q.weight"
+    },
+    "layer_51.mlp.gate_proj": {
+      "ppl": 8.2254,
+      "gguf_tensor": "blk.51.ffn_gate.weight"
+    },
+    "layer_62.linear_attn.in_proj_z": {
+      "ppl": 8.2419,
+      "gguf_tensor": "blk.62.attn_gate.weight"
+    },
+    "layer_62.linear_attn.out_proj": {
+      "ppl": 8.2732,
+      "gguf_tensor": "blk.62.ssm_out.weight"
     }
   }
 }
