@@ -19,10 +19,12 @@ CLAUDE.md
 *.gguf
 *.dat
 
-# Experiment scripts (keep repo clean)
+# Experiment scripts (local only, not in repo)
 scripts/
 tests/
 run_*.sh
+# Keep ablation script in repo
+!scripts/ablation_run.sh
 
 # Old experimental modules (kept locally, not in repo)
 osmosis/ab_test.py
@@ -37,3 +39,7 @@ osmosis/repair.py
 osmosis/repair_nim.py
 osmosis/sensitivity.py
 osmosis/sensitivity_multi.py
+
+# Ablation logs (large, not in repo)
+osmosis-qwen36-27b/ablation_logs/
+osmosis-qwen36-27b/*.log

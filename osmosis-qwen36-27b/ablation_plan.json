@@ -1,0 +1,236 @@
+{
+  "tensors": [
+    {
+      "name": "layer_29.linear_attn.in_proj_b",
+      "gt": "linear_attn.in_proj_b",
+      "pc": 245760,
+      "kl2": 0.21561968326568604,
+      "kl3": 0.037386178970336914,
+      "kl4": 0.007412850856781006,
+      "damage": 52990.693359375,
+      "reason": "highest_kl2"
+    },
+    {
+      "name": "layer_25.linear_attn.in_proj_b",
+      "gt": "linear_attn.in_proj_b",
+      "pc": 245760,
+      "kl2": 0.21559327840805054,
+      "kl3": 0.03616899251937866,
+      "kl4": 0.007161319255828857,
+      "damage": 52984.2041015625,
+      "reason": "highest_kl2"
+    },
+    {
+      "name": "layer_59.self_attn.k_proj",
+      "gt": "self_attn.k_proj",
+      "pc": 5242880,
+      "kl2": 0.21555554866790771,
+      "kl3": 0.03585702180862427,
+      "kl4": 0.007015526294708252,
+      "damage": 1130131.875,
+      "reason": "highest_kl2"
+    },
+    {
+      "name": "layer_44.linear_attn.in_proj_b",
+      "gt": "linear_attn.in_proj_b",
+      "pc": 245760,
+      "kl2": 0.21421915292739868,
+      "kl3": 0.036660075187683105,
+      "kl4": 0.007217466831207275,
+      "damage": 52646.4990234375,
+      "reason": "highest_kl2"
+    },
+    {
+      "name": "layer_0.mlp.up_proj",
+      "gt": "mlp.up_proj",
+      "pc": 89128960,
+      "kl2": 0.18178367614746094,
+      "kl3": 0.024751901626586914,
+      "kl4": 0.004708588123321533,
+      "damage": 16202190.0,
+      "reason": "lowest_kl2"
+    },
+    {
+      "name": "layer_1.mlp.gate_proj",
+      "gt": "mlp.gate_proj",
+      "pc": 89128960,
+      "kl2": 0.18167251348495483,
+      "kl3": 0.024815082550048828,
+      "kl4": 0.004726588726043701,
+      "damage": 16192282.1875,
+      "reason": "lowest_kl2"
+    },
+    {
+      "name": "layer_5.mlp.gate_proj",
+      "gt": "mlp.gate_proj",
+      "pc": 89128960,
+      "kl2": 0.18164068460464478,
+      "kl3": 0.024731218814849854,
+      "kl4": 0.004706442356109619,
+      "damage": 16189445.3125,
+      "reason": "lowest_kl2"
+    },
+    {
+      "name": "layer_2.mlp.gate_proj",
+      "gt": "mlp.gate_proj",
+      "pc": 89128960,
+      "kl2": 0.18138271570205688,
+      "kl3": 0.024694621562957764,
+      "kl4": 0.004698693752288818,
+      "damage": 16166452.8125,
+      "reason": "lowest_kl2"
+    },
+    {
+      "name": "layer_63.mlp.down_proj",
+      "gt": "mlp.down_proj",
+      "pc": 89128960,
+      "kl2": 0.1934528350830078,
+      "kl3": 0.027707338333129883,
+      "kl4": 0.005320370197296143,
+      "damage": 17242250.0,
+      "reason": "highest_damage"
+    },
+    {
+      "name": "layer_50.mlp.down_proj",
+      "gt": "mlp.down_proj",
+      "pc": 89128960,
+      "kl2": 0.188140869140625,
+      "kl3": 0.026295363903045654,
+      "kl4": 0.00503617525100708,
+      "damage": 16768800.0,
+      "reason": "highest_damage"
+    },
+    {
+      "name": "layer_34.mlp.down_proj",
+      "gt": "mlp.down_proj",
+      "pc": 89128960,
+      "kl2": 0.1880199909210205,
+      "kl3": 0.026316463947296143,
+      "kl4": 0.005045711994171143,
+      "damage": 16758026.25,
+      "reason": "highest_damage"
+    },
+    {
+      "name": "layer_50.mlp.gate_proj",
+      "gt": "mlp.gate_proj",
+      "pc": 89128960,
+      "kl2": 0.18741869926452637,
+      "kl3": 0.026612162590026855,
+      "kl4": 0.005107104778289795,
+      "damage": 16704433.75,
+      "reason": "highest_damage"
+    },
+    {
+      "name": "layer_18.linear_attn.in_proj_a",
+      "gt": "linear_attn.in_proj_a",
+      "pc": 245760,
+      "kl2": 0.19335150718688965,
+      "kl3": 0.027091920375823975,
+      "kl4": 0.0051604509353637695,
+      "damage": 47518.06640625,
+      "reason": "lowest_damage"
+    },
+    {
+      "name": "layer_16.linear_attn.in_proj_a",
+      "gt": "linear_attn.in_proj_a",
+      "pc": 245760,
+      "kl2": 0.1914847493171692,
+      "kl3": 0.026862919330596924,
+      "kl4": 0.005132496356964111,
+      "damage": 47059.2919921875,
+      "reason": "lowest_damage"
+    },
+    {
+      "name": "layer_0.linear_attn.in_proj_b",
+      "gt": "linear_attn.in_proj_b",
+      "pc": 245760,
+      "kl2": 0.1828494668006897,
+      "kl3": 0.02485901117324829,
+      "kl4": 0.004742443561553955,
+      "damage": 44937.0849609375,
+      "reason": "lowest_damage"
+    },
+    {
+      "name": "layer_0.linear_attn.in_proj_a",
+      "gt": "linear_attn.in_proj_a",
+      "pc": 245760,
+      "kl2": 0.18179768323898315,
+      "kl3": 0.024687528610229492,
+      "kl4": 0.004706084728240967,
+      "damage": 44678.5986328125,
+      "reason": "lowest_damage"
+    },
+    {
+      "name": "layer_0.mlp.down_proj",
+      "gt": "mlp.down_proj",
+      "pc": 89128960,
+      "kl2": 0.18492120504379272,
+      "kl3": 0.025382041931152344,
+      "kl4": 0.004813015460968018,
+      "damage": 16481834.6875,
+      "reason": "layer_0_ffn_down"
+    },
+    {
+      "name": "layer_31.mlp.down_proj",
+      "gt": "mlp.down_proj",
+      "pc": 89128960,
+      "kl2": 0.18491053581237793,
+      "kl3": 0.02535414695739746,
+      "kl4": 0.004829823970794678,
+      "damage": 16480883.75,
+      "reason": "layer_31_ffn_down"
+    },
+    {
+      "name": "layer_32.linear_attn.in_proj_qkv",
+      "gt": "linear_attn.in_proj_qkv",
+      "pc": 52428800,
+      "kl2": 0.1889135241508484,
+      "kl3": 0.026487290859222412,
+      "kl4": 0.005056560039520264,
+      "damage": 9904509.375,
+      "reason": "role_in_proj_qkv"
+    },
+    {
+      "name": "layer_63.self_attn.q_proj",
+      "gt": "self_attn.q_proj",
+      "pc": 62914560,
+      "kl2": 0.18947184085845947,
+      "kl3": 0.026821374893188477,
+      "kl4": 0.005133867263793945,
+      "damage": 11920537.5,
+      "reason": "role_q_proj"
+    },
+    {
+      "name": "layer_51.mlp.gate_proj",
+      "gt": "mlp.gate_proj",
+      "pc": 89128960,
+      "kl2": 0.18673306703567505,
+      "kl3": 0.026073694229125977,
+      "kl4": 0.004979252815246582,
+      "damage": 16643324.0625,
+      "reason": "role_gate_proj"
+    },
+    {
+      "name": "layer_62.linear_attn.in_proj_z",
+      "gt": "linear_attn.in_proj_z",
+      "pc": 31457280,
+      "kl2": 0.1870855689048767,
+      "kl3": 0.0262451171875,
+      "kl4": 0.005020022392272949,
+      "damage": 5885203.125,
+      "reason": "role_in_proj_z"
+    },
+    {
+      "name": "layer_62.linear_attn.out_proj",
+      "gt": "linear_attn.out_proj",
+      "pc": 31457280,
+      "kl2": 0.18833589553833008,
+      "kl3": 0.02665877342224121,
+      "kl4": 0.005125164985656738,
+      "damage": 5924535.0,
+      "reason": "role_out_proj"
+    }
+  ],
+  "baseline": null,
+  "results": {}
+}
