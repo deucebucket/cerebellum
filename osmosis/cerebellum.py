@@ -263,57 +263,73 @@ def ablation_aware_allocate(source_gguf, ablation_map, budget_bytes,
         print(f"  Total saved: {saved_bytes / 1e6:.1f} MB")
 
     # Phase 3: Promote sacred tensors (spend saved budget)
+    # Multi-pass: keep promoting until budget exhausted or no more candidates
     promotion_budget = saved_bytes + (budget_bytes - base_size)
     if verbose:
         print(f"\n  Promotion budget: {promotion_budget / 1e6:.1f} MB")
 
-    # Build promotion candidates from sacred tensors
-    promo_candidates = []
-    for tensor_name, tinfo in tensors.items():
-        if tensor_name in overrides:
-            continue
-        classification = classifications.get(tensor_name)
-
-        current = normalize_qtype(tinfo["assigned_type"].rstrip(","))
-        target = next_tier(current)
-        if target is None:
-            continue
-
-        cost = estimate_tensor_size(tinfo["param_count"], target) - tinfo["size_bytes"]
-        if cost <= 0:
-            continue
-
-        if classification == "sacred":
-            benefit = ablation_map[tensor_name]["delta"] * tinfo["param_count"]
-        else:
-            layer = gguf_tensor_to_layer(tensor_name)
-            score = layer_scores.get(layer, 0) if layer is not None else 0
-            if score <= 0:
-                continue
-            benefit = score * tinfo["param_count"]
-
-        promo_candidates.append({
-            "name": tensor_name,
-            "current": current,
-            "target": target,
-            "benefit": benefit,
-            "cost": cost,
-            "efficiency": benefit / cost,
-            "source": "ablation" if classification == "sacred" else "extrapolated",
-        })
-
-    promo_candidates.sort(key=lambda x: x["efficiency"], reverse=True)
-
     spent = 0
-    for c in promo_candidates:
-        if spent + c["cost"] > promotion_budget:
-            continue
-        overrides[c["name"]] = c["target"]
-        spent += c["cost"]
+    current_types = {name: normalize_qtype(t["assigned_type"].rstrip(","))
+                     for name, t in tensors.items()}
+    for name in overrides:
+        current_types[name] = overrides[name]
+
+    promotion_pass = 0
+    while True:
+        promotion_pass += 1
+        promo_candidates = []
+        for tensor_name, tinfo in tensors.items():
+            classification = classifications.get(tensor_name)
+            current = current_types[tensor_name]
+            target = next_tier(current)
+            if target is None:
+                continue
+
+            cost = (estimate_tensor_size(tinfo["param_count"], target)
+                    - estimate_tensor_size(tinfo["param_count"], current))
+            if cost <= 0:
+                continue
+
+            if classification == "sacred":
+                benefit = ablation_map[tensor_name]["delta"] * tinfo["param_count"]
+            else:
+                layer = gguf_tensor_to_layer(tensor_name)
+                score = layer_scores.get(layer, 0) if layer is not None else 0
+                if score <= 0:
+                    continue
+                benefit = score * tinfo["param_count"]
+
+            promo_candidates.append({
+                "name": tensor_name,
+                "current": current,
+                "target": target,
+                "benefit": benefit,
+                "cost": cost,
+                "efficiency": benefit / cost,
+                "source": "ablation" if classification == "sacred" else "extrapolated",
+            })
+
+        if not promo_candidates:
+            break
+
+        promo_candidates.sort(key=lambda x: x["efficiency"], reverse=True)
+
+        promoted_this_pass = 0
+        for c in promo_candidates:
+            if spent + c["cost"] > promotion_budget:
+                continue
+            overrides[c["name"]] = c["target"]
+            current_types[c["name"]] = c["target"]
+            spent += c["cost"]
+            promoted_this_pass += 1
+
+        if promoted_this_pass == 0:
+            break
 
     if verbose:
-        n_promoted = sum(1 for c in promo_candidates if c["name"] in overrides)
-        print(f"  Promoted {n_promoted} tensors, spent {spent / 1e6:.1f} MB")
+        n_promoted = len([n for n in overrides if overrides[n] != "q2_K"
+                          or n not in {k for k, v in classifications.items() if v == "demote"}])
+        print(f"  Promoted across {promotion_pass} passes, spent {spent / 1e6:.1f} MB")
 
         final_size = base_size - saved_bytes + spent
         print(f"\n  Final estimated size: {final_size / 1e9:.2f} GB")
