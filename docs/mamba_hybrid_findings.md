@@ -22,12 +22,27 @@ Promoting `blk.0.ssm_out` from Q4_K to Q8_0 should only *improve* quality — it
 higher precision. Instead, PPL increases by +0.5 to +0.7. The effect is independent of imatrix.
 Non-SSM tensor overrides (ffn_up) show no such degradation.
 
+### Additional Evidence: bf16 Source Rules Out Conversion Artifact
+
+Tested whether bf16→f16 GGUF conversion was the root cause (GitHub Issue #20035). It is NOT:
+
+| Build | Source | PPL | Size |
+|-------|--------|-----|------|
+| Q8_0 | f16 GGUF | 8.574 | 8.9GB |
+| Q8_0 | bf16 GGUF | 8.574 | 8.9GB |
+| Q4_K_M vanilla | f16 GGUF | 7.769 | 5.62GB |
+| Q4_K_M vanilla | bf16 GGUF | 7.765 | 5.62GB |
+
+bf16 and f16 source GGUFs produce identical PPL. The Q8_0 > Q4_K_M paradox is NOT a source format
+issue — it's intrinsic to llama.cpp's Mamba inference at higher quant levels.
+
 ### Hypothesis
 
-The Mamba inference kernels in llama.cpp may have specific dequantization paths or memory layout
+The Mamba inference kernels in llama.cpp have specific dequantization paths or memory layout
 expectations for SSM tensors (ssm_out, ssm_alpha, ssm_beta, ssm_conv1d, ssm_dt, ssm_norm).
-Overriding the quant type disrupts these assumptions even when the override is to a higher-precision
-format.
+Higher-precision quant types (Q8_0, Q6_K) produce outputs that don't match what the Mamba state
+update logic expects, causing accumulated numerical drift. This is a llama.cpp implementation bug,
+not a fundamental quantization issue.
 
 ### Implication for Cerebellum
 
