@@ -57,6 +57,24 @@ Cerebellum v4 beats Unsloth's dynamic quant at the same 12GB file size. The v4 G
 - **Cross-layer effects are ~86% additive** — single-tensor ablation deltas predict multi-tensor outcomes with ~14% attenuation
 - **23 vs 18 tensors of ablation data** — extrapolation is already near-optimal; more data doesn't change allocation much
 
+### Qwen 3.5 9B — Mamba Hybrid (Full 202-tensor ablation)
+
+| Method | Size | PPL (wiki) | Notes |
+|--------|------|------------|-------|
+| Q4_K_M + Osmosis imatrix | 5.36 GB | **7.724** | Best for this architecture |
+| Q4_K_M vanilla | 5.62 GB | 7.769 | Standard baseline |
+| Cerebellum promote-only | 5.47 GB | 7.818 | 22 non-SSM tensor promotions |
+| Cerebellum Q2_K base | 5.21 GB | 9.827 | SSM tensors at Q2_K = disaster |
+
+**Critical finding:** Cerebellum tensor overrides don't work for Mamba hybrid models. llama.cpp's
+SSM inference kernels break when tensor types are overridden — even *promoting* to higher precision
+degrades PPL catastrophically (+0.5 to +0.7 PPL from a single SSM tensor override). Full analysis
+in [docs/mamba_hybrid_findings.md](docs/mamba_hybrid_findings.md).
+
+The 202-tensor ablation dataset is still valuable — it's the only ground-truth PPL ablation data
+for Qwen 3.5 9B. Key finding: `blk.0.ssm_out` has +6.342 PPL delta, confirming SSM output
+sensitivity independently of Unsloth's KL-divergence proxy.
+
 ### Chat Benchmark (v4, RTX 3090)
 
 Speed: **71 prompt tok/s**, **36.5 gen tok/s** (full GPU offload, 4096 context)
@@ -116,7 +134,9 @@ Auto-detects model architecture:
 - **Qwen 3.5** (hybrid SSM + attention) — linear_attn + self_attn + MLP
 - **Standard transformers** — any model with self_attn q/k/v/o + MLP gate/up/down
 
-The technique is model-agnostic — give it any GGUF, ablation data, and a size budget, and it finds the optimal per-tensor precision allocation.
+The technique works best on pure transformers. **Mamba hybrid models** (like Qwen 3.5 9B) have SSM
+tensors whose quant types cannot be safely overridden in llama.cpp — use imatrix-only quantization
+for those. See [docs/mamba_hybrid_findings.md](docs/mamba_hybrid_findings.md).
 
 ## Project Structure
 
@@ -127,11 +147,20 @@ osmosis/
 ├── imatrix_gen.py     # Standard imatrix generation (with optional activation calibration)
 └── imatrix_format.py  # llama.cpp imatrix binary format writer
 
-osmosis-qwen36-27b/    # Qwen3 27B findings
+osmosis-qwen36-27b/    # Qwen3 27B findings (pure transformer)
 ├── ablation_results.json        # Full tensor ablation data (23 tensors)
 ├── interaction_results.json     # Multi-tensor interaction effects
 ├── tensor_types_v4_12gb.txt     # v4 allocation (181 overrides)
 └── benchmark_results/           # Chat quality + speed benchmarks
+
+osmosis-qwen35-9b/     # Qwen3.5 9B findings (Mamba hybrid)
+├── ablation_results.json        # Full tensor ablation data (202 tensors!)
+├── cerebellum_scan_9b.sh        # Ablation scan script
+└── tensor_types_promote_only.txt # Best non-SSM promotions (22 overrides)
+
+docs/
+├── mamba_hybrid_findings.md     # SSM quantization constraints + full analysis
+└── llama_cpp_tensor_backend_patch.md
 ```
 
 ## Roadmap

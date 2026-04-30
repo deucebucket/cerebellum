@@ -1,0 +1,813 @@
+{
+  "baseline_ppl": 7.7691,
+  "tests": {
+    "blk.0.ffn_gate": {
+      "ppl": 7.6345,
+      "gguf_tensor": "blk.0.ffn_gate"
+    },
+    "output": {
+      "ppl": 8.4888,
+      "gguf_tensor": "output"
+    },
+    "token_embd": {
+      "ppl": 7.7808,
+      "gguf_tensor": "token_embd"
+    },
+    "blk.0.attn_gate": {
+      "ppl": 7.7073,
+      "gguf_tensor": "blk.0.attn_gate"
+    },
+    "blk.0.attn_qkv": {
+      "ppl": 7.8502,
+      "gguf_tensor": "blk.0.attn_qkv"
+    },
+    "blk.0.ffn_down": {
+      "ppl": 7.7061,
+      "gguf_tensor": "blk.0.ffn_down"
+    },
+    "blk.0.ffn_up": {
+      "ppl": 7.8213,
+      "gguf_tensor": "blk.0.ffn_up"
+    },
+    "blk.0.ssm_out": {
+      "ppl": 14.111,
+      "gguf_tensor": "blk.0.ssm_out"
+    },
+    "blk.1.attn_gate": {
+      "ppl": 7.7871,
+      "gguf_tensor": "blk.1.attn_gate"
+    },
+    "blk.1.attn_qkv": {
+      "ppl": 7.7218,
+      "gguf_tensor": "blk.1.attn_qkv"
+    },
+    "blk.1.ffn_down": {
+      "ppl": 7.6567,
+      "gguf_tensor": "blk.1.ffn_down"
+    },
+    "blk.1.ffn_gate": {
+      "ppl": 7.748,
+      "gguf_tensor": "blk.1.ffn_gate"
+    },
+    "blk.1.ffn_up": {
+      "ppl": 7.7297,
+      "gguf_tensor": "blk.1.ffn_up"
+    },
+    "blk.1.ssm_out": {
+      "ppl": 7.8062,
+      "gguf_tensor": "blk.1.ssm_out"
+    },
+    "blk.2.attn_gate": {
+      "ppl": 7.8769,
+      "gguf_tensor": "blk.2.attn_gate"
+    },
+    "blk.2.attn_qkv": {
+      "ppl": 7.5037,
+      "gguf_tensor": "blk.2.attn_qkv"
+    },
+    "blk.2.ffn_down": {
+      "ppl": 7.8241,
+      "gguf_tensor": "blk.2.ffn_down"
+    },
+    "blk.2.ffn_gate": {
+      "ppl": 7.8378,
+      "gguf_tensor": "blk.2.ffn_gate"
+    },
+    "blk.2.ffn_up": {
+      "ppl": 7.8493,
+      "gguf_tensor": "blk.2.ffn_up"
+    },
+    "blk.2.ssm_out": {
+      "ppl": 7.6833,
+      "gguf_tensor": "blk.2.ssm_out"
+    },
+    "blk.3.attn_k": {
+      "ppl": 7.7231,
+      "gguf_tensor": "blk.3.attn_k"
+    },
+    "blk.3.attn_output": {
+      "ppl": 7.6078,
+      "gguf_tensor": "blk.3.attn_output"
+    },
+    "blk.3.attn_q": {
+      "ppl": 7.5011,
+      "gguf_tensor": "blk.3.attn_q"
+    },
+    "blk.3.attn_v": {
+      "ppl": 7.3437,
+      "gguf_tensor": "blk.3.attn_v"
+    },
+    "blk.3.ffn_down": {
+      "ppl": 7.7454,
+      "gguf_tensor": "blk.3.ffn_down"
+    },
+    "blk.3.ffn_gate": {
+      "ppl": 7.8146,
+      "gguf_tensor": "blk.3.ffn_gate"
+    },
+    "blk.3.ffn_up": {
+      "ppl": 7.7136,
+      "gguf_tensor": "blk.3.ffn_up"
+    },
+    "blk.4.attn_gate": {
+      "ppl": 7.8018,
+      "gguf_tensor": "blk.4.attn_gate"
+    },
+    "blk.4.attn_qkv": {
+      "ppl": 7.6737,
+      "gguf_tensor": "blk.4.attn_qkv"
+    },
+    "blk.4.ffn_down": {
+      "ppl": 7.7822,
+      "gguf_tensor": "blk.4.ffn_down"
+    },
+    "blk.4.ffn_gate": {
+      "ppl": 7.8261,
+      "gguf_tensor": "blk.4.ffn_gate"
+    },
+    "blk.4.ffn_up": {
+      "ppl": 7.8577,
+      "gguf_tensor": "blk.4.ffn_up"
+    },
+    "blk.4.ssm_out": {
+      "ppl": 7.8065,
+      "gguf_tensor": "blk.4.ssm_out"
+    },
+    "blk.5.attn_gate": {
+      "ppl": 7.7526,
+      "gguf_tensor": "blk.5.attn_gate"
+    },
+    "blk.5.attn_qkv": {
+      "ppl": 7.7253,
+      "gguf_tensor": "blk.5.attn_qkv"
+    },
+    "blk.5.ffn_down": {
+      "ppl": 7.7251,
+      "gguf_tensor": "blk.5.ffn_down"
+    },
+    "blk.5.ffn_gate": {
+      "ppl": 7.7623,
+      "gguf_tensor": "blk.5.ffn_gate"
+    },
+    "blk.5.ffn_up": {
+      "ppl": 7.7515,
+      "gguf_tensor": "blk.5.ffn_up"
+    },
+    "blk.5.ssm_out": {
+      "ppl": 7.8374,
+      "gguf_tensor": "blk.5.ssm_out"
+    },
+    "blk.6.attn_gate": {
+      "ppl": 7.6576,
+      "gguf_tensor": "blk.6.attn_gate"
+    },
+    "blk.6.attn_qkv": {
+      "ppl": 7.6819,
+      "gguf_tensor": "blk.6.attn_qkv"
+    },
+    "blk.6.ffn_down": {
+      "ppl": 7.8097,
+      "gguf_tensor": "blk.6.ffn_down"
+    },
+    "blk.6.ffn_gate": {
+      "ppl": 7.8457,
+      "gguf_tensor": "blk.6.ffn_gate"
+    },
+    "blk.6.ffn_up": {
+      "ppl": 7.9299,
+      "gguf_tensor": "blk.6.ffn_up"
+    },
+    "blk.6.ssm_out": {
+      "ppl": 7.8098,
+      "gguf_tensor": "blk.6.ssm_out"
+    },
+    "blk.7.attn_k": {
+      "ppl": 7.7821,
+      "gguf_tensor": "blk.7.attn_k"
+    },
+    "blk.7.attn_output": {
+      "ppl": 7.795,
+      "gguf_tensor": "blk.7.attn_output"
+    },
+    "blk.7.attn_q": {
+      "ppl": 7.834,
+      "gguf_tensor": "blk.7.attn_q"
+    },
+    "blk.7.attn_v": {
+      "ppl": 7.8504,
+      "gguf_tensor": "blk.7.attn_v"
+    },
+    "blk.7.ffn_down": {
+      "ppl": 7.821,
+      "gguf_tensor": "blk.7.ffn_down"
+    },
+    "blk.7.ffn_gate": {
+      "ppl": 7.7745,
+      "gguf_tensor": "blk.7.ffn_gate"
+    },
+    "blk.7.ffn_up": {
+      "ppl": 7.8992,
+      "gguf_tensor": "blk.7.ffn_up"
+    },
+    "blk.8.attn_gate": {
+      "ppl": 7.6933,
+      "gguf_tensor": "blk.8.attn_gate"
+    },
+    "blk.8.attn_qkv": {
+      "ppl": 8.0575,
+      "gguf_tensor": "blk.8.attn_qkv"
+    },
+    "blk.8.ffn_down": {
+      "ppl": 7.7964,
+      "gguf_tensor": "blk.8.ffn_down"
+    },
+    "blk.8.ffn_gate": {
+      "ppl": 7.7543,
+      "gguf_tensor": "blk.8.ffn_gate"
+    },
+    "blk.8.ffn_up": {
+      "ppl": 7.8237,
+      "gguf_tensor": "blk.8.ffn_up"
+    },
+    "blk.8.ssm_out": {
+      "ppl": 7.7764,
+      "gguf_tensor": "blk.8.ssm_out"
+    },
+    "blk.9.attn_gate": {
+      "ppl": 7.8606,
+      "gguf_tensor": "blk.9.attn_gate"
+    },
+    "blk.9.attn_qkv": {
+      "ppl": 7.9197,
+      "gguf_tensor": "blk.9.attn_qkv"
+    },
+    "blk.9.ffn_down": {
+      "ppl": 7.7776,
+      "gguf_tensor": "blk.9.ffn_down"
+    },
+    "blk.9.ffn_gate": {
+      "ppl": 7.7609,
+      "gguf_tensor": "blk.9.ffn_gate"
+    },
+    "blk.9.ffn_up": {
+      "ppl": 7.6616,
+      "gguf_tensor": "blk.9.ffn_up"
+    },
+    "blk.9.ssm_out": {
+      "ppl": 7.7518,
+      "gguf_tensor": "blk.9.ssm_out"
+    },
+    "blk.10.attn_gate": {
+      "ppl": 7.552,
+      "gguf_tensor": "blk.10.attn_gate"
+    },
+    "blk.10.attn_qkv": {
+      "ppl": 7.8476,
+      "gguf_tensor": "blk.10.attn_qkv"
+    },
+    "blk.10.ffn_down": {
+      "ppl": 7.7783,
+      "gguf_tensor": "blk.10.ffn_down"
+    },
+    "blk.10.ffn_gate": {
+      "ppl": 7.7149,
+      "gguf_tensor": "blk.10.ffn_gate"
+    },
+    "blk.10.ffn_up": {
+      "ppl": 7.8765,
+      "gguf_tensor": "blk.10.ffn_up"
+    },
+    "blk.10.ssm_out": {
+      "ppl": 7.8241,
+      "gguf_tensor": "blk.10.ssm_out"
+    },
+    "blk.11.attn_k": {
+      "ppl": 7.7947,
+      "gguf_tensor": "blk.11.attn_k"
+    },
+    "blk.11.attn_output": {
+      "ppl": 7.8726,
+      "gguf_tensor": "blk.11.attn_output"
+    },
+    "blk.11.attn_q": {
+      "ppl": 7.761,
+      "gguf_tensor": "blk.11.attn_q"
+    },
+    "blk.11.attn_v": {
+      "ppl": 7.9938,
+      "gguf_tensor": "blk.11.attn_v"
+    },
+    "blk.11.ffn_down": {
+      "ppl": 7.7933,
+      "gguf_tensor": "blk.11.ffn_down"
+    },
+    "blk.11.ffn_gate": {
+      "ppl": 7.7697,
+      "gguf_tensor": "blk.11.ffn_gate"
+    },
+    "blk.11.ffn_up": {
+      "ppl": 7.7647,
+      "gguf_tensor": "blk.11.ffn_up"
+    },
+    "blk.12.attn_gate": {
+      "ppl": 7.7916,
+      "gguf_tensor": "blk.12.attn_gate"
+    },
+    "blk.12.attn_qkv": {
+      "ppl": 7.8715,
+      "gguf_tensor": "blk.12.attn_qkv"
+    },
+    "blk.12.ffn_down": {
+      "ppl": 7.6852,
+      "gguf_tensor": "blk.12.ffn_down"
+    },
+    "blk.12.ffn_gate": {
+      "ppl": 7.8243,
+      "gguf_tensor": "blk.12.ffn_gate"
+    },
+    "blk.12.ffn_up": {
+      "ppl": 7.7888,
+      "gguf_tensor": "blk.12.ffn_up"
+    },
+    "blk.12.ssm_out": {
+      "ppl": 7.8544,
+      "gguf_tensor": "blk.12.ssm_out"
+    },
+    "blk.13.attn_gate": {
+      "ppl": 7.8062,
+      "gguf_tensor": "blk.13.attn_gate"
+    },
+    "blk.13.attn_qkv": {
+      "ppl": 7.9263,
+      "gguf_tensor": "blk.13.attn_qkv"
+    },
+    "blk.13.ffn_down": {
+      "ppl": 7.7489,
+      "gguf_tensor": "blk.13.ffn_down"
+    },
+    "blk.13.ffn_gate": {
+      "ppl": 7.8139,
+      "gguf_tensor": "blk.13.ffn_gate"
+    },
+    "blk.13.ffn_up": {
+      "ppl": 7.7875,
+      "gguf_tensor": "blk.13.ffn_up"
+    },
+    "blk.13.ssm_out": {
+      "ppl": 7.8221,
+      "gguf_tensor": "blk.13.ssm_out"
+    },
+    "blk.14.attn_gate": {
+      "ppl": 7.7839,
+      "gguf_tensor": "blk.14.attn_gate"
+    },
+    "blk.14.attn_qkv": {
+      "ppl": 7.7677,
+      "gguf_tensor": "blk.14.attn_qkv"
+    },
+    "blk.14.ffn_down": {
+      "ppl": 7.7366,
+      "gguf_tensor": "blk.14.ffn_down"
+    },
+    "blk.14.ffn_gate": {
+      "ppl": 7.7342,
+      "gguf_tensor": "blk.14.ffn_gate"
+    },
+    "blk.14.ffn_up": {
+      "ppl": 7.8769,
+      "gguf_tensor": "blk.14.ffn_up"
+    },
+    "blk.14.ssm_out": {
+      "ppl": 7.7505,
+      "gguf_tensor": "blk.14.ssm_out"
+    },
+    "blk.15.attn_k": {
+      "ppl": 7.819,
+      "gguf_tensor": "blk.15.attn_k"
+    },
+    "blk.15.attn_output": {
+      "ppl": 7.7383,
+      "gguf_tensor": "blk.15.attn_output"
+    },
+    "blk.15.attn_q": {
+      "ppl": 7.8097,
+      "gguf_tensor": "blk.15.attn_q"
+    },
+    "blk.15.attn_v": {
+      "ppl": 7.7795,
+      "gguf_tensor": "blk.15.attn_v"
+    },
+    "blk.15.ffn_down": {
+      "ppl": 7.7705,
+      "gguf_tensor": "blk.15.ffn_down"
+    },
+    "blk.15.ffn_gate": {
+      "ppl": 7.7742,
+      "gguf_tensor": "blk.15.ffn_gate"
+    },
+    "blk.15.ffn_up": {
+      "ppl": 7.7912,
+      "gguf_tensor": "blk.15.ffn_up"
+    },
+    "blk.16.attn_gate": {
+      "ppl": 7.8186,
+      "gguf_tensor": "blk.16.attn_gate"
+    },
+    "blk.16.attn_qkv": {
+      "ppl": 7.7926,
+      "gguf_tensor": "blk.16.attn_qkv"
+    },
+    "blk.16.ffn_down": {
+      "ppl": 7.7896,
+      "gguf_tensor": "blk.16.ffn_down"
+    },
+    "blk.16.ffn_gate": {
+      "ppl": 7.7755,
+      "gguf_tensor": "blk.16.ffn_gate"
+    },
+    "blk.16.ffn_up": {
+      "ppl": 7.8249,
+      "gguf_tensor": "blk.16.ffn_up"
+    },
+    "blk.16.ssm_out": {
+      "ppl": 7.7874,
+      "gguf_tensor": "blk.16.ssm_out"
+    },
+    "blk.17.attn_gate": {
+      "ppl": 7.7831,
+      "gguf_tensor": "blk.17.attn_gate"
+    },
+    "blk.17.attn_qkv": {
+      "ppl": 7.7534,
+      "gguf_tensor": "blk.17.attn_qkv"
+    },
+    "blk.17.ffn_down": {
+      "ppl": 7.7827,
+      "gguf_tensor": "blk.17.ffn_down"
+    },
+    "blk.17.ffn_gate": {
+      "ppl": 7.7709,
+      "gguf_tensor": "blk.17.ffn_gate"
+    },
+    "blk.17.ffn_up": {
+      "ppl": 7.753,
+      "gguf_tensor": "blk.17.ffn_up"
+    },
+    "blk.17.ssm_out": {
+      "ppl": 7.7969,
+      "gguf_tensor": "blk.17.ssm_out"
+    },
+    "blk.18.attn_gate": {
+      "ppl": 7.7752,
+      "gguf_tensor": "blk.18.attn_gate"
+    },
+    "blk.18.attn_qkv": {
+      "ppl": 7.7428,
+      "gguf_tensor": "blk.18.attn_qkv"
+    },
+    "blk.18.ffn_down": {
+      "ppl": 7.7934,
+      "gguf_tensor": "blk.18.ffn_down"
+    },
+    "blk.18.ffn_gate": {
+      "ppl": 7.759,
+      "gguf_tensor": "blk.18.ffn_gate"
+    },
+    "blk.18.ffn_up": {
+      "ppl": 7.8133,
+      "gguf_tensor": "blk.18.ffn_up"
+    },
+    "blk.18.ssm_out": {
+      "ppl": 7.7859,
+      "gguf_tensor": "blk.18.ssm_out"
+    },
+    "blk.19.attn_k": {
+      "ppl": 7.7661,
+      "gguf_tensor": "blk.19.attn_k"
+    },
+    "blk.19.attn_output": {
+      "ppl": 7.8061,
+      "gguf_tensor": "blk.19.attn_output"
+    },
+    "blk.19.attn_q": {
+      "ppl": 7.7618,
+      "gguf_tensor": "blk.19.attn_q"
+    },
+    "blk.19.attn_v": {
+      "ppl": 7.8146,
+      "gguf_tensor": "blk.19.attn_v"
+    },
+    "blk.19.ffn_down": {
+      "ppl": 7.7826,
+      "gguf_tensor": "blk.19.ffn_down"
+    },
+    "blk.19.ffn_gate": {
+      "ppl": 7.7783,
+      "gguf_tensor": "blk.19.ffn_gate"
+    },
+    "blk.19.ffn_up": {
+      "ppl": 7.7826,
+      "gguf_tensor": "blk.19.ffn_up"
+    },
+    "blk.20.attn_gate": {
+      "ppl": 7.7718,
+      "gguf_tensor": "blk.20.attn_gate"
+    },
+    "blk.20.attn_qkv": {
+      "ppl": 7.792,
+      "gguf_tensor": "blk.20.attn_qkv"
+    },
+    "blk.20.ffn_down": {
+      "ppl": 7.7828,
+      "gguf_tensor": "blk.20.ffn_down"
+    },
+    "blk.20.ffn_gate": {
+      "ppl": 7.7838,
+      "gguf_tensor": "blk.20.ffn_gate"
+    },
+    "blk.20.ffn_up": {
+      "ppl": 7.7857,
+      "gguf_tensor": "blk.20.ffn_up"
+    },
+    "blk.20.ssm_out": {
+      "ppl": 7.7837,
+      "gguf_tensor": "blk.20.ssm_out"
+    },
+    "blk.21.attn_gate": {
+      "ppl": 7.7823,
+      "gguf_tensor": "blk.21.attn_gate"
+    },
+    "blk.21.attn_qkv": {
+      "ppl": 7.7857,
+      "gguf_tensor": "blk.21.attn_qkv"
+    },
+    "blk.21.ffn_down": {
+      "ppl": 7.7832,
+      "gguf_tensor": "blk.21.ffn_down"
+    },
+    "blk.21.ffn_gate": {
+      "ppl": 7.7836,
+      "gguf_tensor": "blk.21.ffn_gate"
+    },
+    "blk.21.ffn_up": {
+      "ppl": 7.7969,
+      "gguf_tensor": "blk.21.ffn_up"
+    },
+    "blk.21.ssm_out": {
+      "ppl": 7.7874,
+      "gguf_tensor": "blk.21.ssm_out"
+    },
+    "blk.22.attn_gate": {
+      "ppl": 7.7759,
+      "gguf_tensor": "blk.22.attn_gate"
+    },
+    "blk.22.attn_qkv": {
+      "ppl": 7.789,
+      "gguf_tensor": "blk.22.attn_qkv"
+    },
+    "blk.22.ffn_down": {
+      "ppl": 7.7912,
+      "gguf_tensor": "blk.22.ffn_down"
+    },
+    "blk.22.ffn_gate": {
+      "ppl": 7.789,
+      "gguf_tensor": "blk.22.ffn_gate"
+    },
+    "blk.22.ffn_up": {
+      "ppl": 7.7891,
+      "gguf_tensor": "blk.22.ffn_up"
+    },
+    "blk.22.ssm_out": {
+      "ppl": 7.7715,
+      "gguf_tensor": "blk.22.ssm_out"
+    },
+    "blk.23.attn_k": {
+      "ppl": 7.7684,
+      "gguf_tensor": "blk.23.attn_k"
+    },
+    "blk.23.attn_output": {
+      "ppl": 7.7929,
+      "gguf_tensor": "blk.23.attn_output"
+    },
+    "blk.23.attn_q": {
+      "ppl": 7.7809,
+      "gguf_tensor": "blk.23.attn_q"
+    },
+    "blk.23.attn_v": {
+      "ppl": 7.7768,
+      "gguf_tensor": "blk.23.attn_v"
+    },
+    "blk.23.ffn_down": {
+      "ppl": 7.778,
+      "gguf_tensor": "blk.23.ffn_down"
+    },
+    "blk.23.ffn_gate": {
+      "ppl": 7.7831,
+      "gguf_tensor": "blk.23.ffn_gate"
+    },
+    "blk.23.ffn_up": {
+      "ppl": 7.7848,
+      "gguf_tensor": "blk.23.ffn_up"
+    },
+    "blk.24.attn_gate": {
+      "ppl": 7.7774,
+      "gguf_tensor": "blk.24.attn_gate"
+    },
+    "blk.24.attn_qkv": {
+      "ppl": 7.7841,
+      "gguf_tensor": "blk.24.attn_qkv"
+    },
+    "blk.24.ffn_down": {
+      "ppl": 7.7925,
+      "gguf_tensor": "blk.24.ffn_down"
+    },
+    "blk.24.ffn_gate": {
+      "ppl": 7.7817,
+      "gguf_tensor": "blk.24.ffn_gate"
+    },
+    "blk.24.ffn_up": {
+      "ppl": 7.7778,
+      "gguf_tensor": "blk.24.ffn_up"
+    },
+    "blk.24.ssm_out": {
+      "ppl": 7.792,
+      "gguf_tensor": "blk.24.ssm_out"
+    },
+    "blk.25.attn_gate": {
+      "ppl": 7.7751,
+      "gguf_tensor": "blk.25.attn_gate"
+    },
+    "blk.25.attn_qkv": {
+      "ppl": 7.7837,
+      "gguf_tensor": "blk.25.attn_qkv"
+    },
+    "blk.25.ffn_down": {
+      "ppl": 7.7902,
+      "gguf_tensor": "blk.25.ffn_down"
+    },
+    "blk.25.ffn_gate": {
+      "ppl": 7.7787,
+      "gguf_tensor": "blk.25.ffn_gate"
+    },
+    "blk.25.ffn_up": {
+      "ppl": 7.7839,
+      "gguf_tensor": "blk.25.ffn_up"
+    },
+    "blk.25.ssm_out": {
+      "ppl": 7.7772,
+      "gguf_tensor": "blk.25.ssm_out"
+    },
+    "blk.26.attn_gate": {
+      "ppl": 7.7713,
+      "gguf_tensor": "blk.26.attn_gate"
+    },
+    "blk.26.attn_qkv": {
+      "ppl": 7.7742,
+      "gguf_tensor": "blk.26.attn_qkv"
+    },
+    "blk.26.ffn_down": {
+      "ppl": 7.7946,
+      "gguf_tensor": "blk.26.ffn_down"
+    },
+    "blk.26.ffn_gate": {
+      "ppl": 7.7818,
+      "gguf_tensor": "blk.26.ffn_gate"
+    },
+    "blk.26.ffn_up": {
+      "ppl": 7.7876,
+      "gguf_tensor": "blk.26.ffn_up"
+    },
+    "blk.26.ssm_out": {
+      "ppl": 7.7828,
+      "gguf_tensor": "blk.26.ssm_out"
+    },
+    "blk.27.attn_k": {
+      "ppl": 7.771,
+      "gguf_tensor": "blk.27.attn_k"
+    },
+    "blk.27.attn_output": {
+      "ppl": 7.8096,
+      "gguf_tensor": "blk.27.attn_output"
+    },
+    "blk.27.attn_q": {
+      "ppl": 7.7779,
+      "gguf_tensor": "blk.27.attn_q"
+    },
+    "blk.27.attn_v": {
+      "ppl": 7.7832,
+      "gguf_tensor": "blk.27.attn_v"
+    },
+    "blk.27.ffn_down": {
+      "ppl": 7.7862,
+      "gguf_tensor": "blk.27.ffn_down"
+    },
+    "blk.27.ffn_gate": {
+      "ppl": 7.7894,
+      "gguf_tensor": "blk.27.ffn_gate"
+    },
+    "blk.27.ffn_up": {
+      "ppl": 7.7988,
+      "gguf_tensor": "blk.27.ffn_up"
+    },
+    "blk.28.attn_gate": {
+      "ppl": 7.774,
+      "gguf_tensor": "blk.28.attn_gate"
+    },
+    "blk.28.attn_qkv": {
+      "ppl": 7.7759,
+      "gguf_tensor": "blk.28.attn_qkv"
+    },
+    "blk.28.ffn_down": {
+      "ppl": 7.7889,
+      "gguf_tensor": "blk.28.ffn_down"
+    },
+    "blk.28.ffn_gate": {
+      "ppl": 7.7849,
+      "gguf_tensor": "blk.28.ffn_gate"
+    },
+    "blk.28.ffn_up": {
+      "ppl": 7.7973,
+      "gguf_tensor": "blk.28.ffn_up"
+    },
+    "blk.28.ssm_out": {
+      "ppl": 7.7842,
+      "gguf_tensor": "blk.28.ssm_out"
+    },
+    "blk.29.attn_gate": {
+      "ppl": 7.7587,
+      "gguf_tensor": "blk.29.attn_gate"
+    },
+    "blk.29.attn_qkv": {
+      "ppl": 7.7928,
+      "gguf_tensor": "blk.29.attn_qkv"
+    },
+    "blk.29.ffn_down": {
+      "ppl": 7.797,
+      "gguf_tensor": "blk.29.ffn_down"
+    },
+    "blk.29.ffn_gate": {
+      "ppl": 7.788,
+      "gguf_tensor": "blk.29.ffn_gate"
+    },
+    "blk.29.ffn_up": {
+      "ppl": 7.7892,
+      "gguf_tensor": "blk.29.ffn_up"
+    },
+    "blk.29.ssm_out": {
+      "ppl": 7.7735,
+      "gguf_tensor": "blk.29.ssm_out"
+    },
+    "blk.30.attn_gate": {
+      "ppl": 7.7715,
+      "gguf_tensor": "blk.30.attn_gate"
+    },
+    "blk.30.attn_qkv": {
+      "ppl": 7.7947,
+      "gguf_tensor": "blk.30.attn_qkv"
+    },
+    "blk.30.ffn_down": {
+      "ppl": 7.7845,
+      "gguf_tensor": "blk.30.ffn_down"
+    },
+    "blk.30.ffn_gate": {
+      "ppl": 7.7897,
+      "gguf_tensor": "blk.30.ffn_gate"
+    },
+    "blk.30.ffn_up": {
+      "ppl": 7.7885,
+      "gguf_tensor": "blk.30.ffn_up"
+    },
+    "blk.30.ssm_out": {
+      "ppl": 7.776,
+      "gguf_tensor": "blk.30.ssm_out"
+    },
+    "blk.31.attn_k": {
+      "ppl": 7.7805,
+      "gguf_tensor": "blk.31.attn_k"
+    },
+    "blk.31.attn_output": {
+      "ppl": 7.7851,
+      "gguf_tensor": "blk.31.attn_output"
+    },
+    "blk.31.attn_q": {
+      "ppl": 7.8155,
+      "gguf_tensor": "blk.31.attn_q"
+    },
+    "blk.31.attn_v": {
+      "ppl": 7.7854,
+      "gguf_tensor": "blk.31.attn_v"
+    },
+    "blk.31.ffn_down": {
+      "ppl": 7.8741,
+      "gguf_tensor": "blk.31.ffn_down"
+    },
+    "blk.31.ffn_gate": {
+      "ppl": 7.8453,
+      "gguf_tensor": "blk.31.ffn_gate"
+    },
+    "blk.31.ffn_up": {
+      "ppl": 7.8371,
+      "gguf_tensor": "blk.31.ffn_up"
+    }
+  }
+}

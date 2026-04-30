@@ -60,6 +60,8 @@ def load_ablation_data(results_path, plan_path=None):
     ablation_map = {}
     for hf_name, data in tests.items():
         gguf_tensor = data["gguf_tensor"]
+        if not gguf_tensor.endswith(".weight"):
+            gguf_tensor += ".weight"
         ppl = data["ppl"]
         delta = ppl - baseline_ppl
         ablation_map[gguf_tensor] = {
