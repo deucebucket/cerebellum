@@ -1,0 +1,9 @@
+{
+  "benchmark": "mmlu_redux",
+  "model": "gemma4_q3km_ple",
+  "accuracy": 58.75,
+  "correct": 1410,
+  "total": 2400,
+  "elapsed_seconds": 167.93462014198303,
+  "timestamp": "2026-04-30 09:49"
+}

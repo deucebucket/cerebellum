@@ -38,10 +38,21 @@ HF_TO_GGUF = {
     "mlp.gate_proj": "ffn_gate",
     "mlp.up_proj": "ffn_up",
     "mlp.down_proj": "ffn_down",
+    "per_layer_input_gate": "inp_gate",
+    "per_layer_projection": "proj",
+}
+
+GLOBAL_TENSOR_MAP = {
+    "embed_tokens_per_layer": "per_layer_token_embd",
+    "per_layer_model_projection": "per_layer_model_proj",
 }
 
 LAYER_PATTERN = re.compile(
     r"(?:model\.(?:language_model\.)?)?layers\.(\d+)\.(.*?)\.weight$"
+)
+
+GLOBAL_PATTERN = re.compile(
+    r"(?:model\.(?:language_model\.)?)?(embed_tokens_per_layer|per_layer_model_projection)\.weight$"
 )
 
 
@@ -120,24 +131,36 @@ def generate_imatrix_streaming(
     num_layers = 0
     for name in tensor_index:
         m = LAYER_PATTERN.match(name)
-        if not m:
+        if m:
+            layer_idx = int(m.group(1))
+            suffix = m.group(2)
+            gguf_suffix = hf_name_to_gguf(suffix)
+            if gguf_suffix is None:
+                continue
+            gguf_name = f"blk.{layer_idx}.{gguf_suffix}.weight"
+            targets[gguf_name] = name
+            num_layers = max(num_layers, layer_idx + 1)
             continue
-        layer_idx = int(m.group(1))
-        suffix = m.group(2)
-        gguf_suffix = hf_name_to_gguf(suffix)
-        if gguf_suffix is None:
-            continue
-        gguf_name = f"blk.{layer_idx}.{gguf_suffix}.weight"
-        targets[gguf_name] = name
-        num_layers = max(num_layers, layer_idx + 1)
+        gm = GLOBAL_PATTERN.match(name)
+        if gm:
+            hf_key = gm.group(1)
+            gguf_name = f"{GLOBAL_TENSOR_MAP[hf_key]}.weight"
+            targets[gguf_name] = name
 
-    print(f"  {len(targets)} weight tensors across {num_layers} layers")
+    n_global = sum(1 for k in targets if not k.startswith("blk."))
+    print(f"  {len(targets)} weight tensors across {num_layers} layers ({n_global} global)")
 
     imatrix_data = {}
     open_files: dict[str, safe_open] = {}
     t_compute = time.time()
 
-    for gguf_name in sorted(targets.keys(), key=lambda k: (int(k.split('.')[1]), k)):
+    def _sort_key(k):
+        parts = k.split('.')
+        if parts[0] == 'blk':
+            return (0, int(parts[1]), k)
+        return (1, 0, k)
+
+    for gguf_name in sorted(targets.keys(), key=_sort_key):
         hf_name = targets[gguf_name]
         shard_path = tensor_index[hf_name]
         shard_key = str(shard_path)
@@ -152,6 +175,11 @@ def generate_imatrix_streaming(
 
         sf = open_files[shard_key]
         w = sf.get_tensor(hf_name)
+        if w.ndim < 2:
+            if verbose:
+                print(f"  {gguf_name:40s} SKIP (1D, dim={w.shape[0]})")
+            del w
+            continue
         sens = compute_channel_sensitivity(w)
         imatrix_data[gguf_name] = sens.tolist()
         del w

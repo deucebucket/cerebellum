@@ -1,0 +1,9 @@
+{
+  "benchmark": "arc_challenge",
+  "model": "gemma4_q3km_ple_q5k",
+  "accuracy": 85.06825938566553,
+  "correct": 997,
+  "total": 1172,
+  "elapsed_seconds": 62.32372760772705,
+  "timestamp": "2026-04-30 10:26"
+}

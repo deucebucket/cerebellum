@@ -1,0 +1,9 @@
+{
+  "benchmark": "hellaswag",
+  "model": "gemma4_q3km_ple_q5k",
+  "accuracy": 75.51284604660427,
+  "correct": 7583,
+  "total": 10042,
+  "elapsed_seconds": 558.7931928634644,
+  "timestamp": "2026-04-30 10:42"
+}

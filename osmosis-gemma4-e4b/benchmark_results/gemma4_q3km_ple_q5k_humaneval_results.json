@@ -1,0 +1,13 @@
+{
+  "benchmark": "humaneval",
+  "model": "gemma4_q3km_ple_q5k",
+  "pass_at_1": 0.6585365853658537,
+  "pass_at_1_pct": 65.9,
+  "total_problems": 164,
+  "timestamp": "2026-04-30 10:25",
+  "settings": {
+    "temperature": 0,
+    "max_tokens": 512,
+    "enable_thinking": false
+  }
+}
