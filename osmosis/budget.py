@@ -91,12 +91,18 @@ def find_quantize_bin(quantize_bin=None):
     raise FileNotFoundError("llama-quantize not found")
 
 
-def dry_run_quantize(gguf_path, base_type, quantize_bin):
+def dry_run_quantize(gguf_path, base_type, quantize_bin, imatrix=None):
     """Run llama-quantize --dry-run and parse its tensor allocation."""
+    cmd = [quantize_bin, "--dry-run"]
+    if imatrix:
+        cmd += ["--imatrix", imatrix]
+    cmd += [gguf_path, "/dev/null", base_type]
     result = subprocess.run(
-        [quantize_bin, "--dry-run", gguf_path, "/dev/null", base_type],
-        capture_output=True, text=True, timeout=120,
+        cmd, capture_output=True, text=True, timeout=120,
     )
+    if result.returncode != 0:
+        stderr_snippet = result.stderr.strip().split("\n")[-1] if result.stderr.strip() else "no output"
+        raise RuntimeError(f"llama-quantize --dry-run failed (exit {result.returncode}): {stderr_snippet}")
 
     tensors = {}
     total_size = 0
@@ -151,6 +157,39 @@ def dry_run_quantize(gguf_path, base_type, quantize_bin):
 def estimate_tensor_size(param_count, qtype):
     bpw = QUANT_BPW.get(qtype, 4.5)
     return int(param_count * bpw / 8)
+
+
+def build_size_table(source_gguf, quantize_bin, imatrix=None, base_types=None):
+    """Run dry_run_quantize at multiple quant levels and collect real sizes.
+
+    Returns (size_table, dry_run_cache):
+      size_table: {tensor_name: {normalized_qtype: real_size_bytes}}
+      dry_run_cache: {base_label: (tensors_dict, total_size)}
+    """
+    if base_types is None:
+        base_types = [label for label, _ in BASE_QUANT_SIZES]
+
+    size_table = {}
+    dry_run_cache = {}
+    for base_label in base_types:
+        tensors, total_size = dry_run_quantize(source_gguf, base_label, quantize_bin, imatrix)
+        dry_run_cache[base_label] = (tensors, total_size)
+        for name, tinfo in tensors.items():
+            assigned = normalize_qtype(tinfo["assigned_type"])
+            if name not in size_table:
+                size_table[name] = {}
+            if assigned not in size_table[name]:
+                size_table[name][assigned] = tinfo["size_bytes"]
+    return size_table, dry_run_cache
+
+
+def lookup_tensor_size(size_table, tensor_name, param_count, qtype):
+    """Look up real size from the table, fall back to BPW estimate."""
+    normed = normalize_qtype(qtype)
+    real = size_table.get(tensor_name, {}).get(normed)
+    if real is not None:
+        return real
+    return estimate_tensor_size(param_count, normed)
 
 
 def build_sensitivity_map(report_path):
@@ -219,14 +258,21 @@ def promotion_benefit(sens_data, current_type, target_type):
     return (kl_current - kl_target) * sens_data["param_count"]
 
 
-def allocate_budget(source_gguf, sensitivity_map, budget_bytes, quantize_bin, verbose=False):
+def allocate_budget(source_gguf, sensitivity_map, budget_bytes, quantize_bin,
+                    imatrix=None, verbose=False):
     """Enhance llama-quantize's allocation with targeted promotions.
 
     1. Find the best base quant type that fits the budget
     2. Get llama-quantize's default allocation via dry-run
     3. Spend remaining budget promoting the most sensitive tensors
     """
-    # Find the best base type
+    # Build size table from dry-runs at all base types (includes imatrix effects)
+    all_base_labels = [label for label, _ in BASE_QUANT_SIZES]
+    size_table, dry_run_cache = build_size_table(
+        source_gguf, quantize_bin, imatrix=imatrix, base_types=all_base_labels,
+    )
+
+    # Find the best base type from cached results
     best_base = None
     best_tensors = None
     best_size = 0
@@ -235,7 +281,7 @@ def allocate_budget(source_gguf, sensitivity_map, budget_bytes, quantize_bin, ve
         print(f"\nScanning base quant types...")
 
     for base_label, base_tier in BASE_QUANT_SIZES:
-        tensors, total_size = dry_run_quantize(source_gguf, base_label, quantize_bin)
+        tensors, total_size = dry_run_cache[base_label]
         fits = total_size <= budget_bytes
         if verbose:
             marker = " ✓" if fits else ""
@@ -270,7 +316,8 @@ def allocate_budget(source_gguf, sensitivity_map, budget_bytes, quantize_bin, ve
             continue
 
         benefit = promotion_benefit(sens_data, current, target)
-        cost = estimate_tensor_size(tinfo["param_count"], target) - tinfo["size_bytes"]
+        target_size = lookup_tensor_size(size_table, name, tinfo["param_count"], target)
+        cost = target_size - tinfo["size_bytes"]
         if cost <= 0:
             continue
 
@@ -336,6 +383,7 @@ def main():
     parser.add_argument("--source-gguf", required=True, help="F16 source GGUF")
     parser.add_argument("--budget-gb", type=float, required=True, help="Target file size in GB")
     parser.add_argument("--output", required=True, help="Output tensor types file")
+    parser.add_argument("--imatrix", default=None, help="Imatrix file for accurate size estimation")
     parser.add_argument("--quantize-bin", default=None, help="Path to llama-quantize")
     parser.add_argument("-v", "--verbose", action="store_true")
 
@@ -344,6 +392,8 @@ def main():
     quantize_bin = find_quantize_bin(args.quantize_bin)
     print(f"Budget: {args.budget_gb:.1f} GB")
     print(f"Source: {args.source_gguf}")
+    if args.imatrix:
+        print(f"Imatrix: {args.imatrix}")
 
     sensitivity_map = build_sensitivity_map(args.sensitivity)
     print(f"Loaded {len(sensitivity_map)} sensitivity curves")
@@ -351,7 +401,7 @@ def main():
     budget_bytes = int(args.budget_gb * 1e9)
     base_type, overrides = allocate_budget(
         args.source_gguf, sensitivity_map, budget_bytes,
-        quantize_bin, verbose=True,
+        quantize_bin, imatrix=args.imatrix, verbose=True,
     )
 
     if base_type is None:

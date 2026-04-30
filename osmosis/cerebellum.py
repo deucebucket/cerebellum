@@ -32,6 +32,8 @@ from osmosis.budget import (
     normalize_qtype,
     next_tier,
     estimate_tensor_size,
+    build_size_table,
+    lookup_tensor_size,
 )
 
 GGUF_TO_HF = {v: k for k, v in HF_TO_GGUF_COMPONENT.items()}
@@ -184,7 +186,8 @@ def optimal_gpu_split(layer_scores, n_layers=64):
 
 
 def ablation_aware_allocate(source_gguf, ablation_map, budget_bytes,
-                            quantize_bin, base_type="Q4_K_M", verbose=False):
+                            quantize_bin, base_type="Q4_K_M", imatrix=None,
+                            verbose=False):
     """Precision allocator that uses ground-truth ablation data.
 
     Strategy:
@@ -195,7 +198,11 @@ def ablation_aware_allocate(source_gguf, ablation_map, budget_bytes,
        derived from ablation patterns
     """
     classifications = classify_tensors(ablation_map)
-    tensors, base_size = dry_run_quantize(source_gguf, base_type, quantize_bin)
+    size_table, dry_run_cache = build_size_table(source_gguf, quantize_bin, imatrix=imatrix)
+    if base_type in dry_run_cache:
+        tensors, base_size = dry_run_cache[base_type]
+    else:
+        tensors, base_size = dry_run_quantize(source_gguf, base_type, quantize_bin, imatrix)
 
     if verbose:
         print(f"\nBase type: {base_type} ({base_size / 1e9:.2f} GB)")
@@ -223,7 +230,7 @@ def ablation_aware_allocate(source_gguf, ablation_map, budget_bytes,
             continue
 
         old_size = tinfo["size_bytes"]
-        new_size = estimate_tensor_size(tinfo["param_count"], target)
+        new_size = lookup_tensor_size(size_table, tensor_name, tinfo["param_count"], target)
         savings = old_size - new_size
         if savings > 0:
             overrides[tensor_name] = target
@@ -253,7 +260,7 @@ def ablation_aware_allocate(source_gguf, ablation_map, budget_bytes,
             continue
 
         old_size = tinfo["size_bytes"]
-        new_size = estimate_tensor_size(tinfo["param_count"], target)
+        new_size = lookup_tensor_size(size_table, tensor_name, tinfo["param_count"], target)
         savings = old_size - new_size
         if savings > 0:
             overrides[tensor_name] = target
@@ -287,8 +294,8 @@ def ablation_aware_allocate(source_gguf, ablation_map, budget_bytes,
             if target is None:
                 continue
 
-            cost = (estimate_tensor_size(tinfo["param_count"], target)
-                    - estimate_tensor_size(tinfo["param_count"], current))
+            cost = (lookup_tensor_size(size_table, tensor_name, tinfo["param_count"], target)
+                    - lookup_tensor_size(size_table, tensor_name, tinfo["param_count"], current))
             if cost <= 0:
                 continue
 
@@ -333,7 +340,10 @@ def ablation_aware_allocate(source_gguf, ablation_map, budget_bytes,
                           or n not in {k for k, v in classifications.items() if v == "demote"}])
         print(f"  Promoted across {promotion_pass} passes, spent {spent / 1e6:.1f} MB")
 
-        final_size = base_size - saved_bytes + spent
+        final_size = sum(
+            lookup_tensor_size(size_table, n, tensors[n]["param_count"], current_types[n])
+            for n in tensors
+        )
         print(f"\n  Final estimated size: {final_size / 1e9:.2f} GB")
 
     return base_type, overrides
@@ -387,6 +397,7 @@ def main():
     parser.add_argument("--budget-gb", type=float, help="Target size in GB (for allocation mode)")
     parser.add_argument("--base-type", default="Q4_K_M", help="Base quant type")
     parser.add_argument("--output", help="Output tensor types file")
+    parser.add_argument("--imatrix", default=None, help="Imatrix file for accurate size estimation")
     parser.add_argument("--quantize-bin", default=None)
     parser.add_argument("--analyze-only", action="store_true", help="Just analyze, don't allocate")
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -426,7 +437,8 @@ def main():
 
         base_type, overrides = ablation_aware_allocate(
             args.source_gguf, ablation_map, budget_bytes,
-            quantize_bin, base_type=args.base_type, verbose=True,
+            quantize_bin, base_type=args.base_type, imatrix=args.imatrix,
+            verbose=True,
         )
 
         if args.output and overrides:
