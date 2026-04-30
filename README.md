@@ -1,45 +1,42 @@
-# Cerebellum — Ablation-Informed Model Surgery for LLMs
+# Cerebellum — Ablation-Informed Quantization for LLMs
 
-Surgical precision allocation and neuron-level behavior removal for GGUF quantization. Beats uniform quant methods at the same file size by putting bits where they matter.
+Surgical precision allocation for GGUF quantization. Instead of applying the same quant level uniformly across all tensors, Cerebellum measures the actual sensitivity of each tensor and allocates bits where they matter most.
 
-## What It Does
+## How It Works
 
-### Tensor Cerebellum (v1 — working now)
+1. **Ablate** — crush each tensor to Q2_K individually, measure the perplexity impact
+2. **Classify** — sacred (high sensitivity), neutral, or demotable (improves when crushed)
+3. **Allocate** — sacred tensors get Q6_K/Q8_0, demotable tensors stay at Q2_K, everything else fills in to meet the size budget
+4. **Multi-pass promotion** — tensors climb quant levels (Q2_K → Q3_K → ... → Q8_0) across passes until the budget is exhausted
 
-Instead of applying the same quant level uniformly across all tensors, Cerebellum:
-
-1. **Ablates individual tensors** — crushes each to Q2_K one at a time, measures perplexity impact
-2. **Classifies tensors** — sacred (high sensitivity), neutral, or demotable (improves when crushed)
-3. **Allocates precision surgically** — sacred tensors get Q6_K/Q8_0, safe zones stay at Q2_K
-4. **Multi-pass promotion** — tensors climb multiple quant levels (Q2_K → Q3_K → ... → Q8_0) across passes until the size budget is exhausted
-
-The result: better perplexity at the same file size compared to uniform quantization.
-
-### Neuron Cerebellum (v2 — planned)
-
-Same sweep-measure-classify methodology, finer scalpel:
-
-- **Dead neuron pruning** — find neurons that never activate, zero them out (free size savings)
-- **Behavior removal** — find directions responsible for censorship/refusal/hedging, subtract them from weights
-- **Thinking mode control** — locate and optionally suppress chain-of-thought trigger circuits
-- **Activation-informed quantization** — neurons that fire hard get preserved, neurons that barely fire get crushed
-
-Pipeline: `Base f16 → Neuron Surgery → Tensor Cerebellum → GGUF`
+The result: lower perplexity at the same file size compared to uniform quantization.
 
 ## Results
 
-### Cerebellum v4 — Qwen3 27B
+### Qwen 3.6 27B — Cerebellum v4 (12 GB)
+
+| Metric | Score |
+|--------|-------|
+| **Perplexity** (WikiText-2, 2048 ctx) | **7.034** |
+| **MMLU** (11,643 questions) | **82.5%** |
+| **MMLU-Redux** (2,400 questions) | **77.1%** |
+| **ARC-Challenge** (1,172 questions) | **95.1%** |
+| **HellaSwag** (10,042 questions) | **91.2%** |
+| **File size** | **11.98 GB** |
+| **Tensor overrides** | 181 |
+
+Speed on RTX 3090 (full GPU offload, 4096 context): **71 tok/s prompt**, **36.5 tok/s generation**
+
+#### Perplexity Comparison
 
 | Method | Size | PPL (wiki) | Notes |
 |--------|------|------------|-------|
-| **Cerebellum v4** | **11.98 GB** | **7.034** | Multi-pass, 181 tensor overrides |
-| Unsloth Q2_K_XL | 12.0 GB | 7.040 | Uniform quant |
-| Cerebellum v2 | 10.68 GB | 7.087 | Single-pass, 115 overrides |
-| Q2_K + imatrix | 9.98 GB | 7.500 | Standard baseline |
+| **Cerebellum v4** | **11.98 GB** | **7.034** | 181 tensor overrides |
+| Cerebellum v2 | 10.68 GB | 7.087 | 115 overrides |
+| Q2_K + imatrix | 9.98 GB | 7.500 | Standard imatrix baseline |
+| Q2_K (no imatrix) | 9.98 GB | 8.256 | Vanilla baseline |
 
-Cerebellum v4 beats Unsloth's dynamic quant at the same 12GB file size. The v4 GGUF is available on HuggingFace: [deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF](https://huggingface.co/deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF)
-
-### Tensor Allocation (v4, 12GB budget)
+#### Tensor Allocation (v4, 12 GB budget)
 
 - **7 tensors at Q8_0** — sacred attention/FFN in the most sensitive layers
 - **41 tensors at Q6_K** — high-sensitivity layers
@@ -53,51 +50,25 @@ Cerebellum v4 beats Unsloth's dynamic quant at the same 12GB file size. The v4 G
 
 - **Layer 63 is sacred** — q_proj (+0.162 PPL) and ffn_down (+0.138 PPL) need maximum precision
 - **7 tensors actively improve at Q2_K** — crushing them helps (negative ablation delta)
-- **Same-layer interaction effects are destructive** — crushing two FFN tensors in the same layer simultaneously causes regression (interaction ratio 0.13)
+- **Same-layer interaction effects are destructive** — crushing two FFN tensors in the same layer simultaneously causes 87% regression (interaction ratio 0.13)
 - **Cross-layer effects are ~86% additive** — single-tensor ablation deltas predict multi-tensor outcomes with ~14% attenuation
-- **23 vs 18 tensors of ablation data** — extrapolation is already near-optimal; more data doesn't change allocation much
 
-### Qwen 3.5 9B — Mamba Hybrid (Full 202-tensor ablation)
+### Qwen 3.5 9B — Mamba Hybrid (202-tensor ablation)
 
 | Method | Size | PPL (wiki) | Notes |
 |--------|------|------------|-------|
-| Q4_K_M + Osmosis imatrix | 5.36 GB | **7.724** | Best for this architecture |
+| Q4_K_M + imatrix | 5.36 GB | **7.724** | Best for this architecture |
 | Q4_K_M vanilla | 5.62 GB | 7.769 | Standard baseline |
 | Cerebellum promote-only | 5.47 GB | 7.818 | 22 non-SSM tensor promotions |
 | Cerebellum Q2_K base | 5.21 GB | 9.827 | SSM tensors at Q2_K = disaster |
 
-**Critical finding:** Cerebellum tensor overrides don't work for Mamba hybrid models. llama.cpp's
-SSM inference kernels break when tensor types are overridden — even *promoting* to higher precision
-degrades PPL catastrophically (+0.5 to +0.7 PPL from a single SSM tensor override). Full analysis
-in [docs/mamba_hybrid_findings.md](docs/mamba_hybrid_findings.md).
+**Finding:** Cerebellum tensor overrides don't work for Mamba hybrid models. llama.cpp's SSM inference kernels break when tensor types are overridden — even *promoting* to higher precision degrades PPL. Full analysis in [docs/mamba_hybrid_findings.md](docs/mamba_hybrid_findings.md).
 
-The 202-tensor ablation dataset is still valuable — it's the only ground-truth PPL ablation data
-for Qwen 3.5 9B. Key finding: `blk.0.ssm_out` has +6.342 PPL delta, confirming SSM output
-sensitivity independently of Unsloth's KL-divergence proxy.
+The 202-tensor ablation dataset is the only ground-truth PPL ablation data for Qwen 3.5 9B. Key finding: `blk.0.ssm_out` has +6.342 PPL delta, confirming SSM output sensitivity.
 
-### Chat Benchmark (v4, RTX 3090)
+## Usage
 
-Speed: **71 prompt tok/s**, **36.5 gen tok/s** (full GPU offload, 4096 context)
-
-6 chat prompts across technical, coding, math, creative, analysis, and debugging categories — all producing coherent, accurate responses. Full results in `osmosis-qwen36-27b/benchmark_results/`.
-
-## Tools
-
-### Fast Imatrix Generation (Osmosis)
-
-Generate importance matrices for llama.cpp quantization in **seconds**, not hours. Standard imatrix generation requires running calibration text through the full model. Osmosis computes importance directly from weight statistics in ~60 seconds on CPU.
-
-```bash
-# Generate imatrix — any model size, ~4GB RAM
-python -m osmosis.imatrix_stream \
-    --model Qwen/Qwen3.6-27B \
-    --output osmosis_imatrix.dat -v
-
-# Then quantize with llama.cpp
-llama-quantize --imatrix osmosis_imatrix.dat model-f16.gguf model-Q2_K.gguf Q2_K
-```
-
-### Tensor Ablation Sweep
+### Ablation Sweep
 
 ```bash
 # Run ablation sweep — crush each tensor to Q2_K, measure PPL
@@ -105,17 +76,35 @@ python -m osmosis.cerebellum ablate \
     --base-gguf model-Q2_K.gguf \
     --tensors ablation_plan.json \
     --output ablation_results.json
+```
 
+### Budget Allocation
+
+```bash
 # Generate optimal tensor type allocation for a size budget
 python -m osmosis.cerebellum allocate \
     --ablation ablation_results.json \
     --budget 12.0 \
     --output tensor_types.txt
+```
 
-# Build the GGUF with per-tensor overrides
+### Build the GGUF
+
+```bash
+# Quantize with per-tensor overrides
 llama-quantize --imatrix imatrix.dat \
     --tensor-type @tensor_types.txt \
     model-f16.gguf model-cerebellum.gguf Q2_K
+```
+
+### Imatrix Generation
+
+Cerebellum includes a fast imatrix generator that computes importance directly from weight statistics in ~60 seconds on CPU (no calibration data, no GPU required):
+
+```bash
+python -m osmosis.imatrix_stream \
+    --model Qwen/Qwen3.6-27B \
+    --output osmosis_imatrix.dat -v
 ```
 
 ## Installation
@@ -124,7 +113,7 @@ llama-quantize --imatrix imatrix.dat \
 pip install -e .
 ```
 
-Requires PyTorch and Transformers (for loading HuggingFace models).
+Requires PyTorch and Transformers (for loading HuggingFace models). llama.cpp required for quantization and perplexity measurement.
 
 ## Architecture Support
 
@@ -134,55 +123,55 @@ Auto-detects model architecture:
 - **Qwen 3.5** (hybrid SSM + attention) — linear_attn + self_attn + MLP
 - **Standard transformers** — any model with self_attn q/k/v/o + MLP gate/up/down
 
-The technique works best on pure transformers. **Mamba hybrid models** (like Qwen 3.5 9B) have SSM
-tensors whose quant types cannot be safely overridden in llama.cpp — use imatrix-only quantization
-for those. See [docs/mamba_hybrid_findings.md](docs/mamba_hybrid_findings.md).
+Works best on pure transformers. Mamba hybrid models have SSM tensors whose quant types cannot be safely overridden in llama.cpp — see [docs/mamba_hybrid_findings.md](docs/mamba_hybrid_findings.md).
 
 ## Project Structure
 
 ```
 osmosis/
-├── cerebellum.py      # Ablation-informed precision allocator (v1)
+├── cerebellum.py      # Ablation-informed precision allocator
 ├── imatrix_stream.py  # Streaming imatrix generation (any model size)
-├── imatrix_gen.py     # Standard imatrix generation (with optional activation calibration)
-└── imatrix_format.py  # llama.cpp imatrix binary format writer
+├── imatrix_gen.py     # Standard imatrix generation
+├── imatrix_format.py  # llama.cpp imatrix binary format writer
+├── refusal_direction.py  # Differential activation analysis
+└── refusal_prompts.py    # Contrastive prompt datasets
 
-osmosis-qwen36-27b/    # Qwen3 27B findings (pure transformer)
-├── ablation_results.json        # Full tensor ablation data (23 tensors)
+osmosis-qwen36-27b/    # Qwen 3.6 27B results (pure transformer)
+├── ablation_results.json        # Tensor ablation data (23 tensors)
 ├── interaction_results.json     # Multi-tensor interaction effects
 ├── tensor_types_v4_12gb.txt     # v4 allocation (181 overrides)
-└── benchmark_results/           # Chat quality + speed benchmarks
+└── benchmark_results/           # MMLU, ARC, HellaSwag, speed
 
-osmosis-qwen35-9b/     # Qwen3.5 9B findings (Mamba hybrid)
-├── ablation_results.json        # Full tensor ablation data (202 tensors!)
+osmosis-qwen35-9b/     # Qwen 3.5 9B results (Mamba hybrid)
+├── ablation_results.json        # Full tensor ablation data (202 tensors)
 ├── cerebellum_scan_9b.sh        # Ablation scan script
 └── tensor_types_promote_only.txt # Best non-SSM promotions (22 overrides)
 
 docs/
-├── mamba_hybrid_findings.md     # SSM quantization constraints + full analysis
+├── mamba_hybrid_findings.md     # SSM quantization constraints + analysis
 └── llama_cpp_tensor_backend_patch.md
 ```
 
-## Roadmap
+## Models
 
-- [x] Fast imatrix generation (Osmosis)
-- [x] Tensor ablation sweep
-- [x] Multi-pass precision allocator (Cerebellum v1)
-- [x] Beat Unsloth Q2_K_XL at same size (v4: 7.034 vs 7.040)
-- [ ] Activation recorder for neuron-level analysis
-- [ ] Dead neuron pruning
-- [ ] Contrastive behavior analysis (censorship/refusal removal)
-- [ ] Neuron classifier (sacred/dead/censorship/thinking)
-- [ ] Full pipeline: neuron surgery + tensor allocation → GGUF
+- [Qwen3.6-27B-Cerebellum-v4-GGUF](https://huggingface.co/deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF) — 12 GB, PPL 7.034, 181 overrides
+- [Qwen3.6-27B-Osmosis-Q2_K-GGUF](https://huggingface.co/deucebucket/Qwen3.6-27B-Osmosis-Q2_K-GGUF) — 10 GB, PPL 7.500, imatrix baseline
+
+## Test Hardware
+
+| Component | Spec |
+|-----------|------|
+| **GPU** | NVIDIA RTX 3090 (24 GB) |
+| **CPU** | AMD Ryzen 7 5800XT |
+| **RAM** | 64 GB DDR4 |
+| **OS** | Fedora Linux 43 (Atomic) |
 
 ## Attribution
 
-- **[llama.cpp](https://github.com/ggerganov/llama.cpp)** — imatrix quantization system and tensor type override support
+- **[llama.cpp](https://github.com/ggerganov/llama.cpp)** — imatrix quantization and tensor type override support
 - **[AWQ](https://arxiv.org/abs/2306.00978)** — channel-level weight sensitivity insights
-- **[Abliteration](https://huggingface.co/blog/mlabonne/abliteration)** — proving that refusal behavior is directionally localized and removable
-- **[GPTQ](https://arxiv.org/abs/2210.17323)** — foundational post-training quantization work
-- **[Unsloth](https://unsloth.ai/)** — dynamic quantization benchmarks that pushed the field forward
-- **[Qwen Team](https://huggingface.co/Qwen)** — open-weight models used in development
+- **[GPTQ](https://arxiv.org/abs/2210.17323)** — foundational post-training quantization
+- **[Qwen Team](https://huggingface.co/Qwen)** — open-weight models
 - **[HuggingFace](https://huggingface.co/)** — Transformers library and model distribution
 
 ## License
