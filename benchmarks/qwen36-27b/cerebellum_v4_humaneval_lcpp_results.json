@@ -1,0 +1,16 @@
+{
+  "benchmark": "humaneval",
+  "runner": "llama-cpp-python",
+  "model": "cerebellum_v4",
+  "model_path": "/var/home/deucebucket/ai-drive/ai-suite/models/qwen3.6-27b-cerebellum-v4.gguf",
+  "pass_at_1": 0.0,
+  "pass_at_1_pct": 0.0,
+  "total_problems": 164,
+  "timestamp": "2026-04-30 04:31",
+  "settings": {
+    "temperature": 0,
+    "max_tokens": 512,
+    "n_gpu_layers": 999,
+    "n_ctx": 4096
+  }
+}

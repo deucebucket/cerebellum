@@ -1,0 +1,39 @@
+======================================================================
+ARC-CHALLENGE BENCHMARK — granite4_cerebellum_v1
+======================================================================
+Loading questions...
+Loaded 1172 questions
+Workers: 2
+
+  [  50/1172] 92.0% accuracy, 0.9 q/s, ETA 1187s
+  [ 100/1172] 90.0% accuracy, 1.0 q/s, ETA 1111s
+  [ 150/1172] 91.3% accuracy, 0.9 q/s, ETA 1085s
+  [ 200/1172] 92.0% accuracy, 0.9 q/s, ETA 1050s
+  [ 250/1172] 90.4% accuracy, 0.9 q/s, ETA 1006s
+  [ 300/1172] 89.3% accuracy, 0.9 q/s, ETA 964s
+  [ 350/1172] 89.1% accuracy, 0.9 q/s, ETA 915s
+  [ 400/1172] 90.2% accuracy, 0.9 q/s, ETA 867s
+  [ 450/1172] 90.7% accuracy, 0.9 q/s, ETA 814s
+  [ 500/1172] 90.2% accuracy, 0.9 q/s, ETA 760s
+  [ 550/1172] 90.2% accuracy, 0.9 q/s, ETA 705s
+  [ 600/1172] 90.7% accuracy, 0.9 q/s, ETA 653s
+  [ 650/1172] 90.5% accuracy, 0.8 q/s, ETA 615s
+  [ 700/1172] 90.6% accuracy, 0.8 q/s, ETA 571s
+  [ 750/1172] 90.5% accuracy, 0.8 q/s, ETA 519s
+  [ 800/1172] 90.4% accuracy, 0.8 q/s, ETA 465s
+  [ 850/1172] 90.0% accuracy, 0.8 q/s, ETA 409s
+  [ 900/1172] 89.8% accuracy, 0.8 q/s, ETA 351s
+  [ 950/1172] 89.9% accuracy, 0.8 q/s, ETA 290s
+  [1000/1172] 90.2% accuracy, 0.8 q/s, ETA 227s
+  [1050/1172] 90.6% accuracy, 0.7 q/s, ETA 163s
+  [1100/1172] 90.6% accuracy, 0.7 q/s, ETA 98s
+  [1150/1172] 90.5% accuracy, 0.7 q/s, ETA 30s
+  [1172/1172] 90.7% accuracy, 0.7 q/s, ETA 0s
+
+======================================================================
+RESULTS — 1172 questions, 1614s (0.7 q/s)
+======================================================================
+Overall Accuracy: 1063/1172 (90.7%)
+
+Results saved to /var/home/deucebucket/ai-drive/osmosis/osmosis-granite4-h-small/benchmark_results/granite4_cerebellum_v1_arc_results.json
+Per-question detail log: /var/home/deucebucket/ai-drive/osmosis/osmosis-granite4-h-small/benchmark_results/granite4_cerebellum_v1_arc_detailed.jsonl (1172 entries)

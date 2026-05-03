@@ -1,0 +1,9 @@
+{
+  "benchmark": "arc_challenge",
+  "model": "qwen36_35b_cerebellum_v1",
+  "accuracy": 94.79522184300342,
+  "correct": 1111,
+  "total": 1172,
+  "elapsed_seconds": 25.441476345062256,
+  "timestamp": "2026-05-02 03:19"
+}

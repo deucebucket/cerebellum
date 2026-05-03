@@ -1,0 +1,43 @@
+======================================================================
+MMLU-REDUX BENCHMARK — granite4_cerebellum_v1
+======================================================================
+Loading questions...
+Loaded 2400 questions
+Resuming from question 602 (425/601 correct, 70.7%)
+Workers: 2
+
+Traceback (most recent call last):
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_mmlu_redux.py", line 223, in <module>
+    main()
+    ~~~~^^
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_mmlu_redux.py", line 178, in main
+    for entry in pool.map(process_question, remaining_qs):
+                 ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.14/concurrent/futures/_base.py", line 639, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/lib64/python3.14/concurrent/futures/_base.py", line 311, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/usr/lib64/python3.14/concurrent/futures/_base.py", line 450, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib64/python3.14/concurrent/futures/_base.py", line 395, in __get_result
+    raise self._exception
+  File "/usr/lib64/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/usr/lib64/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_mmlu_redux.py", line 164, in process_question
+    raw_response, predicted = query_model(prompt)
+                              ~~~~~~~~~~~^^^^^^^^
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_mmlu_redux.py", line 108, in query_model
+    content = query_chat_completion(BASE, {
+        "model": "test",
+    ...<5 lines>...
+        "temperature": 0,
+    }, retries=retries, timeout=timeout)
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_utils.py", line 51, in query_chat_completion
+    raise ModelQueryError(f"model query failed after {retries + 1} attempts: {last_error}")
+benchmark_utils.ModelQueryError: model query failed after 3 attempts: Client error '400 Bad Request' for url 'http://localhost:18080/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400

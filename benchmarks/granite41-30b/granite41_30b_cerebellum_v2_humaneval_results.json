@@ -1,0 +1,13 @@
+{
+  "benchmark": "humaneval",
+  "model": "granite41_30b_cerebellum_v2",
+  "pass_at_1": 0.823170731707317,
+  "pass_at_1_pct": 82.3,
+  "total_problems": 164,
+  "timestamp": "2026-05-02 13:43",
+  "settings": {
+    "temperature": 0,
+    "max_tokens": 512,
+    "enable_thinking": false
+  }
+}

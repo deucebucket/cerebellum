@@ -1,0 +1,9 @@
+{
+  "benchmark": "hellaswag",
+  "model": "cerebellum_v4",
+  "accuracy": 91.17705636327425,
+  "correct": 9156,
+  "total": 10042,
+  "elapsed_seconds": 183.58855295181274,
+  "timestamp": "2026-04-29 11:23"
+}

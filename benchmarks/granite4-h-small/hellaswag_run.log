@@ -1,0 +1,116 @@
+======================================================================
+HELLASWAG BENCHMARK — granite4_cerebellum_v1
+======================================================================
+Loading questions...
+Loaded 10042 questions
+Workers: 4
+
+  [  100/10042] 76.0% accuracy, 2.5 q/s, ETA 4035s
+  [  200/10042] 78.0% accuracy, 2.6 q/s, ETA 3801s
+  [  300/10042] 74.0% accuracy, 2.6 q/s, ETA 3707s
+  [  400/10042] 74.8% accuracy, 2.6 q/s, ETA 3653s
+  [  500/10042] 74.8% accuracy, 2.7 q/s, ETA 3599s
+  [  600/10042] 74.2% accuracy, 2.7 q/s, ETA 3550s
+  [  700/10042] 74.4% accuracy, 2.7 q/s, ETA 3506s
+  [  800/10042] 75.2% accuracy, 2.7 q/s, ETA 3454s
+  [  900/10042] 75.3% accuracy, 2.7 q/s, ETA 3407s
+  [ 1000/10042] 74.8% accuracy, 2.7 q/s, ETA 3361s
+  [ 1100/10042] 74.5% accuracy, 2.7 q/s, ETA 3315s
+  [ 1200/10042] 74.3% accuracy, 2.7 q/s, ETA 3273s
+  [ 1300/10042] 73.8% accuracy, 2.7 q/s, ETA 3244s
+  [ 1400/10042] 73.0% accuracy, 2.6 q/s, ETA 3325s
+  [ 1500/10042] 73.3% accuracy, 2.5 q/s, ETA 3385s
+  [ 1600/10042] 73.1% accuracy, 2.5 q/s, ETA 3435s
+  [ 1700/10042] 72.7% accuracy, 2.4 q/s, ETA 3473s
+  [ 1800/10042] 72.9% accuracy, 2.4 q/s, ETA 3501s
+  [ 1900/10042] 72.6% accuracy, 2.3 q/s, ETA 3528s
+  [ 2000/10042] 72.8% accuracy, 2.3 q/s, ETA 3545s
+  [ 2100/10042] 72.8% accuracy, 2.2 q/s, ETA 3560s
+  [ 2200/10042] 72.9% accuracy, 2.2 q/s, ETA 3562s
+  [ 2300/10042] 72.5% accuracy, 2.2 q/s, ETA 3560s
+  [ 2400/10042] 72.6% accuracy, 2.2 q/s, ETA 3550s
+  [ 2500/10042] 72.6% accuracy, 2.1 q/s, ETA 3556s
+  [ 2600/10042] 72.6% accuracy, 2.1 q/s, ETA 3604s
+  [ 2700/10042] 72.8% accuracy, 2.0 q/s, ETA 3643s
+  [ 2800/10042] 72.8% accuracy, 2.0 q/s, ETA 3663s
+  [ 2900/10042] 72.7% accuracy, 1.9 q/s, ETA 3678s
+  [ 3000/10042] 72.9% accuracy, 1.9 q/s, ETA 3696s
+  [ 3100/10042] 72.6% accuracy, 1.9 q/s, ETA 3708s
+  [ 3200/10042] 72.6% accuracy, 1.8 q/s, ETA 3707s
+  [ 3300/10042] 72.9% accuracy, 1.8 q/s, ETA 3709s
+  [ 3400/10042] 73.5% accuracy, 1.8 q/s, ETA 3710s
+  [ 3500/10042] 74.1% accuracy, 1.8 q/s, ETA 3711s
+  [ 3600/10042] 74.7% accuracy, 1.7 q/s, ETA 3704s
+  [ 3700/10042] 75.2% accuracy, 1.7 q/s, ETA 3669s
+  [ 3800/10042] 75.7% accuracy, 1.7 q/s, ETA 3595s
+  [ 3900/10042] 76.2% accuracy, 1.7 q/s, ETA 3520s
+  [ 4000/10042] 76.6% accuracy, 1.8 q/s, ETA 3447s
+  [ 4100/10042] 77.0% accuracy, 1.8 q/s, ETA 3374s
+  [ 4200/10042] 77.5% accuracy, 1.8 q/s, ETA 3302s
+  [ 4300/10042] 77.8% accuracy, 1.8 q/s, ETA 3233s
+  [ 4400/10042] 78.2% accuracy, 1.8 q/s, ETA 3164s
+  [ 4500/10042] 78.6% accuracy, 1.8 q/s, ETA 3098s
+  [ 4600/10042] 78.9% accuracy, 1.8 q/s, ETA 3030s
+  [ 4700/10042] 79.2% accuracy, 1.8 q/s, ETA 2961s
+  [ 4800/10042] 79.6% accuracy, 1.8 q/s, ETA 2898s
+  [ 4900/10042] 79.8% accuracy, 1.8 q/s, ETA 2833s
+  [ 5000/10042] 80.0% accuracy, 1.8 q/s, ETA 2769s
+  [ 5100/10042] 80.3% accuracy, 1.8 q/s, ETA 2706s
+  [ 5200/10042] 80.5% accuracy, 1.8 q/s, ETA 2645s
+  [ 5300/10042] 80.7% accuracy, 1.8 q/s, ETA 2583s
+  [ 5400/10042] 80.9% accuracy, 1.8 q/s, ETA 2523s
+  [ 5500/10042] 81.2% accuracy, 1.8 q/s, ETA 2463s
+  [ 5600/10042] 81.4% accuracy, 1.8 q/s, ETA 2405s
+  [ 5700/10042] 81.6% accuracy, 1.8 q/s, ETA 2349s
+  [ 5800/10042] 81.8% accuracy, 1.8 q/s, ETA 2298s
+  [ 5900/10042] 82.0% accuracy, 1.8 q/s, ETA 2245s
+  [ 6000/10042] 82.2% accuracy, 1.8 q/s, ETA 2193s
+  [ 6100/10042] 82.4% accuracy, 1.8 q/s, ETA 2143s
+  [ 6200/10042] 82.6% accuracy, 1.8 q/s, ETA 2091s
+  [ 6300/10042] 82.7% accuracy, 1.8 q/s, ETA 2040s
+  [ 6400/10042] 82.9% accuracy, 1.8 q/s, ETA 1988s
+  [ 6500/10042] 83.0% accuracy, 1.8 q/s, ETA 1935s
+  [ 6600/10042] 83.1% accuracy, 1.8 q/s, ETA 1884s
+  [ 6700/10042] 83.3% accuracy, 1.8 q/s, ETA 1832s
+  [ 6800/10042] 83.4% accuracy, 1.8 q/s, ETA 1781s
+  [ 6900/10042] 83.5% accuracy, 1.8 q/s, ETA 1727s
+  [ 7000/10042] 83.7% accuracy, 1.8 q/s, ETA 1674s
+  [ 7100/10042] 83.8% accuracy, 1.8 q/s, ETA 1621s
+  [ 7200/10042] 84.0% accuracy, 1.8 q/s, ETA 1567s
+  [ 7300/10042] 84.2% accuracy, 1.8 q/s, ETA 1514s
+  [ 7400/10042] 84.3% accuracy, 1.8 q/s, ETA 1461s
+  [ 7500/10042] 84.4% accuracy, 1.8 q/s, ETA 1407s
+  [ 7600/10042] 84.6% accuracy, 1.8 q/s, ETA 1352s
+  [ 7700/10042] 84.7% accuracy, 1.8 q/s, ETA 1299s
+  [ 7800/10042] 84.9% accuracy, 1.8 q/s, ETA 1245s
+  [ 7900/10042] 85.0% accuracy, 1.8 q/s, ETA 1190s
+  [ 8000/10042] 85.1% accuracy, 1.8 q/s, ETA 1136s
+  [ 8100/10042] 85.2% accuracy, 1.8 q/s, ETA 1082s
+  [ 8200/10042] 85.4% accuracy, 1.8 q/s, ETA 1027s
+  [ 8300/10042] 85.5% accuracy, 1.8 q/s, ETA 972s
+  [ 8400/10042] 85.6% accuracy, 1.8 q/s, ETA 918s
+  [ 8500/10042] 85.8% accuracy, 1.8 q/s, ETA 862s
+  [ 8600/10042] 85.9% accuracy, 1.8 q/s, ETA 807s
+  [ 8700/10042] 86.0% accuracy, 1.8 q/s, ETA 752s
+  [ 8800/10042] 86.0% accuracy, 1.8 q/s, ETA 696s
+  [ 8900/10042] 86.2% accuracy, 1.8 q/s, ETA 640s
+  [ 9000/10042] 86.3% accuracy, 1.8 q/s, ETA 585s
+  [ 9100/10042] 86.3% accuracy, 1.8 q/s, ETA 529s
+  [ 9200/10042] 86.4% accuracy, 1.8 q/s, ETA 473s
+  [ 9300/10042] 86.6% accuracy, 1.8 q/s, ETA 417s
+  [ 9400/10042] 86.7% accuracy, 1.8 q/s, ETA 361s
+  [ 9500/10042] 86.8% accuracy, 1.8 q/s, ETA 305s
+  [ 9600/10042] 86.9% accuracy, 1.8 q/s, ETA 249s
+  [ 9700/10042] 86.9% accuracy, 1.8 q/s, ETA 193s
+  [ 9800/10042] 87.0% accuracy, 1.8 q/s, ETA 136s
+  [ 9900/10042] 87.0% accuracy, 1.8 q/s, ETA 80s
+  [10000/10042] 87.1% accuracy, 1.8 q/s, ETA 24s
+  [10042/10042] 87.1% accuracy, 1.8 q/s, ETA 0s
+
+======================================================================
+RESULTS — 10042 questions, 5666s (1.8 q/s)
+======================================================================
+Overall Accuracy: 8750/10042 (87.1%)
+
+Results saved to /var/home/deucebucket/ai-drive/osmosis/osmosis-granite4-h-small/benchmark_results/granite4_cerebellum_v1_hellaswag_results.json
+Per-question detail log: /var/home/deucebucket/ai-drive/osmosis/osmosis-granite4-h-small/benchmark_results/granite4_cerebellum_v1_hellaswag_detailed.jsonl (10042 entries)

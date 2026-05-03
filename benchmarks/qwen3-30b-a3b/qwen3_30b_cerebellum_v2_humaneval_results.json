@@ -1,0 +1,13 @@
+{
+  "benchmark": "humaneval",
+  "model": "qwen3_30b_cerebellum_v2",
+  "pass_at_1": 0.7195121951219512,
+  "pass_at_1_pct": 72.0,
+  "total_problems": 164,
+  "timestamp": "2026-05-02 11:20",
+  "settings": {
+    "temperature": 0,
+    "max_tokens": 512,
+    "enable_thinking": false
+  }
+}

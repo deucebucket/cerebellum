@@ -1,0 +1,9 @@
+{
+  "benchmark": "mmlu_redux",
+  "model": "qwen36_35b_cerebellum_v1",
+  "accuracy": 73.875,
+  "correct": 1773,
+  "total": 2400,
+  "elapsed_seconds": 782.7057020664215,
+  "timestamp": "2026-05-02 03:34"
+}
