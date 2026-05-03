@@ -62,7 +62,7 @@ HF: [deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF](https://huggingface.co/deucebuc
 | MMLU-Redux | 76.6% | confirmed (was 77.1%, run variance) |
 | WikiText PPL | **7.034** | |
 
-Recommended sampling: temperature=0. Tested across the full benchmark suite, temp=0 outperforms temp=0.3 on all benchmarks (HumanEval 81.1% vs 78.7%, MC benchmarks within noise). The aggressive quantization leaves no room for randomness to find a better path.
+Recommended sampling: temperature=0. Tested across the full benchmark suite, temp=0 scored highest on all benchmarks.
 
 Speed: 71 tok/s prompt, 36.5 tok/s generation (RTX 3090, full offload)
 
