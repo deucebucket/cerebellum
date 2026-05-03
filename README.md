@@ -64,8 +64,6 @@ HF: [deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF](https://huggingface.co/deucebuc
 
 Recommended sampling: temperature=0. Tested across the full benchmark suite, temp=0 scored highest on all benchmarks.
 
-Speed: 71 tok/s prompt, 36.5 tok/s generation (RTX 3090, full offload)
-
 ### Qwen 3.6 35B-A3B — Cerebellum v1 (12 GB)
 
 Hybrid SSM (Mamba-2) + MoE with 256 experts. Only 3B active parameters per token. Same performance as the 27B dense model at fraction of the compute. 2.73 BPW average.
@@ -133,35 +131,9 @@ HF: [deucebucket/Granite-4.0-H-Small-Cerebellum-GGUF](https://huggingface.co/deu
 
 ## Usage
 
-### Ablation Sweep
-
-```bash
-python -m osmosis.cerebellum ablate \
-    --base-gguf model-Q2_K.gguf \
-    --tensors ablation_plan.json \
-    --output ablation_results.json
-```
-
-### Budget Allocation
-
-```bash
-python -m osmosis.cerebellum allocate \
-    --ablation ablation_results.json \
-    --budget 12.0 \
-    --output tensor_types.txt
-```
-
-### Build the GGUF
-
-```bash
-llama-quantize --imatrix imatrix.dat \
-    --tensor-type @tensor_types.txt \
-    model-f16.gguf model-cerebellum.gguf Q2_K
-```
-
 ### Streaming Quantizer (any model size, constant RAM)
 
-Processes one tensor at a time. Peak RAM is ~300 MB regardless of model size. 122B model on 4 GB RAM, no problem.
+The main tool. Processes one tensor at a time — peak RAM is ~300 MB regardless of model size. 122B model on 4 GB RAM, no problem.
 
 ```bash
 # Basic requantization
@@ -183,6 +155,18 @@ python tools/streaming_quantize.py model.gguf --dry-run --type q3_K
 ```
 
 ~50 MB/s with native libggml (auto-detected), falls back to pure Python without it.
+
+### Workflow
+
+The process is manual and iterative:
+
+1. Start with a Q2_K or Q2_K_XL base GGUF (from llama-quantize or llama.cpp)
+2. Run ablation — promote or demote one tensor group at a time, measure PPL with llama-perplexity
+3. Classify tensors by measured sensitivity (PPL delta per bit)
+4. Write a tensor override file (one line per tensor: `tensor_name = quant_type`)
+5. Build the final GGUF with the streaming quantizer using your override file
+
+There is no single-command pipeline yet. Each model requires hands-on analysis because architectures differ — what works for dense transformers breaks MoE, what works for MoE breaks hybrid SSM.
 
 ### Imatrix Generation
 
