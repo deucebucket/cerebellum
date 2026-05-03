@@ -1,0 +1,46 @@
+# Output directories
+osmosis.egg-info/
+
+# Cache
+.hf_cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Claude / IDE
+CLAUDE.md
+.claude/
+
+# Secrets
+.env
+*.secret
+
+# Large files
+*.gguf
+*.dat
+
+# Experiment scripts (local only, not in repo)
+scripts/
+tests/
+run_*.sh
+# Keep ablation script in repo
+!scripts/ablation_run.sh
+
+# Old experimental modules (kept locally, not in repo)
+osmosis/ab_test.py
+osmosis/benchmark.py
+osmosis/cli.py
+osmosis/gguf_reader.py
+osmosis/gguf_writer.py
+osmosis/loader.py
+osmosis/micro_quant.py
+osmosis/pipeline.py
+osmosis/repair.py
+osmosis/repair_nim.py
+osmosis/sensitivity.py
+osmosis/sensitivity_multi.py
+
+# Ablation logs (large, not in repo)
+osmosis-qwen36-27b/ablation_logs/
+osmosis-qwen36-27b/*.log
+osmosis-qwen36-27b/brain_scan*.json

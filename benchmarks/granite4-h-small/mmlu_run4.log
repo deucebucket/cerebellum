@@ -1,0 +1,34 @@
+======================================================================
+MMLU-REDUX BENCHMARK — granite4_cerebellum_v1
+======================================================================
+Loading questions...
+Loaded 2400 questions
+Resuming from question 602 (425/601 correct, 70.7%)
+Workers: 1
+
+  [ 700/2400] 71.4% accuracy, 0.4 q/s, ETA 4159s
+  [ 800/2400] 69.9% accuracy, 0.4 q/s, ETA 3617s
+  [ 900/2400] 69.7% accuracy, 0.4 q/s, ETA 3356s
+  [1000/2400] 69.9% accuracy, 0.5 q/s, ETA 3088s
+  [1100/2400] 69.0% accuracy, 0.5 q/s, ETA 2862s
+  [1200/2400] 67.1% accuracy, 0.5 q/s, ETA 2636s
+  [1300/2400] 67.3% accuracy, 0.5 q/s, ETA 2404s
+  [1400/2400] 66.2% accuracy, 0.5 q/s, ETA 2176s
+  [1500/2400] 66.1% accuracy, 0.5 q/s, ETA 1967s
+  [1600/2400] 66.8% accuracy, 0.5 q/s, ETA 1753s
+  [1700/2400] 67.4% accuracy, 0.5 q/s, ETA 1530s
+  [1800/2400] 68.3% accuracy, 0.5 q/s, ETA 1305s
+  [1900/2400] 68.2% accuracy, 0.5 q/s, ETA 1024s
+  [2000/2400] 69.4% accuracy, 0.5 q/s, ETA 771s
+  [2100/2400] 69.8% accuracy, 0.5 q/s, ETA 550s
+  [2200/2400] 69.2% accuracy, 0.6 q/s, ETA 350s
+  [2300/2400] 69.4% accuracy, 0.6 q/s, ETA 168s
+  [2400/2400] 68.6% accuracy, 0.6 q/s, ETA 0s
+
+======================================================================
+RESULTS — 2400 questions, 2899s (0.8 q/s)
+======================================================================
+Overall Accuracy: 1647/2400 (68.6%)
+
+Results saved to /var/home/deucebucket/ai-drive/osmosis/osmosis-granite4-h-small/benchmark_results/granite4_cerebellum_v1_mmlu_redux_results.json
+Per-question detail log: /var/home/deucebucket/ai-drive/osmosis/osmosis-granite4-h-small/benchmark_results/granite4_cerebellum_v1_mmlu_redux_detailed.jsonl (2400 entries)

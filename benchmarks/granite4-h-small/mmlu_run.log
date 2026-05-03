@@ -1,0 +1,48 @@
+======================================================================
+MMLU-REDUX BENCHMARK — granite4_cerebellum_v1
+======================================================================
+Loading questions...
+Loaded 2400 questions
+Workers: 2
+
+  [ 100/2400] 72.0% accuracy, 0.6 q/s, ETA 3608s
+  [ 200/2400] 72.5% accuracy, 0.6 q/s, ETA 3456s
+  [ 300/2400] 76.3% accuracy, 0.6 q/s, ETA 3327s
+  [ 400/2400] 73.0% accuracy, 0.6 q/s, ETA 3165s
+  [ 500/2400] 72.8% accuracy, 0.6 q/s, ETA 3045s
+  [ 600/2400] 70.7% accuracy, 0.6 q/s, ETA 2907s
+Traceback (most recent call last):
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_mmlu_redux.py", line 224, in <module>
+    main()
+    ~~~~^^
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_mmlu_redux.py", line 179, in main
+    for entry in pool.map(process_question, remaining_qs):
+                 ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib64/python3.14/concurrent/futures/_base.py", line 639, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/usr/lib64/python3.14/concurrent/futures/_base.py", line 311, in _result_or_cancel
+    return fut.result(timeout)
+           ~~~~~~~~~~^^^^^^^^^
+  File "/usr/lib64/python3.14/concurrent/futures/_base.py", line 450, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/usr/lib64/python3.14/concurrent/futures/_base.py", line 395, in __get_result
+    raise self._exception
+  File "/usr/lib64/python3.14/concurrent/futures/thread.py", line 86, in run
+    result = ctx.run(self.task)
+  File "/usr/lib64/python3.14/concurrent/futures/thread.py", line 73, in run
+    return fn(*args, **kwargs)
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_mmlu_redux.py", line 165, in process_question
+    raw_response, predicted = query_model(prompt)
+                              ~~~~~~~~~~~^^^^^^^^
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_mmlu_redux.py", line 108, in query_model
+    content = query_chat_completion(BASE, {
+        "model": "test",
+    ...<6 lines>...
+        "chat_template_kwargs": {"enable_thinking": False},
+    }, retries=retries, timeout=timeout)
+  File "/var/home/deucebucket/ai-drive/osmosis/scripts/benchmark_utils.py", line 51, in query_chat_completion
+    raise ModelQueryError(f"model query failed after {retries + 1} attempts: {last_error}")
+benchmark_utils.ModelQueryError: model query failed after 3 attempts: Client error '400 Bad Request' for url 'http://localhost:18080/v1/chat/completions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/400
