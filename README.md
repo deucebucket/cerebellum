@@ -20,7 +20,7 @@ All models available at [huggingface.co/deucebucket](https://huggingface.co/deuc
 | Model | Architecture | Size | HumanEval | ARC | HellaSwag | MMLU | PPL |
 |-------|-------------|------|-----------|-----|-----------|------|-----|
 | **Granite 4.1 30B** v2 | Dense | 13 GB | **82.3%** | 91.6% | 88.9% | 73.5% | 8.49 |
-| **Qwen 3.6 27B** v4 | Dense | 12 GB | 75.0% | 95.1% | 91.2% | 82.5% | 7.03 |
+| **Qwen 3.6 27B** v4 | Dense | 12 GB | 81.1% | 96.8% | 92.2% | 82.5% | 7.03 |
 | **Qwen 3.6 35B-A3B** v1 | SSM+MoE | 12 GB | 75.0% | 94.8% | 91.5% | 73.9% | — |
 | **Gemma 4 26B-A4B** v6 | MoE (128 exp) | 11.7 GB | 72.0% | 95.6% | 84.7% | 71.2% | 12,054 |
 | **Qwen 3 30B-A3B** v2 | MoE | — | 72.0% | — | — | — | — |
@@ -30,6 +30,8 @@ All models available at [huggingface.co/deucebucket](https://huggingface.co/deuc
 | **Qwen 3 32B** v2 | Dense | — | 45.1% | — | — | — | — |
 
 All benchmarks measured locally on RTX 3090 with llama.cpp. Temperature=0, no thinking mode. HumanEval uses completions API with pre-filled think tokens.
+
+**2026-05-03 Score Corrections:** Found and fixed bugs in the benchmark scripts. HumanEval had a fence-stripping bug that destroyed indentation (all models affected, scores were ~6-8 points too low). ARC had 19 questions misjudged due to numeric label handling. HellaSwag had 108 empty responses incorrectly counted as wrong answers. Only Qwen 3.6 27B v4 has been re-benchmarked so far. Other models will be updated as they get re-run. Full audit trail in [BENCHMARK_CORRECTIONS.md](osmosis-qwen36-27b/benchmark_results/BENCHMARK_CORRECTIONS.md).
 
 ### Granite 4.1 30B — Cerebellum v2 (13 GB)
 
@@ -51,14 +53,16 @@ Best overall knowledge scores. Dense transformer, 64 layers. 181 tensor override
 
 HF: [deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF](https://huggingface.co/deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF)
 
-| Benchmark | Score |
-|-----------|-------|
-| HumanEval pass@1 | 75.0% |
-| ARC-Challenge | **95.1%** |
-| HellaSwag | **91.2%** |
-| MMLU | **82.5%** |
-| MMLU-Redux | 77.1% |
-| WikiText PPL | **7.034** |
+| Benchmark | Score | Notes |
+|-----------|-------|-------|
+| HumanEval pass@1 | **81.1%** | corrected (was 75.0%, script bug) |
+| ARC-Challenge | **96.8%** | corrected (was 95.1%, label mismatch) |
+| HellaSwag | **92.2%** | corrected (was 91.2%, empty response bug) |
+| MMLU | **82.5%** | |
+| MMLU-Redux | 76.6% | confirmed (was 77.1%, run variance) |
+| WikiText PPL | **7.034** | |
+
+Recommended sampling: temperature=0. Tested across the full benchmark suite, temp=0 outperforms temp=0.3 on all benchmarks (HumanEval 81.1% vs 78.7%, MC benchmarks within noise). The aggressive quantization leaves no room for randomness to find a better path.
 
 Speed: 71 tok/s prompt, 36.5 tok/s generation (RTX 3090, full offload)
 
