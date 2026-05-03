@@ -1,0 +1,53 @@
+# Cerebellum — Ablation-Informed Quantization for LLMs
+
+## What It Is
+Tensor-level precision allocation for GGUF quantization. Measures tensor sensitivity via ablation and assigns quantization types under a target size budget. Models for people who are poor.
+
+## How It Works
+1. Ablate — crush each tensor to Q2_K individually, measure perplexity impact
+2. Classify — label tensors by measured sensitivity and PPL delta
+3. Allocate — high-sensitivity tensors get higher precision, low-sensitivity stay at Q2_K
+4. Multi-pass promotion — tensors climb quant levels until the budget is exhausted
+
+The result: smaller files with less quality loss than uniform quants. Sometimes demoting tensors actually improves the model.
+
+## Released Models
+
+| Model | Architecture | Size | HumanEval | ARC | HellaSwag | MMLU |
+|-------|-------------|------|-----------|-----|-----------|------|
+| Granite 4.1 30B v2 | Dense | 13 GB | 82.3% | 91.6% | 88.9% | 73.5% |
+| Qwen 3.6 27B v4 | Dense | 12 GB | 75.0% | 95.1% | 91.2% | 82.5% |
+| Qwen 3.6 35B-A3B v1 | SSM+MoE | 12 GB | 75.0% | 94.8% | 91.5% | 73.9% |
+| Gemma 4 26B-A4B v6 | MoE | 11.7 GB | 72.0% | 95.6% | 84.7% | 71.2% |
+| Gemma 4 E4B v2 | Dense (PLE) | 4.2 GB | 68.3% | 85.7% | 75.3% | 58.4% |
+| Granite 4.0-H-Small v1 | Mamba2+MoE | 14.2 GB | — | 90.7% | 87.1% | 68.6% |
+
+All benchmarks measured locally on RTX 3090 with llama.cpp. Temperature=0, no thinking mode.
+
+## Key Findings
+- Demoting tensors can improve the model (Granite attn K/Q/output, Gemma E4B beats BF16 PPL)
+- MoE fragility is in expert weights, not auxiliary signals (opposite of dense models)
+- Hybrid SSM models have hard precision cliffs (below 4-bit = NaN)
+- PLE tensors in Gemma 4 cliff between Q4_K and Q3_K
+- Cross-layer effects are ~86% additive
+- Same-layer interaction effects are strong (87% regression crushing two FFN tensors together)
+
+## Architecture Support
+- Dense transformers (Qwen 3.6, Granite 4.1)
+- MoE (Gemma 4 26B-A4B, Qwen 3.6 35B-A3B)
+- Hybrid SSM+MoE (Granite 4.0-H-Small)
+- PLE models (Gemma 4 E4B)
+
+## Available on HuggingFace
+- deucebucket/Granite-4.1-30B-Cerebellum-GGUF
+- deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF
+- deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF
+- deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF
+- deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF
+- deucebucket/Granite-4.0-H-Small-Cerebellum-GGUF
+
+## Links
+- GitHub: https://github.com/deucebucket/cerebellum
+- HuggingFace: https://huggingface.co/deucebucket
+- Author: deucebucket
+- Format: GGUF (llama.cpp, ollama compatible)
