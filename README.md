@@ -31,7 +31,7 @@ All models available at [huggingface.co/deucebucket](https://huggingface.co/deuc
 
 All benchmarks measured locally on RTX 3090 with llama.cpp. Temperature=0, no thinking mode. HumanEval uses completions API with pre-filled think tokens.
 
-**2026-05-03 Score Corrections:** Found and fixed bugs in the benchmark scripts. HumanEval had a fence-stripping bug that destroyed indentation (all models affected, scores were ~6-8 points too low). ARC had 19 questions misjudged due to numeric label handling. HellaSwag had 108 empty responses incorrectly counted as wrong answers. Only Qwen 3.6 27B v4 has been re-benchmarked so far. Other models will be updated as they get re-run. Full audit trail in [BENCHMARK_CORRECTIONS.md](osmosis-qwen36-27b/benchmark_results/BENCHMARK_CORRECTIONS.md).
+**2026-05-03 Score Corrections:** Found and fixed bugs in the benchmark scripts. HumanEval had a fence-stripping bug that destroyed indentation (all models affected, scores were ~6-8 points too low). ARC had 19 questions misjudged due to numeric label handling. HellaSwag had 108 empty responses incorrectly counted as wrong answers. Only Qwen 3.6 27B v4 has been re-benchmarked so far. Other models will be updated as they get re-run. Full audit trail in [BENCHMARK_CORRECTIONS.md](benchmarks/qwen36-27b/BENCHMARK_CORRECTIONS.md).
 
 ### Granite 4.1 30B — Cerebellum v2 (13 GB)
 
@@ -63,8 +63,6 @@ HF: [deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF](https://huggingface.co/deucebuc
 | WikiText PPL | **7.034** | |
 
 Recommended sampling: temperature=0. Tested across the full benchmark suite, temp=0 scored highest on all benchmarks.
-
-Speed: 71 tok/s prompt, 36.5 tok/s generation (RTX 3090, full offload)
 
 ### Qwen 3.6 35B-A3B — Cerebellum v1 (12 GB)
 
@@ -133,35 +131,9 @@ HF: [deucebucket/Granite-4.0-H-Small-Cerebellum-GGUF](https://huggingface.co/deu
 
 ## Usage
 
-### Ablation Sweep
-
-```bash
-python -m osmosis.cerebellum ablate \
-    --base-gguf model-Q2_K.gguf \
-    --tensors ablation_plan.json \
-    --output ablation_results.json
-```
-
-### Budget Allocation
-
-```bash
-python -m osmosis.cerebellum allocate \
-    --ablation ablation_results.json \
-    --budget 12.0 \
-    --output tensor_types.txt
-```
-
-### Build the GGUF
-
-```bash
-llama-quantize --imatrix imatrix.dat \
-    --tensor-type @tensor_types.txt \
-    model-f16.gguf model-cerebellum.gguf Q2_K
-```
-
 ### Streaming Quantizer (any model size, constant RAM)
 
-Processes one tensor at a time. Peak RAM is ~300 MB regardless of model size. 122B model on 4 GB RAM, no problem.
+The main tool. Processes one tensor at a time — peak RAM is ~300 MB regardless of model size. 122B model on 4 GB RAM, no problem.
 
 ```bash
 # Basic requantization
@@ -183,6 +155,18 @@ python tools/streaming_quantize.py model.gguf --dry-run --type q3_K
 ```
 
 ~50 MB/s with native libggml (auto-detected), falls back to pure Python without it.
+
+### Workflow
+
+The process is manual and iterative:
+
+1. Start with a Q2_K or Q2_K_XL base GGUF (from llama-quantize or llama.cpp)
+2. Run ablation — promote or demote one tensor group at a time, measure PPL with llama-perplexity
+3. Classify tensors by measured sensitivity (PPL delta per bit)
+4. Write a tensor override file (one line per tensor: `tensor_name = quant_type`)
+5. Build the final GGUF with the streaming quantizer using your override file
+
+There is no single-command pipeline yet. Each model requires hands-on analysis because architectures differ — what works for dense transformers breaks MoE, what works for MoE breaks hybrid SSM.
 
 ### Imatrix Generation
 
@@ -206,10 +190,6 @@ python -m osmosis.imatrix_stream \
 ```
 tools/
 └── streaming_quantize.py      # Streaming GGUF quantizer (constant RAM)
-
-scripts/
-├── benchmark_humaneval.py     # HumanEval eval with pre-fill trick
-└── patch_thinking_default.py  # Patch GGUF chat template (thinking off)
 
 benchmarks/                    # Full benchmark data organized by model
 ├── qwen36-27b/               # Qwen 3.6 27B results + detailed answers
