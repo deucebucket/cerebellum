@@ -1,0 +1,46 @@
+{
+  "tests": {
+    "additive_all_demote": {
+      "ppl": 7.7782,
+      "tensor_count": 7,
+      "expected_delta": -0.5567,
+      "actual_delta": -0.4773999999999994,
+      "interaction_ratio": 0.8575534399137765
+    },
+    "ladder_step_1": {
+      "ppl": 8.1089,
+      "tensor_count": 1,
+      "expected_delta": -0.1467,
+      "actual_delta": -0.14669999999999916,
+      "interaction_ratio": 0.9999999999999943
+    },
+    "ladder_step_2": {
+      "ppl": 7.9663,
+      "tensor_count": 2,
+      "expected_delta": -0.2802,
+      "actual_delta": -0.289299999999999,
+      "interaction_ratio": 1.0324768022840791
+    },
+    "ladder_step_3": {
+      "ppl": 7.8996,
+      "tensor_count": 3,
+      "expected_delta": -0.3748,
+      "actual_delta": -0.355999999999999,
+      "interaction_ratio": 0.9498399146211285
+    },
+    "ladder_step_4": {
+      "ppl": 8.1988,
+      "tensor_count": 4,
+      "expected_delta": -0.4316,
+      "actual_delta": -0.05679999999999907,
+      "interaction_ratio": 0.13160333642261138
+    },
+    "ladder_step_5": {
+      "ppl": 8.1777,
+      "tensor_count": 5,
+      "expected_delta": -0.4857,
+      "actual_delta": -0.07789999999999964,
+      "interaction_ratio": 0.16038707020794654
+    }
+  }
+}

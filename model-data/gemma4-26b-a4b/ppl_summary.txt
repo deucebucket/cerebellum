@@ -1,0 +1,6 @@
+Cerebellum v1 PPL: 20614.17 (11 GB) *** BEST ***
+Q4_K_M bartowski imatrix PPL: 27361.83 (16 GB, 5.32 BPW)
+BF16 PPL (5 chunks): ~27000 (48 GB)
+Q3_K_M bartowski imatrix PPL: 42368.83 (13 GB, 4.21 BPW)
+
+Cerebellum v1 overrides: 30 attn_q→Q5_K, 30 ffn_up→Q2_K, 30 attn_k→Q2_K, 30 expert_gate_up→Q2_K
