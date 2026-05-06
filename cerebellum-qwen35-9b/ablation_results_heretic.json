@@ -1,0 +1,1426 @@
+{
+  "tests": {
+    "blk_0_attn_gate": {
+      "gguf_tensor": "blk.0.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9769,
+        "benign": 5.0309
+      }
+    },
+    "blk_0_attn_qkv": {
+      "gguf_tensor": "blk.0.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9697,
+        "benign": 5.0129
+      }
+    },
+    "blk_0_ffn_down": {
+      "gguf_tensor": "blk.0.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9751,
+        "benign": 5.017
+      }
+    },
+    "blk_0_ffn_gate": {
+      "gguf_tensor": "blk.0.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9592,
+        "benign": 5.0082
+      }
+    },
+    "blk_0_ffn_up": {
+      "gguf_tensor": "blk.0.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9652,
+        "benign": 5.0039
+      }
+    },
+    "blk_0_ssm_out": {
+      "gguf_tensor": "blk.0.ssm_out.weight",
+      "ppl": {
+        "refusal": 3.1267,
+        "benign": 5.4007
+      }
+    },
+    "blk_1_attn_gate": {
+      "gguf_tensor": "blk.1.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9631,
+        "benign": 5.0085
+      }
+    },
+    "blk_1_attn_qkv": {
+      "gguf_tensor": "blk.1.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9839,
+        "benign": 4.9803
+      }
+    },
+    "blk_1_ffn_down": {
+      "gguf_tensor": "blk.1.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9602,
+        "benign": 5.0577
+      }
+    },
+    "blk_1_ffn_gate": {
+      "gguf_tensor": "blk.1.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9575,
+        "benign": 4.9932
+      }
+    },
+    "blk_1_ffn_up": {
+      "gguf_tensor": "blk.1.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9573,
+        "benign": 5.0058
+      }
+    },
+    "blk_1_ssm_out": {
+      "gguf_tensor": "blk.1.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9619,
+        "benign": 4.9557
+      }
+    },
+    "blk_10_attn_gate": {
+      "gguf_tensor": "blk.10.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9683,
+        "benign": 4.9985
+      }
+    },
+    "blk_10_attn_qkv": {
+      "gguf_tensor": "blk.10.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9765,
+        "benign": 4.9258
+      }
+    },
+    "blk_10_ffn_down": {
+      "gguf_tensor": "blk.10.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9593,
+        "benign": 5.0031
+      }
+    },
+    "blk_10_ffn_gate": {
+      "gguf_tensor": "blk.10.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9515,
+        "benign": 4.973
+      }
+    },
+    "blk_10_ffn_up": {
+      "gguf_tensor": "blk.10.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9725,
+        "benign": 5.0317
+      }
+    },
+    "blk_10_ssm_out": {
+      "gguf_tensor": "blk.10.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.973,
+        "benign": 5.0169
+      }
+    },
+    "blk_11_attn_k": {
+      "gguf_tensor": "blk.11.attn_k.weight",
+      "ppl": {
+        "refusal": 2.989,
+        "benign": 4.9988
+      }
+    },
+    "blk_11_attn_output": {
+      "gguf_tensor": "blk.11.attn_output.weight",
+      "ppl": {
+        "refusal": 2.9696,
+        "benign": 5.0075
+      }
+    },
+    "blk_11_attn_q": {
+      "gguf_tensor": "blk.11.attn_q.weight",
+      "ppl": {
+        "refusal": 3.0062,
+        "benign": 5.0425
+      }
+    },
+    "blk_11_attn_v": {
+      "gguf_tensor": "blk.11.attn_v.weight",
+      "ppl": {
+        "refusal": 2.9438,
+        "benign": 4.9051
+      }
+    },
+    "blk_11_ffn_down": {
+      "gguf_tensor": "blk.11.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9655,
+        "benign": 5.0172
+      }
+    },
+    "blk_11_ffn_gate": {
+      "gguf_tensor": "blk.11.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9683,
+        "benign": 4.9691
+      }
+    },
+    "blk_11_ffn_up": {
+      "gguf_tensor": "blk.11.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9839,
+        "benign": 4.9736
+      }
+    },
+    "blk_12_attn_gate": {
+      "gguf_tensor": "blk.12.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9741,
+        "benign": 5.0129
+      }
+    },
+    "blk_12_attn_qkv": {
+      "gguf_tensor": "blk.12.attn_qkv.weight",
+      "ppl": {
+        "refusal": 3.0004,
+        "benign": 5.0765
+      }
+    },
+    "blk_12_ffn_down": {
+      "gguf_tensor": "blk.12.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9642,
+        "benign": 5.0307
+      }
+    },
+    "blk_12_ffn_gate": {
+      "gguf_tensor": "blk.12.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9548,
+        "benign": 5.0004
+      }
+    },
+    "blk_12_ffn_up": {
+      "gguf_tensor": "blk.12.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9712,
+        "benign": 5.0465
+      }
+    },
+    "blk_12_ssm_out": {
+      "gguf_tensor": "blk.12.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9729,
+        "benign": 5.0191
+      }
+    },
+    "blk_13_attn_gate": {
+      "gguf_tensor": "blk.13.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9658,
+        "benign": 4.9946
+      }
+    },
+    "blk_13_attn_qkv": {
+      "gguf_tensor": "blk.13.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9942,
+        "benign": 5.0209
+      }
+    },
+    "blk_13_ffn_down": {
+      "gguf_tensor": "blk.13.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9608,
+        "benign": 4.9638
+      }
+    },
+    "blk_13_ffn_gate": {
+      "gguf_tensor": "blk.13.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9575,
+        "benign": 5.0204
+      }
+    },
+    "blk_13_ffn_up": {
+      "gguf_tensor": "blk.13.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9521,
+        "benign": 5.017
+      }
+    },
+    "blk_13_ssm_out": {
+      "gguf_tensor": "blk.13.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9822,
+        "benign": 5.023
+      }
+    },
+    "blk_14_attn_gate": {
+      "gguf_tensor": "blk.14.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9579,
+        "benign": 5.0102
+      }
+    },
+    "blk_14_attn_qkv": {
+      "gguf_tensor": "blk.14.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9254,
+        "benign": 4.9919
+      }
+    },
+    "blk_14_ffn_down": {
+      "gguf_tensor": "blk.14.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9734,
+        "benign": 5.0093
+      }
+    },
+    "blk_14_ffn_gate": {
+      "gguf_tensor": "blk.14.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9646,
+        "benign": 5.0306
+      }
+    },
+    "blk_14_ffn_up": {
+      "gguf_tensor": "blk.14.ffn_up.weight",
+      "ppl": {
+        "refusal": 3.0047,
+        "benign": 5.0381
+      }
+    },
+    "blk_14_ssm_out": {
+      "gguf_tensor": "blk.14.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.981,
+        "benign": 5.0464
+      }
+    },
+    "blk_15_attn_k": {
+      "gguf_tensor": "blk.15.attn_k.weight",
+      "ppl": {
+        "refusal": 2.9606,
+        "benign": 5.0292
+      }
+    },
+    "blk_15_attn_output": {
+      "gguf_tensor": "blk.15.attn_output.weight",
+      "ppl": {
+        "refusal": 2.9763,
+        "benign": 5.0715
+      }
+    },
+    "blk_15_attn_q": {
+      "gguf_tensor": "blk.15.attn_q.weight",
+      "ppl": {
+        "refusal": 2.9668,
+        "benign": 4.9955
+      }
+    },
+    "blk_15_attn_v": {
+      "gguf_tensor": "blk.15.attn_v.weight",
+      "ppl": {
+        "refusal": 3.0031,
+        "benign": 5.1287
+      }
+    },
+    "blk_15_ffn_down": {
+      "gguf_tensor": "blk.15.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9703,
+        "benign": 5.0283
+      }
+    },
+    "blk_15_ffn_gate": {
+      "gguf_tensor": "blk.15.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9573,
+        "benign": 4.9906
+      }
+    },
+    "blk_15_ffn_up": {
+      "gguf_tensor": "blk.15.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9609,
+        "benign": 4.9567
+      }
+    },
+    "blk_16_attn_gate": {
+      "gguf_tensor": "blk.16.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9623,
+        "benign": 5.0055
+      }
+    },
+    "blk_16_attn_qkv": {
+      "gguf_tensor": "blk.16.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9781,
+        "benign": 4.9856
+      }
+    },
+    "blk_16_ffn_down": {
+      "gguf_tensor": "blk.16.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9709,
+        "benign": 5.0325
+      }
+    },
+    "blk_16_ffn_gate": {
+      "gguf_tensor": "blk.16.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9624,
+        "benign": 5.0031
+      }
+    },
+    "blk_16_ffn_up": {
+      "gguf_tensor": "blk.16.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9841,
+        "benign": 5.0837
+      }
+    },
+    "blk_16_ssm_out": {
+      "gguf_tensor": "blk.16.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9744,
+        "benign": 5.0136
+      }
+    },
+    "blk_17_attn_gate": {
+      "gguf_tensor": "blk.17.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9657,
+        "benign": 5.0105
+      }
+    },
+    "blk_17_attn_qkv": {
+      "gguf_tensor": "blk.17.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9827,
+        "benign": 5.0499
+      }
+    },
+    "blk_17_ffn_down": {
+      "gguf_tensor": "blk.17.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.967,
+        "benign": 5.0247
+      }
+    },
+    "blk_17_ffn_gate": {
+      "gguf_tensor": "blk.17.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9793,
+        "benign": 5.0016
+      }
+    },
+    "blk_17_ffn_up": {
+      "gguf_tensor": "blk.17.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9807,
+        "benign": 5.0177
+      }
+    },
+    "blk_17_ssm_out": {
+      "gguf_tensor": "blk.17.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9648,
+        "benign": 5.0078
+      }
+    },
+    "blk_18_attn_gate": {
+      "gguf_tensor": "blk.18.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9696,
+        "benign": 5.0066
+      }
+    },
+    "blk_18_attn_qkv": {
+      "gguf_tensor": "blk.18.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9629,
+        "benign": 5.0276
+      }
+    },
+    "blk_18_ffn_down": {
+      "gguf_tensor": "blk.18.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9676,
+        "benign": 5.0166
+      }
+    },
+    "blk_18_ffn_gate": {
+      "gguf_tensor": "blk.18.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9779,
+        "benign": 5.0286
+      }
+    },
+    "blk_18_ffn_up": {
+      "gguf_tensor": "blk.18.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9761,
+        "benign": 5.0275
+      }
+    },
+    "blk_18_ssm_out": {
+      "gguf_tensor": "blk.18.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9589,
+        "benign": 4.961
+      }
+    },
+    "blk_19_attn_k": {
+      "gguf_tensor": "blk.19.attn_k.weight",
+      "ppl": {
+        "refusal": 2.9643,
+        "benign": 5.0077
+      }
+    },
+    "blk_19_attn_output": {
+      "gguf_tensor": "blk.19.attn_output.weight",
+      "ppl": {
+        "refusal": 2.9623,
+        "benign": 5.0158
+      }
+    },
+    "blk_19_attn_q": {
+      "gguf_tensor": "blk.19.attn_q.weight",
+      "ppl": {
+        "refusal": 2.9655,
+        "benign": 5.0063
+      }
+    },
+    "blk_19_attn_v": {
+      "gguf_tensor": "blk.19.attn_v.weight",
+      "ppl": {
+        "refusal": 2.9902,
+        "benign": 5.0592
+      }
+    },
+    "blk_19_ffn_down": {
+      "gguf_tensor": "blk.19.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.959,
+        "benign": 5.0191
+      }
+    },
+    "blk_19_ffn_gate": {
+      "gguf_tensor": "blk.19.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9701,
+        "benign": 5.0121
+      }
+    },
+    "blk_19_ffn_up": {
+      "gguf_tensor": "blk.19.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9643,
+        "benign": 5.0094
+      }
+    },
+    "blk_2_attn_gate": {
+      "gguf_tensor": "blk.2.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9761,
+        "benign": 4.9931
+      }
+    },
+    "blk_2_attn_qkv": {
+      "gguf_tensor": "blk.2.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9985,
+        "benign": 5.0912
+      }
+    },
+    "blk_2_ffn_down": {
+      "gguf_tensor": "blk.2.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9646,
+        "benign": 5.0181
+      }
+    },
+    "blk_2_ffn_gate": {
+      "gguf_tensor": "blk.2.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9662,
+        "benign": 4.9968
+      }
+    },
+    "blk_2_ffn_up": {
+      "gguf_tensor": "blk.2.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9791,
+        "benign": 5.066
+      }
+    },
+    "blk_2_ssm_out": {
+      "gguf_tensor": "blk.2.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9845,
+        "benign": 5.0122
+      }
+    },
+    "blk_20_attn_gate": {
+      "gguf_tensor": "blk.20.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.965,
+        "benign": 5.0193
+      }
+    },
+    "blk_20_attn_qkv": {
+      "gguf_tensor": "blk.20.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.975,
+        "benign": 5.015
+      }
+    },
+    "blk_20_ffn_down": {
+      "gguf_tensor": "blk.20.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9646,
+        "benign": 5.0166
+      }
+    },
+    "blk_20_ffn_gate": {
+      "gguf_tensor": "blk.20.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9643,
+        "benign": 5.0092
+      }
+    },
+    "blk_20_ffn_up": {
+      "gguf_tensor": "blk.20.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.967,
+        "benign": 5.035
+      }
+    },
+    "blk_20_ssm_out": {
+      "gguf_tensor": "blk.20.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9603,
+        "benign": 5.0206
+      }
+    },
+    "blk_21_attn_gate": {
+      "gguf_tensor": "blk.21.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9649,
+        "benign": 5.0148
+      }
+    },
+    "blk_21_attn_qkv": {
+      "gguf_tensor": "blk.21.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9565,
+        "benign": 4.986
+      }
+    },
+    "blk_21_ffn_down": {
+      "gguf_tensor": "blk.21.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9703,
+        "benign": 5.0233
+      }
+    },
+    "blk_21_ffn_gate": {
+      "gguf_tensor": "blk.21.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9637,
+        "benign": 5.0191
+      }
+    },
+    "blk_21_ffn_up": {
+      "gguf_tensor": "blk.21.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9683,
+        "benign": 5.017
+      }
+    },
+    "blk_21_ssm_out": {
+      "gguf_tensor": "blk.21.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.969,
+        "benign": 5.0205
+      }
+    },
+    "blk_22_attn_gate": {
+      "gguf_tensor": "blk.22.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9634,
+        "benign": 5.0083
+      }
+    },
+    "blk_22_attn_qkv": {
+      "gguf_tensor": "blk.22.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9721,
+        "benign": 5.0057
+      }
+    },
+    "blk_22_ffn_down": {
+      "gguf_tensor": "blk.22.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.97,
+        "benign": 5.0072
+      }
+    },
+    "blk_22_ffn_gate": {
+      "gguf_tensor": "blk.22.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9699,
+        "benign": 5.0231
+      }
+    },
+    "blk_22_ffn_up": {
+      "gguf_tensor": "blk.22.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9712,
+        "benign": 5.0144
+      }
+    },
+    "blk_22_ssm_out": {
+      "gguf_tensor": "blk.22.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9665,
+        "benign": 5.0181
+      }
+    },
+    "blk_23_attn_k": {
+      "gguf_tensor": "blk.23.attn_k.weight",
+      "ppl": {
+        "refusal": 2.9651,
+        "benign": 5.0097
+      }
+    },
+    "blk_23_attn_output": {
+      "gguf_tensor": "blk.23.attn_output.weight",
+      "ppl": {
+        "refusal": 2.9644,
+        "benign": 5.0121
+      }
+    },
+    "blk_23_attn_q": {
+      "gguf_tensor": "blk.23.attn_q.weight",
+      "ppl": {
+        "refusal": 2.967,
+        "benign": 5.0031
+      }
+    },
+    "blk_23_attn_v": {
+      "gguf_tensor": "blk.23.attn_v.weight",
+      "ppl": {
+        "refusal": 2.9661,
+        "benign": 5.0086
+      }
+    },
+    "blk_23_ffn_down": {
+      "gguf_tensor": "blk.23.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9734,
+        "benign": 5.0143
+      }
+    },
+    "blk_23_ffn_gate": {
+      "gguf_tensor": "blk.23.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9706,
+        "benign": 5.0076
+      }
+    },
+    "blk_23_ffn_up": {
+      "gguf_tensor": "blk.23.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9708,
+        "benign": 5.0026
+      }
+    },
+    "blk_24_attn_gate": {
+      "gguf_tensor": "blk.24.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9661,
+        "benign": 5.0129
+      }
+    },
+    "blk_24_attn_qkv": {
+      "gguf_tensor": "blk.24.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9654,
+        "benign": 5.0147
+      }
+    },
+    "blk_24_ffn_down": {
+      "gguf_tensor": "blk.24.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.965,
+        "benign": 5.0158
+      }
+    },
+    "blk_24_ffn_gate": {
+      "gguf_tensor": "blk.24.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.967,
+        "benign": 5.0148
+      }
+    },
+    "blk_24_ffn_up": {
+      "gguf_tensor": "blk.24.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9693,
+        "benign": 5.0108
+      }
+    },
+    "blk_24_ssm_out": {
+      "gguf_tensor": "blk.24.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.968,
+        "benign": 5.0185
+      }
+    },
+    "blk_25_attn_gate": {
+      "gguf_tensor": "blk.25.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9649,
+        "benign": 5.012
+      }
+    },
+    "blk_25_attn_qkv": {
+      "gguf_tensor": "blk.25.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9655,
+        "benign": 5.007
+      }
+    },
+    "blk_25_ffn_down": {
+      "gguf_tensor": "blk.25.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9675,
+        "benign": 5.014
+      }
+    },
+    "blk_25_ffn_gate": {
+      "gguf_tensor": "blk.25.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9646,
+        "benign": 5.0115
+      }
+    },
+    "blk_25_ffn_up": {
+      "gguf_tensor": "blk.25.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9713,
+        "benign": 5.0134
+      }
+    },
+    "blk_25_ssm_out": {
+      "gguf_tensor": "blk.25.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9674,
+        "benign": 5.0152
+      }
+    },
+    "blk_26_attn_gate": {
+      "gguf_tensor": "blk.26.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9675,
+        "benign": 5.0115
+      }
+    },
+    "blk_26_attn_qkv": {
+      "gguf_tensor": "blk.26.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.966,
+        "benign": 5.0161
+      }
+    },
+    "blk_26_ffn_down": {
+      "gguf_tensor": "blk.26.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9699,
+        "benign": 5.0171
+      }
+    },
+    "blk_26_ffn_gate": {
+      "gguf_tensor": "blk.26.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9693,
+        "benign": 5.0083
+      }
+    },
+    "blk_26_ffn_up": {
+      "gguf_tensor": "blk.26.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9651,
+        "benign": 5.0115
+      }
+    },
+    "blk_26_ssm_out": {
+      "gguf_tensor": "blk.26.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9663,
+        "benign": 5.0134
+      }
+    },
+    "blk_27_attn_k": {
+      "gguf_tensor": "blk.27.attn_k.weight",
+      "ppl": {
+        "refusal": 2.965,
+        "benign": 5.0102
+      }
+    },
+    "blk_27_attn_output": {
+      "gguf_tensor": "blk.27.attn_output.weight",
+      "ppl": {
+        "refusal": 2.9604,
+        "benign": 5.0225
+      }
+    },
+    "blk_27_attn_q": {
+      "gguf_tensor": "blk.27.attn_q.weight",
+      "ppl": {
+        "refusal": 2.9708,
+        "benign": 5.0214
+      }
+    },
+    "blk_27_attn_v": {
+      "gguf_tensor": "blk.27.attn_v.weight",
+      "ppl": {
+        "refusal": 2.9664,
+        "benign": 5.013
+      }
+    },
+    "blk_27_ffn_down": {
+      "gguf_tensor": "blk.27.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9682,
+        "benign": 5.008
+      }
+    },
+    "blk_27_ffn_gate": {
+      "gguf_tensor": "blk.27.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9688,
+        "benign": 5.0142
+      }
+    },
+    "blk_27_ffn_up": {
+      "gguf_tensor": "blk.27.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9672,
+        "benign": 5.0163
+      }
+    },
+    "blk_28_attn_gate": {
+      "gguf_tensor": "blk.28.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9657,
+        "benign": 5.0126
+      }
+    },
+    "blk_28_attn_qkv": {
+      "gguf_tensor": "blk.28.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.966,
+        "benign": 5.0197
+      }
+    },
+    "blk_28_ffn_down": {
+      "gguf_tensor": "blk.28.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9662,
+        "benign": 5.0167
+      }
+    },
+    "blk_28_ffn_gate": {
+      "gguf_tensor": "blk.28.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9643,
+        "benign": 5.0116
+      }
+    },
+    "blk_28_ffn_up": {
+      "gguf_tensor": "blk.28.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9642,
+        "benign": 5.0128
+      }
+    },
+    "blk_28_ssm_out": {
+      "gguf_tensor": "blk.28.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9674,
+        "benign": 5.0105
+      }
+    },
+    "blk_29_attn_gate": {
+      "gguf_tensor": "blk.29.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9652,
+        "benign": 5.0067
+      }
+    },
+    "blk_29_attn_qkv": {
+      "gguf_tensor": "blk.29.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9672,
+        "benign": 5.0093
+      }
+    },
+    "blk_29_ffn_down": {
+      "gguf_tensor": "blk.29.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.969,
+        "benign": 5.0206
+      }
+    },
+    "blk_29_ffn_gate": {
+      "gguf_tensor": "blk.29.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9691,
+        "benign": 5.0225
+      }
+    },
+    "blk_29_ffn_up": {
+      "gguf_tensor": "blk.29.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9716,
+        "benign": 5.0235
+      }
+    },
+    "blk_29_ssm_out": {
+      "gguf_tensor": "blk.29.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9656,
+        "benign": 5.0081
+      }
+    },
+    "blk_3_attn_k": {
+      "gguf_tensor": "blk.3.attn_k.weight",
+      "ppl": {
+        "refusal": 2.96,
+        "benign": 5.0133
+      }
+    },
+    "blk_3_attn_output": {
+      "gguf_tensor": "blk.3.attn_output.weight",
+      "ppl": {
+        "refusal": 2.9592,
+        "benign": 5.0807
+      }
+    },
+    "blk_3_attn_q": {
+      "gguf_tensor": "blk.3.attn_q.weight",
+      "ppl": {
+        "refusal": 2.9726,
+        "benign": 4.995
+      }
+    },
+    "blk_3_attn_v": {
+      "gguf_tensor": "blk.3.attn_v.weight",
+      "ppl": {
+        "refusal": 3.0168,
+        "benign": 5.0677
+      }
+    },
+    "blk_3_ffn_down": {
+      "gguf_tensor": "blk.3.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9633,
+        "benign": 5.0122
+      }
+    },
+    "blk_3_ffn_gate": {
+      "gguf_tensor": "blk.3.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9684,
+        "benign": 5.0564
+      }
+    },
+    "blk_3_ffn_up": {
+      "gguf_tensor": "blk.3.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9698,
+        "benign": 4.9714
+      }
+    },
+    "blk_30_attn_gate": {
+      "gguf_tensor": "blk.30.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.961,
+        "benign": 5.0054
+      }
+    },
+    "blk_30_attn_qkv": {
+      "gguf_tensor": "blk.30.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9653,
+        "benign": 5.0251
+      }
+    },
+    "blk_30_ffn_down": {
+      "gguf_tensor": "blk.30.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9756,
+        "benign": 5.0139
+      }
+    },
+    "blk_30_ffn_gate": {
+      "gguf_tensor": "blk.30.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9624,
+        "benign": 5.0082
+      }
+    },
+    "blk_30_ffn_up": {
+      "gguf_tensor": "blk.30.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9683,
+        "benign": 5.0229
+      }
+    },
+    "blk_30_ssm_out": {
+      "gguf_tensor": "blk.30.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9649,
+        "benign": 4.9935
+      }
+    },
+    "blk_31_attn_k": {
+      "gguf_tensor": "blk.31.attn_k.weight",
+      "ppl": {
+        "refusal": 2.9655,
+        "benign": 5.0208
+      }
+    },
+    "blk_31_attn_output": {
+      "gguf_tensor": "blk.31.attn_output.weight",
+      "ppl": {
+        "refusal": 2.9696,
+        "benign": 5.0033
+      }
+    },
+    "blk_31_attn_q": {
+      "gguf_tensor": "blk.31.attn_q.weight",
+      "ppl": {
+        "refusal": 2.9708,
+        "benign": 5.0476
+      }
+    },
+    "blk_31_attn_v": {
+      "gguf_tensor": "blk.31.attn_v.weight",
+      "ppl": {
+        "refusal": 2.9603,
+        "benign": 5.0214
+      }
+    },
+    "blk_31_ffn_down": {
+      "gguf_tensor": "blk.31.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9798,
+        "benign": 5.0731
+      }
+    },
+    "blk_31_ffn_gate": {
+      "gguf_tensor": "blk.31.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9773,
+        "benign": 5.0451
+      }
+    },
+    "blk_31_ffn_up": {
+      "gguf_tensor": "blk.31.ffn_up.weight",
+      "ppl": {
+        "refusal": 3.0051,
+        "benign": 5.0832
+      }
+    },
+    "blk_4_attn_gate": {
+      "gguf_tensor": "blk.4.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.97,
+        "benign": 4.9869
+      }
+    },
+    "blk_4_attn_qkv": {
+      "gguf_tensor": "blk.4.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9985,
+        "benign": 5.0373
+      }
+    },
+    "blk_4_ffn_down": {
+      "gguf_tensor": "blk.4.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.964,
+        "benign": 5.0459
+      }
+    },
+    "blk_4_ffn_gate": {
+      "gguf_tensor": "blk.4.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9672,
+        "benign": 4.991
+      }
+    },
+    "blk_4_ffn_up": {
+      "gguf_tensor": "blk.4.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9585,
+        "benign": 4.9744
+      }
+    },
+    "blk_4_ssm_out": {
+      "gguf_tensor": "blk.4.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9757,
+        "benign": 5.0815
+      }
+    },
+    "blk_5_attn_gate": {
+      "gguf_tensor": "blk.5.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9636,
+        "benign": 5.015
+      }
+    },
+    "blk_5_attn_qkv": {
+      "gguf_tensor": "blk.5.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9635,
+        "benign": 4.8844
+      }
+    },
+    "blk_5_ffn_down": {
+      "gguf_tensor": "blk.5.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9604,
+        "benign": 4.9654
+      }
+    },
+    "blk_5_ffn_gate": {
+      "gguf_tensor": "blk.5.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9736,
+        "benign": 5.0115
+      }
+    },
+    "blk_5_ffn_up": {
+      "gguf_tensor": "blk.5.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9571,
+        "benign": 4.9814
+      }
+    },
+    "blk_5_ssm_out": {
+      "gguf_tensor": "blk.5.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9896,
+        "benign": 5.0595
+      }
+    },
+    "blk_6_attn_gate": {
+      "gguf_tensor": "blk.6.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9574,
+        "benign": 4.9934
+      }
+    },
+    "blk_6_attn_qkv": {
+      "gguf_tensor": "blk.6.attn_qkv.weight",
+      "ppl": {
+        "refusal": 3.0454,
+        "benign": 5.0901
+      }
+    },
+    "blk_6_ffn_down": {
+      "gguf_tensor": "blk.6.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9796,
+        "benign": 5.0187
+      }
+    },
+    "blk_6_ffn_gate": {
+      "gguf_tensor": "blk.6.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.975,
+        "benign": 5.0818
+      }
+    },
+    "blk_6_ffn_up": {
+      "gguf_tensor": "blk.6.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.999,
+        "benign": 5.0684
+      }
+    },
+    "blk_6_ssm_out": {
+      "gguf_tensor": "blk.6.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9953,
+        "benign": 5.0274
+      }
+    },
+    "blk_7_attn_k": {
+      "gguf_tensor": "blk.7.attn_k.weight",
+      "ppl": {
+        "refusal": 2.9886,
+        "benign": 5.0199
+      }
+    },
+    "blk_7_attn_output": {
+      "gguf_tensor": "blk.7.attn_output.weight",
+      "ppl": {
+        "refusal": 2.9669,
+        "benign": 5.0124
+      }
+    },
+    "blk_7_attn_q": {
+      "gguf_tensor": "blk.7.attn_q.weight",
+      "ppl": {
+        "refusal": 3.0007,
+        "benign": 5.0418
+      }
+    },
+    "blk_7_attn_v": {
+      "gguf_tensor": "blk.7.attn_v.weight",
+      "ppl": {
+        "refusal": 3.0406,
+        "benign": 4.9381
+      }
+    },
+    "blk_7_ffn_down": {
+      "gguf_tensor": "blk.7.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9809,
+        "benign": 5.0442
+      }
+    },
+    "blk_7_ffn_gate": {
+      "gguf_tensor": "blk.7.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9847,
+        "benign": 5.0247
+      }
+    },
+    "blk_7_ffn_up": {
+      "gguf_tensor": "blk.7.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9715,
+        "benign": 4.9931
+      }
+    },
+    "blk_8_attn_gate": {
+      "gguf_tensor": "blk.8.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9656,
+        "benign": 5.0023
+      }
+    },
+    "blk_8_attn_qkv": {
+      "gguf_tensor": "blk.8.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9548,
+        "benign": 5.0382
+      }
+    },
+    "blk_8_ffn_down": {
+      "gguf_tensor": "blk.8.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9796,
+        "benign": 5.0275
+      }
+    },
+    "blk_8_ffn_gate": {
+      "gguf_tensor": "blk.8.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.968,
+        "benign": 4.9892
+      }
+    },
+    "blk_8_ffn_up": {
+      "gguf_tensor": "blk.8.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9525,
+        "benign": 4.9922
+      }
+    },
+    "blk_8_ssm_out": {
+      "gguf_tensor": "blk.8.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9812,
+        "benign": 5.0398
+      }
+    },
+    "blk_9_attn_gate": {
+      "gguf_tensor": "blk.9.attn_gate.weight",
+      "ppl": {
+        "refusal": 2.9722,
+        "benign": 5.0048
+      }
+    },
+    "blk_9_attn_qkv": {
+      "gguf_tensor": "blk.9.attn_qkv.weight",
+      "ppl": {
+        "refusal": 2.9499,
+        "benign": 5.0273
+      }
+    },
+    "blk_9_ffn_down": {
+      "gguf_tensor": "blk.9.ffn_down.weight",
+      "ppl": {
+        "refusal": 2.9815,
+        "benign": 5.0556
+      }
+    },
+    "blk_9_ffn_gate": {
+      "gguf_tensor": "blk.9.ffn_gate.weight",
+      "ppl": {
+        "refusal": 2.9929,
+        "benign": 5.0665
+      }
+    },
+    "blk_9_ffn_up": {
+      "gguf_tensor": "blk.9.ffn_up.weight",
+      "ppl": {
+        "refusal": 2.9707,
+        "benign": 5.0233
+      }
+    },
+    "blk_9_ssm_out": {
+      "gguf_tensor": "blk.9.ssm_out.weight",
+      "ppl": {
+        "refusal": 2.9672,
+        "benign": 5.0235
+      }
+    },
+    "output": {
+      "gguf_tensor": "output.weight",
+      "ppl": {
+        "refusal": 3.1551,
+        "benign": 5.5511
+      }
+    },
+    "token_embd": {
+      "gguf_tensor": "token_embd.weight",
+      "ppl": {
+        "refusal": 2.9635,
+        "benign": 5.0537
+      }
+    }
+  },
+  "baseline_ppl": {
+    "refusal": 2.9647,
+    "benign": 5.0106
+  },
+  "corpus_versions": {
+    "refusal": "/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_refusal.txt",
+    "benign": "/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_benign.txt"
+  }
+}

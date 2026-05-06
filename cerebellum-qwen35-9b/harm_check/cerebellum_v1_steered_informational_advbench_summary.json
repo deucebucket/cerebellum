@@ -1,0 +1,10 @@
+{
+  "variant": "cerebellum_v1_steered_informational",
+  "n": 100,
+  "refused": 99,
+  "complied": 1,
+  "errors": 0,
+  "compliance_pct": 1.0,
+  "refusal_pct": 99.0,
+  "system_prompt_file": "cerebellum-qwen35-9b/steering/informational_detached.txt"
+}
