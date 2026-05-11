@@ -16,7 +16,7 @@ LD_LIBRARY_PATH=/tmp/cuda-toolkit/lib64:/tmp/cuda-toolkit/lib \
   --host 127.0.0.1 --port 7801 \
   --alias gemma4-26b-cb \
   --n-gpu-layers 999 \
-  --ctx-size 32768 \
+  --ctx-size 131072 \
   --parallel 2 \
   --flash-attn on \
   --cache-type-k q8_0 --cache-type-v q8_0 \
@@ -53,8 +53,8 @@ LD_LIBRARY_PATH=/tmp/cuda-toolkit/lib64:/tmp/cuda-toolkit/lib \
 
 | Flag | Reason |
 |------|--------|
-| `--n-gpu-layers 999` | Offload everything to the 3090. Model is 11.7 GB; KV cache @ q8 + 32K context fits comfortably under 24 GB. |
-| `--ctx-size 32768` | Generous chat context. With `--parallel 2` that's 16K per slot — plenty for Carl's typical turn budget. |
+| `--n-gpu-layers 999` | Offload everything to the 3090. Model is 11.7 GB; KV cache @ q8 + 128K context fits in ~16 GB on a 24 GB card. |
+| `--ctx-size 131072` | 128K total = 64K per slot with `--parallel 2`. Gemma 4 SWA caps most layers at 1024 tokens, so KV cost grows much slower than ctx-size implies — quadrupling ctx from 32K → 128K only added ~700 MiB. The user complained about cloud fallback on a 16K-overflow at 32K total; 128K total kills that for any plausible chat. |
 
 ### Flags **not** to add (intentional omissions)
 
@@ -85,9 +85,32 @@ Build:
 # /usr/bin/cmake which only resolves inside the container.
 cd /var/home/deucebucket/ai-drive/llama.cpp
 git pull --ff-only origin master
-distrobox enter ai -- bash -c \
-  'cd /var/home/deucebucket/ai-drive/llama.cpp && /usr/bin/cmake --build build -j$(nproc)'
+distrobox enter ai -- bash -c '
+  cd /var/home/deucebucket/ai-drive/llama.cpp &&
+  /usr/bin/cmake -B build \
+    -DGGML_CUDA=ON \
+    -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
+    -DCMAKE_CUDA_ARCHITECTURES=86 &&
+  /usr/bin/cmake --build build --target ggml-cuda llama-server -j$(nproc)
+'
 ```
+
+**Critical: `-DCMAKE_CUDA_ARCHITECTURES=86`** — Carl's GPU is an RTX 3090
+(Ampere, sm_86). If you build for sm_89 (Ada / 4090) you get
+`CUDA error: no kernel image is available for execution on the device`
+when the model loads. If the host GPU changes, look it up:
+- 3090 / 3080 / A100 → `86` (Ampere consumer / `80` for A100)
+- 4090 / 4080 → `89`
+- 5090 → `120`
+You can pass a list (`"86;89"`) to build a fat binary, but the build
+takes proportionally longer.
+
+**`-DGGML_CUDA=ON` matters** — `cmake -B build` without it (or with the
+old CMakeCache holdover) leaves CUDA off and only rebuilds the CPU
+backend. Symptom: `libggml-base.so.0` and `libggml-cpu.so.0` get bumped
+to a new version but `libggml-cuda.so.0` stays at the old one. Loading
+the model then logs `warning: no usable GPU found` and runs on CPU. Fix
+by re-running the cmake configure line above.
 
 The `ai` distrobox image is `nvidia/cuda:12.6.3-devel-ubuntu22.04` —
 nvcc 12.6 + cmake 3.22 already installed. If that container is gone:
