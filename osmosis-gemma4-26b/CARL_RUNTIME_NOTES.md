@@ -78,9 +78,23 @@ If no output: pull + rebuild before serving.
 
 Build:
 ```bash
+# Pull from the host; build inside the distrobox where the CUDA dev
+# toolkit lives. The host shell only has CUDA runtime libs at
+# /tmp/cuda-toolkit — no working nvcc — so a host-side rebuild fails
+# with "CUDA Toolkit not found". The CMakeCache also hardcodes
+# /usr/bin/cmake which only resolves inside the container.
 cd /var/home/deucebucket/ai-drive/llama.cpp
 git pull --ff-only origin master
-cmake --build build -j$(nproc)
+distrobox enter ai -- bash -c \
+  'cd /var/home/deucebucket/ai-drive/llama.cpp && /usr/bin/cmake --build build -j$(nproc)'
+```
+
+The `ai` distrobox image is `nvidia/cuda:12.6.3-devel-ubuntu22.04` —
+nvcc 12.6 + cmake 3.22 already installed. If that container is gone:
+
+```bash
+distrobox create --name ai --image nvidia/cuda:12.6.3-devel-ubuntu22.04
+distrobox enter ai -- sudo apt update && sudo apt install -y cmake build-essential
 ```
 
 ## Where this is wired into Carl
