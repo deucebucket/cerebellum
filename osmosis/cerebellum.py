@@ -40,6 +40,40 @@ GGUF_TO_HF = {v: k for k, v in HF_TO_GGUF_COMPONENT.items()}
 
 DEMOTION_ORDER = list(reversed(PROMOTION_ORDER))
 
+# Build profiles: per-domain weighting for multi-domain ablation results.
+# Used when ablation_results.json has the new schema (per-domain PPL dicts).
+# Old single-value schema ignores these.
+DEFAULT_PROFILES = {
+    "general":  {"wiki": 0.40, "code": 0.20, "math": 0.20, "dialogue": 0.20},
+    # 'code' weights math up to 0.30 — algorithmic reasoning (loop invariants,
+    # recursion bases, step-by-step logic) is shared between math and code.
+    # Models that lose math reasoning typically lose code too; protect both.
+    "code":     {"wiki": 0.05, "code": 0.55, "math": 0.30, "dialogue": 0.10},
+    "chat":     {"wiki": 0.20, "code": 0.10, "math": 0.10, "dialogue": 0.60},
+    "balanced": {"wiki": 0.25, "code": 0.25, "math": 0.25, "dialogue": 0.25},
+}
+
+
+def parse_objective_weights(spec):
+    """Parse weight spec — accepts a named profile or 'wiki:0.1,code:0.6,...' format.
+
+    Returns dict of domain -> weight. Validates weights sum to 1.0 ± 0.01.
+    """
+    if spec is None:
+        return None
+    if spec in DEFAULT_PROFILES:
+        return dict(DEFAULT_PROFILES[spec])
+    weights = {}
+    for pair in spec.split(","):
+        if ":" not in pair:
+            raise ValueError(f"Invalid weight spec '{pair}', expected 'domain:weight'")
+        k, v = pair.split(":", 1)
+        weights[k.strip()] = float(v.strip())
+    total = sum(weights.values())
+    if abs(total - 1.0) > 0.01:
+        raise ValueError(f"Objective weights must sum to 1.0 (±0.01), got {total:.4f}: {weights}")
+    return weights
+
 
 def prev_tier(current_type):
     normed = normalize_qtype(current_type)
@@ -52,23 +86,64 @@ def prev_tier(current_type):
     return None
 
 
-def load_ablation_data(results_path, plan_path=None):
+def load_ablation_data(results_path, plan_path=None, weights=None):
+    """Load ablation data, supporting old (single PPL) and new (per-domain dict) schemas.
+
+    Old schema:
+        baseline_ppl: float
+        tests[X].ppl: float
+
+    New schema (multi-domain):
+        baseline_ppl: {wiki: X, code: Y, math: Z, dialogue: W}
+        tests[X].ppl: {wiki: X, code: Y, math: Z, dialogue: W}
+
+    For new schema, `weights` selects per-domain weighting and combined_delta =
+    sum(weights[d] * (tensor_ppl[d] - baseline_ppl[d])). For old schema,
+    `weights` is ignored — single PPL signal is used directly.
+    """
     with open(results_path) as f:
         results = json.load(f)
 
-    baseline_ppl = results["baseline_ppl"]
+    raw_baseline = results["baseline_ppl"]
+    is_multi = isinstance(raw_baseline, dict)
     tests = results.get("tests", {})
+
+    if is_multi:
+        if weights is None:
+            # No weights specified on new-schema data → default to wiki-only
+            # for backwards-compatible behavior.
+            weights = {"wiki": 1.0, "code": 0, "math": 0, "dialogue": 0}
+        # Validate every weighted domain exists in the ablation data.
+        missing = [d for d in weights if d not in raw_baseline and weights[d] > 0]
+        if missing:
+            raise ValueError(f"Ablation results lack baseline_ppl for domains: {missing}")
+        # Compute weighted baseline for display purposes.
+        baseline_ppl = sum(weights.get(d, 0) * raw_baseline.get(d, 0) for d in raw_baseline)
+    else:
+        if weights is not None:
+            non_wiki_weight = sum(weights.get(d, 0) for d in weights if d != "wiki")
+            if non_wiki_weight > 0.001:
+                print(f"NOTE: ablation results use old single-PPL schema; ignoring non-wiki weights {weights}")
+        baseline_ppl = raw_baseline
 
     ablation_map = {}
     for hf_name, data in tests.items():
         gguf_tensor = data["gguf_tensor"]
         if not gguf_tensor.endswith(".weight"):
             gguf_tensor += ".weight"
-        ppl = data["ppl"]
-        delta = ppl - baseline_ppl
+        ppl_raw = data["ppl"]
+        if isinstance(ppl_raw, dict):
+            # Multi-domain: weighted sum of per-domain deltas
+            delta = sum(weights.get(d, 0) * (ppl_raw[d] - raw_baseline[d])
+                        for d in ppl_raw if d in weights)
+            ppl = sum(weights.get(d, 0) * ppl_raw.get(d, 0) for d in ppl_raw)
+        else:
+            ppl = ppl_raw
+            delta = ppl - baseline_ppl
         ablation_map[gguf_tensor] = {
             "hf_name": hf_name,
             "ppl": ppl,
+            "ppl_per_domain": ppl_raw if isinstance(ppl_raw, dict) else None,
             "delta": delta,
             "abs_delta": abs(delta),
         }
@@ -400,12 +475,24 @@ def main():
     parser.add_argument("--imatrix", default=None, help="Imatrix file for accurate size estimation")
     parser.add_argument("--quantize-bin", default=None)
     parser.add_argument("--analyze-only", action="store_true", help="Just analyze, don't allocate")
+    parser.add_argument(
+        "--objective-weights",
+        default=None,
+        help=("Per-domain ablation weights for multi-domain results. Format: "
+              "'wiki:0.1,code:0.6,math:0.2,dialogue:0.1' OR a named profile "
+              f"({', '.join(DEFAULT_PROFILES)}). Ignored on old single-PPL schema. "
+              "Default on new schema: wiki:1.0 (backwards-compat behavior)."),
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
 
     args = parser.parse_args()
 
+    weights = parse_objective_weights(args.objective_weights)
+    if weights:
+        print(f"Objective weights: {weights}")
+
     baseline_ppl, ablation_map, plan_info = load_ablation_data(
-        args.ablation, args.plan
+        args.ablation, args.plan, weights=weights,
     )
 
     print(f"Baseline PPL: {baseline_ppl}")

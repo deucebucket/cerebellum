@@ -1,223 +1,276 @@
-# Cerebellum — Ablation-Informed Quantization for LLMs
+# Cerebellum
 
-Tensor-level precision allocation for GGUF quantization. Measures tensor sensitivity and assigns quantization types under a target size budget. Models for people who are poor.
+Cerebellum is a small set of engine files for building ablation-informed GGUF
+quants.
 
-## How It Works
+The core idea is simple: do not guess which tensors can survive lower
+precision. Measure the damage, then spend bits where the measured damage says
+they matter.
 
-1. **Ablate** — crush each tensor to Q2_K individually, measure the perplexity impact
-2. **Classify** — label tensors by measured sensitivity and PPL delta
-3. **Allocate** — high-sensitivity tensors get higher precision, low-sensitivity tensors stay at Q2_K, everything else fills in to meet the size budget
-4. **Multi-pass promotion** — tensors climb quant levels (Q2_K → Q3_K → ... → Q8_0) across passes until the budget is exhausted
+The Python package is still named `osmosis` for compatibility with existing
+scripts and old experiment files. New documentation and release artifacts use
+the Cerebellum name.
 
-The result: smaller files with less quality loss than uniform quants of the same size. Sometimes demoting tensors actually *improves* the model.
+## What This Repo Contains
 
-## Released Models
+Public Cerebellum is intentionally narrow:
 
-All models available at [huggingface.co/deucebucket](https://huggingface.co/deucebucket). Full benchmark data (including per-question answers) in [`benchmarks/`](benchmarks/).
+- `osmosis/imatrix_stream.py` generates llama.cpp-compatible imatrix files from
+  safetensors without loading the full model into RAM.
+- `osmosis/imatrix_gen.py` generates an imatrix with optional activation
+  calibration.
+- `osmosis/cerebellum.py` reads measured ablation results and writes a
+  `llama-quantize` tensor type override file.
+- `osmosis/budget.py` reads weight-sensitivity curves and writes a
+  budget-fitting tensor type override file.
+- `osmosis/micro_quantizer.py` contains shared sensitivity helpers used by the
+  imatrix generators.
 
-### Summary Table
+The public repo is not meant to ship dashboards, local automation, private
+devlogs, credentials, or one-off model-building scripts. Public release
+artifacts live here.
 
-| Model | Architecture | Size | HumanEval | ARC | HellaSwag | MMLU | PPL |
-|-------|-------------|------|-----------|-----|-----------|------|-----|
-| **Granite 4.1 30B** v2 | Dense | 13 GB | **82.3%** | 91.6% | 88.9% | 73.5% | 8.49 |
-| **Qwen 3.6 27B** v4 | Dense | 12 GB | 81.1% | 96.8% | 92.2% | 82.5% | 7.03 |
-| **Qwen 3.6 35B-A3B** v1 | SSM+MoE | 12 GB | 75.0% | 94.8% | 91.5% | 73.9% | — |
-| **Gemma 4 26B-A4B** v6 | MoE (128 exp) | 11.7 GB | 72.0% | 95.6% | 84.7% | 71.2% | 12,054 |
-| **Qwen 3 30B-A3B** v2 | MoE | — | 72.0% | — | — | — | — |
-| **Gemma 4 E4B** v2 | Dense (PLE) | 4.2 GB | 68.3% | 85.7% | 75.3% | 58.4% | 52.20 |
-| **Qwen 3 14B** v2 | Dense | — | 65.9% | — | — | — | — |
-| **Granite 4.0-H-Small** v1 | Mamba2+MoE | 14.2 GB | — | 90.7% | 87.1% | 68.6% | 6.46 |
-| **Qwen 3 32B** v2 | Dense | — | 45.1% | — | — | — | — |
+Public release artifacts do include benchmark results, Cerebellum ablation
+results, and the configuration needed to reproduce a release: source/model
+hashes, imatrix provenance, ablation result JSON, tensor type files, allocator
+settings, runtime flags, and benchmark artifacts.
 
-All benchmarks measured locally on RTX 3090 with llama.cpp. Temperature=0, no thinking mode. HumanEval uses completions API with pre-filled think tokens.
+## How Cerebellum Works
 
-**2026-05-03 Score Corrections:** Found and fixed bugs in the benchmark scripts. HumanEval had a fence-stripping bug that destroyed indentation (all models affected, scores were ~6-8 points too low). ARC had 19 questions misjudged due to numeric label handling. HellaSwag had 108 empty responses incorrectly counted as wrong answers. Only Qwen 3.6 27B v4 has been re-benchmarked so far. Other models will be updated as they get re-run. Full audit trail in [BENCHMARK_CORRECTIONS.md](benchmarks/qwen36-27b/BENCHMARK_CORRECTIONS.md).
+1. Generate an imatrix.
 
-### Granite 4.1 30B — Cerebellum v2 (13 GB)
+   The imatrix gives `llama-quantize` per-channel importance data in the binary
+   format it already understands.
 
-Best code performance. Dense 30B model, 64 layers, GQA. Demoted 3 attention groups (attn_k, attn_q, attn_output) that were *hurting* the model at Q3_K_M. Saves 1 GB over uniform Q3_K_M with +1.4% PPL.
+2. Measure tensor damage.
 
-HF: [deucebucket/Granite-4.1-30B-Cerebellum-GGUF](https://huggingface.co/deucebucket/Granite-4.1-30B-Cerebellum-GGUF)
+   For ablation-driven builds, start from a sane baseline such as `Q4_K_M`,
+   force one tensor or tensor group down to `Q2_K`, run perplexity, and record
+   the delta from baseline.
 
-| Benchmark | Score |
-|-----------|-------|
-| HumanEval pass@1 | **82.3%** |
-| ARC-Challenge | 91.6% |
-| HellaSwag | 88.9% |
-| MMLU | 73.5% |
-| WikiText PPL | 8.4912 |
+3. Classify tensors.
 
-### Qwen 3.6 27B — Cerebellum v4 (12 GB)
+   Negative delta means the lower-precision tensor was not hurting that
+   calibration run. Positive delta means the tensor needs protection. Small
+   deltas are treated as noise.
 
-Best overall knowledge scores. Dense transformer, 64 layers. 181 tensor overrides across 5 precision levels. Multi-pass promotion from full ablation sweep.
+4. Allocate precision under a size budget.
 
-HF: [deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF](https://huggingface.co/deucebucket/Qwen3.6-27B-Cerebellum-v4-GGUF)
+   Cerebellum uses `llama-quantize --dry-run` to get real tensor sizes, then
+   writes `tensor_types.txt`. That file is passed back to stock
+   `llama-quantize`.
 
-| Benchmark | Score | Notes |
-|-----------|-------|-------|
-| HumanEval pass@1 | **81.1%** | corrected (was 75.0%, script bug) |
-| ARC-Challenge | **96.8%** | corrected (was 95.1%, label mismatch) |
-| HellaSwag | **92.2%** | corrected (was 91.2%, empty response bug) |
-| MMLU | **82.5%** | |
-| MMLU-Redux | 76.6% | confirmed (was 77.1%, run variance) |
-| WikiText PPL | **7.034** | |
+5. Build and audit the final GGUF.
 
-Recommended sampling: temperature=0. Tested across the full benchmark suite, temp=0 scored highest on all benchmarks.
+   The final artifact is still a normal GGUF. Cerebellum is the measurement and
+   allocation process used to choose its mixed tensor types.
 
-### Qwen 3.6 35B-A3B — Cerebellum v1 (12 GB)
+## Quickstart
 
-Hybrid SSM (Mamba-2) + MoE with 256 experts. Only 3B active parameters per token. Same performance as the 27B dense model at fraction of the compute. 2.73 BPW average.
+For a fuller walkthrough, see
+[docs/getting_started.md](docs/getting_started.md). For exact CLI options, see
+[docs/cli_reference.md](docs/cli_reference.md).
 
-HF: [deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF](https://huggingface.co/deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF)
-
-| Benchmark | Score |
-|-----------|-------|
-| HumanEval pass@1 | 75.0% |
-| ARC-Challenge | 94.8% |
-| HellaSwag | 91.5% |
-| MMLU-Redux | 73.9% |
-
-### Gemma 4 26B-A4B — Cerebellum v6 (11.7 GB)
-
-MoE with 128 experts per layer, 4B active. Six internal iterations of ablation: group-level, per-layer, PLE protection, reverse ablation, and MoE router surgery. Router layer 8 demotion to Q8_0 was the final gain.
-
-HF: [deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF](https://huggingface.co/deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF)
-
-| Benchmark | Score |
-|-----------|-------|
-| HumanEval pass@1 | 72.0% |
-| ARC-Challenge | **95.6%** |
-| HellaSwag | 84.7% |
-| MMLU-Redux | 71.2% |
-| WikiText PPL | 12,054 |
-
-Version history: v1 (65.2%) → v2 (65.9%) → v3 (67.1%) → v4 (69.5%) → v5 (71.3%) → **v6 (72.0%)**
-
-### Gemma 4 E4B — Cerebellum v2 (4.2 GB)
-
-Smallest model. PLE-protected + 26-tensor ablation. v2 beats BF16 perplexity (52.20 vs 54.58) at 4.2 GB because the ablation found tensors that benefit from demotion.
-
-HF: [deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF](https://huggingface.co/deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF)
-
-| Benchmark | v2 (4.2 GB) | v1 (4.3 GB) | BF16 (15 GB) |
-|-----------|-------------|-------------|--------------|
-| WikiText PPL | **52.20** | 55.10 | 54.58 |
-| HumanEval | **68.3%** | 65.9% | — |
-| ARC-Challenge | 85.7% | 85.1% | — |
-| HellaSwag | 75.3% | 75.5% | — |
-| MMLU-Redux | 58.4% | 58.0% | — |
-
-### Granite 4.0-H-Small — Cerebellum v1 (14.2 GB)
-
-Hybrid Mamba-2 + Transformer MoE. First Cerebellum build for this architecture. Found that routed expert weights are sensitive while shared experts tolerate demotion (opposite of dense MoE patterns).
-
-HF: [deucebucket/Granite-4.0-H-Small-Cerebellum-GGUF](https://huggingface.co/deucebucket/Granite-4.0-H-Small-Cerebellum-GGUF)
-
-| Benchmark | Score |
-|-----------|-------|
-| ARC-Challenge | 90.7% |
-| HellaSwag | 87.1% |
-| MMLU-Redux | 68.6% |
-| WikiText PPL | 6.4580 |
-
-## Key Findings
-
-- **Demoting tensors can improve the model.** Granite 4.1 attention K/Q/output showed lower PPL at Q2_K than Q3_K. Gemma E4B v2 beats BF16 PPL.
-- **MoE fragility is in expert weights, not auxiliary signals.** Opposite of dense models where attention projections are most sensitive.
-- **Hybrid SSM models have hard precision cliffs.** SSM parameters break below 4-bit. No gradual degradation, just NaN.
-- **PLE tensors in Gemma 4 have a cliff between Q4_K and Q3_K.** Q3_K_M without PLE protection: PPL 104.74. With PLE Q5_K: PPL 55.10.
-- **Cross-layer effects are ~86% additive.** Single-tensor ablation deltas predict multi-tensor outcomes with ~14% attenuation.
-- **Same-layer interaction effects are strong.** Crushing two FFN tensors in the same layer: 87% regression (interaction ratio 0.13).
-
-## Usage
-
-### Streaming Quantizer (any model size, constant RAM)
-
-The main tool. Processes one tensor at a time — peak RAM is ~300 MB regardless of model size. 122B model on 4 GB RAM, no problem.
+Install the local package:
 
 ```bash
-# Basic requantization
-python tools/streaming_quantize.py model-Q4_K.gguf output-Q2_K.gguf --type q2_K
-
-# Mixed precision with Cerebellum tensor map
-python tools/streaming_quantize.py model.gguf output.gguf \
-    --type q2_K --override-file tensor_types.txt
-
-# Preserve original types, only override specific tensors
-python tools/streaming_quantize.py model.gguf output.gguf \
-    --type keep --override-file promote_attn_qkv.txt
-
-# Inspect tensors
-python tools/streaming_quantize.py model.gguf --info
-
-# Dry run (calculate output size)
-python tools/streaming_quantize.py model.gguf --dry-run --type q3_K
+pip install -e ".[dev]"
 ```
 
-~50 MB/s with native libggml (auto-detected), falls back to pure Python without it.
+Install or build llama.cpp separately. The commands below assume
+`llama-quantize` is on `PATH`. You can also pass `--quantize-bin` to the
+allocator commands.
 
-### Workflow
-
-The process is manual and iterative:
-
-1. Start with a Q2_K or Q2_K_XL base GGUF (from llama-quantize or llama.cpp)
-2. Run ablation — promote or demote one tensor group at a time, measure PPL with llama-perplexity
-3. Classify tensors by measured sensitivity (PPL delta per bit)
-4. Write a tensor override file (one line per tensor: `tensor_name = quant_type`)
-5. Build the final GGUF with the streaming quantizer using your override file
-
-There is no single-command pipeline yet. Each model requires hands-on analysis because architectures differ — what works for dense transformers breaks MoE, what works for MoE breaks hybrid SSM.
-
-### Imatrix Generation
-
-Fast imatrix from weight statistics, ~60 seconds on CPU:
+Generate a streaming imatrix from a Hugging Face model ID or local safetensors
+directory:
 
 ```bash
 python -m osmosis.imatrix_stream \
-    --model Qwen/Qwen3.6-27B \
-    --output osmosis_imatrix.dat -v
+  --model <hf-model-id-or-local-path> \
+  --output cerebellum_imatrix.dat \
+  -v
 ```
 
-## Architecture Support
+Build a plain imatrix quant for a baseline:
 
-- **Dense transformers** (Qwen 3.6, Granite 4.1, Qwen 3) — full ablation + allocation
-- **MoE** (Gemma 4 26B-A4B, Qwen 3.6 35B-A3B, Qwen 3 30B-A3B) — expert-level ablation + router surgery
-- **Hybrid SSM+MoE** (Granite 4.0-H-Small, Qwen 3.5 9B) — SSM-aware with hard precision floors
-- **PLE models** (Gemma 4 E4B) — per-layer embedding protection
-
-## Project Structure
-
-```
-tools/
-└── streaming_quantize.py      # Streaming GGUF quantizer (constant RAM)
-
-benchmarks/                    # Full benchmark data organized by model
-├── qwen36-27b/               # Qwen 3.6 27B results + detailed answers
-├── qwen36-35b-a3b/           # Qwen 3.6 35B-A3B results
-├── gemma4-e4b/               # Gemma 4 E4B results
-├── gemma4-26b-a4b/           # Gemma 4 26B-A4B results
-├── granite41-30b/            # Granite 4.1 30B results + detailed answers
-├── granite4-h-small/         # Granite 4.0-H-Small results
-├── qwen3-30b-a3b/           # Qwen 3 30B-A3B results
-├── qwen3-32b/               # Qwen 3 32B results
-└── qwen3-14b/               # Qwen 3 14B results
-
-osmosis/
-├── cerebellum.py             # Ablation-informed precision allocator
-├── imatrix_stream.py         # Streaming imatrix generation
-├── imatrix_gen.py            # Standard imatrix generation
-└── imatrix_format.py         # llama.cpp imatrix binary format writer
+```bash
+llama-quantize \
+  --imatrix cerebellum_imatrix.dat \
+  source-f16.gguf \
+  baseline-Q4_K_M.gguf \
+  Q4_K_M
 ```
 
-## Test Hardware
+After you have ablation results, ask Cerebellum to allocate tensor types for a
+target file size:
 
-| Component | Spec |
-|-----------|------|
-| GPU | NVIDIA RTX 3090 (24 GB) |
-| CPU | AMD Ryzen 7 5800XT |
-| RAM | 64 GB DDR4 |
-| OS | Fedora Linux 43 (Atomic) |
+```bash
+python -m osmosis.cerebellum \
+  --ablation ablation_results.json \
+  --source-gguf source-f16.gguf \
+  --imatrix cerebellum_imatrix.dat \
+  --budget-gb 12.0 \
+  --output tensor_types.txt \
+  -v
+```
+
+Build the final GGUF with stock llama.cpp:
+
+```bash
+llama-quantize \
+  --imatrix cerebellum_imatrix.dat \
+  --tensor-type-file tensor_types.txt \
+  source-f16.gguf \
+  model-cerebellum.gguf \
+  Q4_K_M
+```
+
+## File Roles
+
+| File | Role |
+| --- | --- |
+| `cerebellum_imatrix.dat` | Binary llama.cpp imatrix consumed by `llama-quantize --imatrix`. |
+| `ablation_results.json` | Measured baseline PPL plus per-tensor PPL after forced low-precision tests. |
+| `sensitivity_multi.json` | Weight-only multi-depth sensitivity report consumed by `osmosis.budget`. |
+| `tensor_types.txt` | Final `tensor_name=qtype` overrides consumed by `llama-quantize --tensor-type-file`. |
+| `source-f16.gguf` | Full precision or high precision GGUF used as quantization source. |
+| `model-cerebellum.gguf` | Final normal GGUF artifact. |
+
+## Released Data
+
+Released model recipes and measurements are kept in public directories:
+
+- `model-data/` contains ablation outputs, tensor override files, PPL notes, and
+  other small release files used to build published GGUFs.
+- `benchmarks/` contains benchmark summaries and detailed answer artifacts for
+  published runs.
+
+To reproduce a release, start from the matching source GGUF and imatrix,
+inspect the model's `model-data/<model>/` files, then pass the released tensor
+type file to `llama-quantize --tensor-type-file`.
+
+## Ablation Result Schema
+
+`osmosis.cerebellum` accepts the historical single-domain format:
+
+```json
+{
+  "baseline_ppl": 7.034,
+  "tests": {
+    "layer_10.mlp.down_proj": {
+      "gguf_tensor": "blk.10.ffn_down.weight",
+      "ppl": 7.091
+    }
+  }
+}
+```
+
+It also accepts a multi-domain format:
+
+```json
+{
+  "baseline_ppl": {"wiki": 7.0, "code": 4.2, "math": 6.1, "dialogue": 8.3},
+  "tests": {
+    "layer_10.mlp.down_proj": {
+      "gguf_tensor": "blk.10.ffn_down.weight",
+      "ppl": {"wiki": 7.1, "code": 4.4, "math": 6.1, "dialogue": 8.2}
+    }
+  }
+}
+```
+
+For multi-domain results, pass a named profile or explicit weights:
+
+```bash
+python -m osmosis.cerebellum \
+  --ablation ablation_results.json \
+  --source-gguf source-f16.gguf \
+  --budget-gb 12.0 \
+  --objective-weights code \
+  --output tensor_types.txt
+```
+
+Built-in profiles are `general`, `code`, `chat`, and `balanced`. If no weights
+are supplied for multi-domain input, the allocator defaults to wiki-only for
+backward compatibility.
+
+## Alternative Proxy Path
+
+When full ablation is too expensive, `osmosis.budget` can allocate from
+weight-only multi-depth sensitivity data:
+
+```bash
+python -m osmosis.sensitivity_stream \
+  --model <hf-model-id-or-local-path> \
+  --output sensitivity_multi.json \
+  -v
+
+python -m osmosis.budget \
+  --sensitivity sensitivity_multi.json \
+  --source-gguf source-f16.gguf \
+  --imatrix cerebellum_imatrix.dat \
+  --budget-gb 12.0 \
+  --output tensor_types.txt \
+  -v
+```
+
+This is faster than measured ablation, but it is a proxy. Published releases
+should state which path was used.
+
+## Architecture Notes
+
+Cerebellum is empirical. The allocator should follow measurements, not a fixed
+belief about which tensor classes matter.
+
+- Dense transformer models often have local tensor groups that tolerate or even
+  benefit from demotion.
+- MoE models can put sensitivity in expert weights rather than the router or
+  obvious auxiliary signals.
+- Hybrid SSM models can have hard precision floors; some SSM tensors should not
+  be pushed below 4-bit without explicit testing.
+- Gemma-style per-layer embedding or projection tensors can show sharp cliffs
+  between adjacent quant levels.
+
+See [docs/mamba_hybrid_findings.md](docs/mamba_hybrid_findings.md) for one
+example of architecture-specific guardrails.
+
+## Benchmarking
+
+Do not publish a score from a single summary number. Keep the detailed outputs,
+inspect wrong answers, and rerun if a harness bug is found.
+
+See [docs/benchmark_protocol.md](docs/benchmark_protocol.md) for the release
+artifact checklist and audit gate.
+
+Minimum release artifacts for a benchmarked model:
+
+- summary JSON files,
+- detailed JSONL answer files for MCQ tasks,
+- EvalPlus samples and EvalPlus eval JSON for HumanEval/EvalPlus,
+- exact runtime flags and model file hashes,
+- notes describing whether thinking/reasoning was enabled or disabled.
+
+For each released model, keep a reproducibility bundle next to the benchmark
+artifacts when practical:
+
+- `ablation_results.json` or `sensitivity_multi.json`,
+- `tensor_types.txt`,
+- allocator command and arguments,
+- source GGUF hash,
+- imatrix hash or source,
+- final GGUF hash,
+- llama.cpp commit or release,
+- server and benchmark command flags.
+
+## Development Notes
+
+The public repository is for release-ready engine files, docs, benchmark
+artifacts, ablation outputs, model-data recipes, and reproducible configs.
+Exploratory automation, local scripts, unpublished logs, and unfinished
+experiments should stay out of public history.
+
+When unsure, keep it out of `origin`.
 
 ## License
 
-Apache 2.0
+Apache-2.0
