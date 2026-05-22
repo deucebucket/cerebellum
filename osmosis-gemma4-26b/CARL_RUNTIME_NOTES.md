@@ -34,9 +34,9 @@ LD_LIBRARY_PATH=/tmp/cuda-toolkit/lib64:/tmp/cuda-toolkit/lib \
 
 | Flag | Why |
 |------|-----|
-| `--jinja` | Default in newer builds, but pin it. Forces use of the GGUF's embedded jinja chat template instead of llama-server's hardcoded fallback. The fallback was wrong for Gemma 4 in builds before ~2026-05 and would cause **looping output** because the model emitted stop tokens the parser didn't recognize. |
-| `--reasoning off` | Gemma 4 is **not** a reasoning model. Leaving reasoning on `auto` lets the parser try to extract `<think>` blocks that don't exist, which corrupts the output stream. |
-| `--reasoning-budget 0` | Belt-and-suspenders: even with `--reasoning off`, set the budget to 0 explicitly so no reasoning logit bias gets applied. There was a buggy +inf logit bias commit in llama.cpp around early May 2026 (reverted in `f9cd456ea`); rebuilding past that commit + budget=0 closes the loophole. |
+| `--jinja` | Default in newer builds, but pin it. Forces use of the GGUF's embedded jinja chat template instead of llama-server's hardcoded fallback. The fallback was wrong for Gemma 4 and would cause **looping output** because the model emitted stop tokens the parser didn't recognize. |
+| `--reasoning off` | **Required on master** — the reasoning budget sampler was never wired up for Gemma 4 upstream (PR #21697 and #21704 are on `pr/22340-gg` but never merged). Without these, `--reasoning-budget N` is silently a no-op and the model loops. On `pr/22340-gg` or later, set `--reasoning-budget 4096` to enable it properly. |
+| `--reasoning-budget 0` | Belt-and-suspenders for master: even with `--reasoning off`, set the budget to 0 explicitly so no reasoning logit bias gets applied. There was a buggy +inf logit bias commit in llama.cpp around early May 2026 (reverted in `f9cd456ea`); rebuilding past that commit + budget=0 closes the loophole. |
 
 ### Speed features (the "turbo cache" stack)
 
@@ -65,7 +65,32 @@ LD_LIBRARY_PATH=/tmp/cuda-toolkit/lib64:/tmp/cuda-toolkit/lib \
 
 ## llama.cpp version requirement
 
-Build must be at or after commit `f9cd456ea` (`common : revert reasoning
+### Option A: Reasoning works (recommended if you need thinking)
+
+Build from the `pr/22340-gg` branch, which includes both PR #21697 (reasoning
+budget sampler wiring for Gemma 4) and PR #21704 (updated chat template).
+Also includes the +inf logit bias revert from `f9cd456ea`.
+
+```bash
+cd /var/home/deucebucket/ai-drive/llama.cpp
+git fetch origin pr/22340-gg
+git checkout pr/22340-gg
+distrobox enter ai -- bash -c '
+  cd /var/home/deucebucket/ai-drive/llama.cpp &&
+  /usr/bin/cmake -B build \
+    -DGGML_CUDA=ON \
+    -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
+    -DCMAKE_CUDA_ARCHITECTURES=86 &&
+  /usr/bin/cmake --build build --target ggml-cuda llama-server -j$(nproc)
+'
+```
+
+Then serve with `--reasoning-budget 4096` instead of `--reasoning off`.
+The model will produce `reasoning_content` + answer and stop correctly.
+
+### Option B: Reasoning disabled (fallback for master)
+
+Build from master at or after commit `f9cd456ea` (`common : revert reasoning
 budget +inf logit bias (#22740)`). On older builds, the +inf logit bias
 breaks sampling and produces visible looping in the output even with
 `--reasoning off` and `--reasoning-budget 0`.
@@ -78,12 +103,8 @@ If no output: pull + rebuild before serving.
 
 Build:
 ```bash
-# Pull from the host; build inside the distrobox where the CUDA dev
-# toolkit lives. The host shell only has CUDA runtime libs at
-# /tmp/cuda-toolkit — no working nvcc — so a host-side rebuild fails
-# with "CUDA Toolkit not found". The CMakeCache also hardcodes
-# /usr/bin/cmake which only resolves inside the container.
 cd /var/home/deucebucket/ai-drive/llama.cpp
+git checkout master
 git pull --ff-only origin master
 distrobox enter ai -- bash -c '
   cd /var/home/deucebucket/ai-drive/llama.cpp &&
@@ -132,8 +153,8 @@ don't drift.
 
 | Symptom | Likely cause | Fix |
 |---------|--------------|-----|
-| Output loops on the same line / phrase | Stale llama.cpp build (pre-`f9cd456ea`) OR reasoning still on | Rebuild llama.cpp + confirm `--reasoning off --reasoning-budget 0` in the running cmd |
-| Looping with garbled tokens (`<end_of_turn>` leaks, etc.) | Wrong chat template — `--jinja` not active | Add `--jinja`, confirm via `--help` that it's enabled by default in your build |
+| Output loops on the same line / phrase | Stale llama.cpp build (pre-`f9cd456ea`) OR reasoning still on (master doesn't wire reasoning budget for Gemma 4 — use `pr/22340-gg`) | Rebuild from `pr/22340-gg` for working reasoning, or use `--reasoning off --reasoning-budget 0` on master |
+| Looping with garbled tokens (`<end_of_turn>` leaks, etc.) | Wrong chat template — `--jinja` not active, OR missing thinking_end_tag, OR `</s>` still treated as EOG (PR #21492 not merged) | Add `--jinja`, rebuild from `pr/22340-gg` which includes all template/EOC fixes |
 | First token of every turn slow | Full prefill on every turn (Gemma 4 SWA can't reuse KV via shifting) | This is architectural — accept it. Larger `--ubatch-size` helps prefill throughput but won't avoid the prefill itself. |
 | OOM on long context | KV cache not quantized, or `--swa-full` enabled | Confirm `--cache-type-k/v q8_0`, drop `--swa-full` if present |
 | Huge cold-start latency | mmap disabled OR mlock missing on large model | Default mmap + add `--mlock` |

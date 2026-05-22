@@ -1,0 +1,22 @@
+MODEL baseline_q4km: /var/home/deucebucket/games/models/gemma4-26b-codex-dwojcik/gemma-4-26B-A4B-it.Q4_K_M.gguf
+  wiki
+    PPL 9.8655
+  code
+    PPL 3.2257
+  math
+    PPL 2.6571
+  dialogue
+    PPL 3.5457
+  agent
+    PPL 1.9791
+MODEL cerebellum_v6_transfer_requant: /var/home/deucebucket/games/cerebellum-gemma4-codex/gemma4-26b-codex-cerebellum-v6-transfer-requant.gguf
+  wiki
+    PPL 15.2815
+  code
+    PPL 3.9142
+  math
+    PPL 2.9774
+  dialogue
+    PPL 4.2967
+  agent
+    PPL 2.2471

@@ -1,0 +1,190 @@
+EVALPLUS CHAT BENCHMARK - gemma4_codex_q4km_baseline
+Workers: 1, max_tokens: 1536, enable_thinking: False, thinking_budget: 0
+Loaded 164 problems
+  [  1/164] 1.55 q/s, ETA 105s - HumanEval/0
+  [  2/164] 1.17 q/s, ETA 138s - HumanEval/1
+  [  3/164] 1.33 q/s, ETA 121s - HumanEval/10
+  [  4/164] 1.32 q/s, ETA 121s - HumanEval/100
+  [  5/164] 1.49 q/s, ETA 107s - HumanEval/101
+  [  6/164] 1.51 q/s, ETA 105s - HumanEval/102
+  [  7/164] 1.51 q/s, ETA 104s - HumanEval/103
+  [  8/164] 1.52 q/s, ETA 102s - HumanEval/104
+  [  9/164] 1.48 q/s, ETA 105s - HumanEval/105
+  [ 10/164] 1.41 q/s, ETA 110s - HumanEval/106
+  [ 11/164] 1.37 q/s, ETA 112s - HumanEval/107
+  [ 12/164] 1.35 q/s, ETA 113s - HumanEval/108
+  [ 13/164] 1.13 q/s, ETA 134s - HumanEval/109
+  [ 14/164] 1.15 q/s, ETA 130s - HumanEval/11
+  [ 15/164] 1.12 q/s, ETA 133s - HumanEval/110
+  [ 16/164] 1.12 q/s, ETA 132s - HumanEval/111
+  [ 17/164] 1.14 q/s, ETA 129s - HumanEval/112
+  [ 18/164] 1.13 q/s, ETA 129s - HumanEval/113
+  [ 19/164] 1.14 q/s, ETA 127s - HumanEval/114
+  [ 20/164] 1.15 q/s, ETA 125s - HumanEval/115
+  [ 21/164] 1.18 q/s, ETA 122s - HumanEval/116
+  [ 22/164] 1.18 q/s, ETA 121s - HumanEval/117
+  [ 23/164] 1.18 q/s, ETA 120s - HumanEval/118
+  [ 24/164] 1.16 q/s, ETA 120s - HumanEval/119
+  [ 25/164] 1.17 q/s, ETA 119s - HumanEval/12
+  [ 26/164] 1.20 q/s, ETA 115s - HumanEval/120
+  [ 27/164] 1.20 q/s, ETA 114s - HumanEval/121
+  [ 28/164] 1.22 q/s, ETA 112s - HumanEval/122
+  [ 29/164] 1.12 q/s, ETA 120s - HumanEval/123
+  [ 30/164] 1.06 q/s, ETA 126s - HumanEval/124
+  [ 31/164] 1.07 q/s, ETA 125s - HumanEval/125
+  [ 32/164] 1.07 q/s, ETA 123s - HumanEval/126
+  [ 33/164] 1.06 q/s, ETA 124s - HumanEval/127
+  [ 34/164] 1.06 q/s, ETA 123s - HumanEval/128
+  [ 35/164] 1.00 q/s, ETA 129s - HumanEval/129
+  [ 36/164] 1.01 q/s, ETA 126s - HumanEval/13
+  [ 37/164] 1.00 q/s, ETA 127s - HumanEval/130
+  [ 38/164] 1.01 q/s, ETA 125s - HumanEval/131
+  [ 39/164] 1.02 q/s, ETA 123s - HumanEval/132
+  [ 40/164] 1.03 q/s, ETA 121s - HumanEval/133
+  [ 41/164] 1.04 q/s, ETA 119s - HumanEval/134
+  [ 42/164] 1.05 q/s, ETA 117s - HumanEval/135
+  [ 43/164] 1.05 q/s, ETA 115s - HumanEval/136
+  [ 44/164] 1.05 q/s, ETA 114s - HumanEval/137
+  [ 45/164] 1.07 q/s, ETA 111s - HumanEval/138
+  [ 46/164] 1.08 q/s, ETA 109s - HumanEval/139
+  [ 47/164] 1.09 q/s, ETA 107s - HumanEval/14
+  [ 48/164] 1.10 q/s, ETA 105s - HumanEval/140
+  [ 49/164] 1.10 q/s, ETA 105s - HumanEval/141
+  [ 50/164] 1.09 q/s, ETA 104s - HumanEval/142
+  [ 51/164] 1.09 q/s, ETA 104s - HumanEval/143
+  [ 52/164] 1.09 q/s, ETA 103s - HumanEval/144
+  [ 53/164] 1.10 q/s, ETA 101s - HumanEval/145
+  [ 54/164] 1.10 q/s, ETA 100s - HumanEval/146
+  [ 55/164] 1.10 q/s, ETA 100s - HumanEval/147
+  [ 56/164] 1.09 q/s, ETA 99s - HumanEval/148
+  [ 57/164] 1.09 q/s, ETA 98s - HumanEval/149
+  [ 58/164] 1.10 q/s, ETA 96s - HumanEval/15
+  [ 59/164] 1.11 q/s, ETA 95s - HumanEval/150
+  [ 60/164] 1.11 q/s, ETA 94s - HumanEval/151
+  [ 61/164] 1.12 q/s, ETA 92s - HumanEval/152
+  [ 62/164] 1.12 q/s, ETA 91s - HumanEval/153
+  [ 63/164] 1.12 q/s, ETA 90s - HumanEval/154
+  [ 64/164] 1.13 q/s, ETA 89s - HumanEval/155
+  [ 65/164] 1.11 q/s, ETA 89s - HumanEval/156
+  [ 66/164] 1.12 q/s, ETA 88s - HumanEval/157
+  [ 67/164] 1.12 q/s, ETA 87s - HumanEval/158
+  [ 68/164] 1.12 q/s, ETA 85s - HumanEval/159
+  [ 69/164] 1.13 q/s, ETA 84s - HumanEval/16
+  [ 70/164] 1.14 q/s, ETA 82s - HumanEval/160
+  [ 71/164] 1.14 q/s, ETA 82s - HumanEval/161
+  [ 72/164] 1.15 q/s, ETA 80s - HumanEval/162
+  [ 73/164] 1.15 q/s, ETA 79s - HumanEval/163
+  [ 74/164] 1.15 q/s, ETA 78s - HumanEval/17
+  [ 75/164] 1.16 q/s, ETA 77s - HumanEval/18
+  [ 76/164] 1.15 q/s, ETA 76s - HumanEval/19
+  [ 77/164] 1.16 q/s, ETA 75s - HumanEval/2
+  [ 78/164] 1.16 q/s, ETA 74s - HumanEval/20
+  [ 79/164] 1.16 q/s, ETA 73s - HumanEval/21
+  [ 80/164] 1.17 q/s, ETA 72s - HumanEval/22
+  [ 81/164] 1.18 q/s, ETA 70s - HumanEval/23
+  [ 82/164] 1.18 q/s, ETA 69s - HumanEval/24
+  [ 83/164] 1.19 q/s, ETA 68s - HumanEval/25
+  [ 84/164] 1.19 q/s, ETA 67s - HumanEval/26
+  [ 85/164] 1.20 q/s, ETA 66s - HumanEval/27
+  [ 86/164] 1.21 q/s, ETA 64s - HumanEval/28
+  [ 87/164] 1.22 q/s, ETA 63s - HumanEval/29
+  [ 88/164] 1.23 q/s, ETA 62s - HumanEval/3
+  [ 89/164] 1.23 q/s, ETA 61s - HumanEval/30
+  [ 90/164] 1.24 q/s, ETA 60s - HumanEval/31
+  [ 91/164] 1.23 q/s, ETA 59s - HumanEval/32
+  [ 92/164] 1.24 q/s, ETA 58s - HumanEval/33
+  [ 93/164] 1.25 q/s, ETA 57s - HumanEval/34
+  [ 94/164] 1.25 q/s, ETA 56s - HumanEval/35
+  [ 95/164] 1.25 q/s, ETA 55s - HumanEval/36
+  [ 96/164] 1.25 q/s, ETA 54s - HumanEval/37
+  [ 97/164] 1.24 q/s, ETA 54s - HumanEval/38
+  [ 98/164] 1.23 q/s, ETA 54s - HumanEval/39
+  [ 99/164] 1.24 q/s, ETA 53s - HumanEval/4
+  [100/164] 1.24 q/s, ETA 52s - HumanEval/40
+  [101/164] 1.24 q/s, ETA 51s - HumanEval/41
+  [102/164] 1.25 q/s, ETA 50s - HumanEval/42
+  [103/164] 1.26 q/s, ETA 49s - HumanEval/43
+  [104/164] 1.26 q/s, ETA 48s - HumanEval/44
+  [105/164] 1.27 q/s, ETA 47s - HumanEval/45
+  [106/164] 1.25 q/s, ETA 46s - HumanEval/46
+  [107/164] 1.25 q/s, ETA 45s - HumanEval/47
+  [108/164] 1.26 q/s, ETA 44s - HumanEval/48
+  [109/164] 1.27 q/s, ETA 43s - HumanEval/49
+  [110/164] 1.27 q/s, ETA 42s - HumanEval/5
+  [111/164] 1.28 q/s, ETA 42s - HumanEval/50
+  [112/164] 1.28 q/s, ETA 41s - HumanEval/51
+  [113/164] 1.29 q/s, ETA 40s - HumanEval/52
+  [114/164] 1.30 q/s, ETA 39s - HumanEval/53
+  [115/164] 1.30 q/s, ETA 38s - HumanEval/54
+  [116/164] 1.31 q/s, ETA 37s - HumanEval/55
+  [117/164] 1.31 q/s, ETA 36s - HumanEval/56
+  [118/164] 1.31 q/s, ETA 35s - HumanEval/57
+  [119/164] 1.31 q/s, ETA 34s - HumanEval/58
+  [120/164] 1.31 q/s, ETA 34s - HumanEval/59
+  [121/164] 1.31 q/s, ETA 33s - HumanEval/6
+  [122/164] 1.31 q/s, ETA 32s - HumanEval/60
+  [123/164] 1.31 q/s, ETA 31s - HumanEval/61
+  [124/164] 1.32 q/s, ETA 30s - HumanEval/62
+  [125/164] 1.31 q/s, ETA 30s - HumanEval/63
+  [126/164] 1.31 q/s, ETA 29s - HumanEval/64
+  [127/164] 1.31 q/s, ETA 28s - HumanEval/65
+  [128/164] 1.32 q/s, ETA 27s - HumanEval/66
+  [129/164] 1.32 q/s, ETA 27s - HumanEval/67
+  [130/164] 1.32 q/s, ETA 26s - HumanEval/68
+  [131/164] 1.32 q/s, ETA 25s - HumanEval/69
+  [132/164] 1.32 q/s, ETA 24s - HumanEval/7
+  [133/164] 1.32 q/s, ETA 23s - HumanEval/70
+  [134/164] 1.32 q/s, ETA 23s - HumanEval/71
+  [135/164] 1.32 q/s, ETA 22s - HumanEval/72
+  [136/164] 1.32 q/s, ETA 21s - HumanEval/73
+  [137/164] 1.32 q/s, ETA 20s - HumanEval/74
+  [138/164] 1.30 q/s, ETA 20s - HumanEval/75
+  [139/164] 1.30 q/s, ETA 19s - HumanEval/76
+  [140/164] 1.30 q/s, ETA 18s - HumanEval/77
+  [141/164] 1.30 q/s, ETA 18s - HumanEval/78
+  [142/164] 1.31 q/s, ETA 17s - HumanEval/79
+  [143/164] 1.31 q/s, ETA 16s - HumanEval/8
+  [144/164] 1.31 q/s, ETA 15s - HumanEval/80
+  [145/164] 1.30 q/s, ETA 15s - HumanEval/81
+  [146/164] 1.30 q/s, ETA 14s - HumanEval/82
+  [147/164] 1.30 q/s, ETA 13s - HumanEval/83
+  [148/164] 1.30 q/s, ETA 12s - HumanEval/84
+  [149/164] 1.30 q/s, ETA 12s - HumanEval/85
+  [150/164] 1.31 q/s, ETA 11s - HumanEval/86
+  [151/164] 1.30 q/s, ETA 10s - HumanEval/87
+  [152/164] 1.30 q/s, ETA 9s - HumanEval/88
+  [153/164] 1.30 q/s, ETA 8s - HumanEval/89
+  [154/164] 1.30 q/s, ETA 8s - HumanEval/9
+  [155/164] 1.30 q/s, ETA 7s - HumanEval/90
+  [156/164] 1.30 q/s, ETA 6s - HumanEval/91
+  [157/164] 1.30 q/s, ETA 5s - HumanEval/92
+  [158/164] 1.30 q/s, ETA 5s - HumanEval/93
+  [159/164] 1.29 q/s, ETA 4s - HumanEval/94
+  [160/164] 1.29 q/s, ETA 3s - HumanEval/95
+  [161/164] 1.29 q/s, ETA 2s - HumanEval/96
+  [162/164] 1.29 q/s, ETA 2s - HumanEval/97
+  [163/164] 1.30 q/s, ETA 1s - HumanEval/98
+  [164/164] 1.30 q/s, ETA 0s - HumanEval/99
+
+Generation complete: 164 problems in 126s
+Samples: /var/home/deucebucket/ai-drive/cerebellum/cerebellum-gemma4-codex/benchmark_results/gemma4_codex_q4km_baseline_evalplus_chat_samples.jsonl
+Load from ground-truth from /home/deucebucket/.cache/evalplus/fe585eb4df8c88d844eeb463ea4d0302.pkl
+Reading samples...
+0it [00:00, ?it/s]1it [00:00,  7.11it/s]164it [00:00, 950.04it/s]
+  0%|          | 0/164 [00:00<?, ?it/s]  4%|▎         | 6/164 [00:00<00:02, 54.79it/s]  8%|▊         | 13/164 [00:00<00:02, 56.02it/s] 13%|█▎        | 22/164 [00:00<00:02, 67.14it/s] 18%|█▊        | 29/164 [00:00<00:03, 34.71it/s] 21%|██        | 34/164 [00:00<00:04, 31.41it/s] 24%|██▍       | 39/164 [00:01<00:03, 35.03it/s] 27%|██▋       | 44/164 [00:01<00:03, 34.54it/s] 30%|██▉       | 49/164 [00:01<00:03, 35.13it/s] 32%|███▏      | 53/164 [00:01<00:03, 31.26it/s] 35%|███▍      | 57/164 [00:01<00:04, 21.93it/s] 38%|███▊      | 63/164 [00:01<00:04, 24.58it/s] 41%|████▏     | 68/164 [00:02<00:03, 26.60it/s] 44%|████▍     | 72/164 [00:02<00:03, 26.87it/s] 46%|████▌     | 75/164 [00:02<00:03, 27.22it/s] 49%|████▉     | 80/164 [00:02<00:02, 29.55it/s] 54%|█████▎    | 88/164 [00:02<00:01, 40.07it/s] 57%|█████▋    | 93/164 [00:02<00:01, 41.76it/s] 62%|██████▏   | 101/164 [00:02<00:01, 48.32it/s] 65%|██████▌   | 107/164 [00:02<00:01, 51.12it/s] 69%|██████▉   | 113/164 [00:03<00:00, 51.25it/s] 73%|███████▎  | 119/164 [00:03<00:00, 45.64it/s] 76%|███████▌  | 124/164 [00:03<00:00, 40.93it/s] 79%|███████▊  | 129/164 [00:03<00:00, 40.39it/s] 82%|████████▏ | 135/164 [00:03<00:00, 44.28it/s] 87%|████████▋ | 142/164 [00:03<00:00, 49.96it/s] 90%|█████████ | 148/164 [00:03<00:00, 47.03it/s] 94%|█████████▍| 154/164 [00:04<00:00, 50.14it/s] 98%|█████████▊| 160/164 [00:04<00:00, 52.71it/s]100%|██████████| 164/164 [00:06<00:00, 23.64it/s]
+humaneval (base tests)
+pass@1:	0.787
+humaneval+ (base + extra tests)
+pass@1:	0.744
+{
+  "benchmark": "evalplus_humaneval_plus_chat",
+  "model": "gemma4_codex_q4km_baseline",
+  "pass_at_1_base": 78.66,
+  "pass_at_1_plus": 75.0,
+  "total_problems": 164,
+  "elapsed_seconds": 126.3,
+  "enable_thinking": false,
+  "thinking_budget_tokens": 0,
+  "max_tokens": 1536,
+  "timestamp": "2026-05-21 21:15"
+}

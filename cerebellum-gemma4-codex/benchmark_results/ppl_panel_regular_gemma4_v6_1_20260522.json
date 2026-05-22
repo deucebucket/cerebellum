@@ -1,0 +1,24 @@
+{
+  "timestamp": "2026-05-21 21:07",
+  "domains": [
+    "wiki",
+    "code",
+    "math",
+    "dialogue",
+    "agent"
+  ],
+  "models": {
+    "regular_gemma4_v6_1": {
+      "path": "/var/home/deucebucket/games/models/Gemma-4-26B-A4B-Cerebellum-v6/gemma-4-26B-A4B-it-cerebellum-v6.1-templatefix.gguf",
+      "size_bytes": 11746182304,
+      "ppl": {
+        "wiki": 9038.9341,
+        "code": 79.4824,
+        "math": 10.0182,
+        "dialogue": 154.1396,
+        "agent": 11.1748
+      },
+      "errors": {}
+    }
+  }
+}

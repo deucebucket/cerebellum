@@ -1,0 +1,12 @@
+{
+  "benchmark": "evalplus_humaneval_plus_chat",
+  "model": "gemma4_codex_q4km_baseline",
+  "pass_at_1_base": 78.66,
+  "pass_at_1_plus": 75.0,
+  "total_problems": 164,
+  "elapsed_seconds": 126.3,
+  "enable_thinking": false,
+  "thinking_budget_tokens": 0,
+  "max_tokens": 1536,
+  "timestamp": "2026-05-21 21:15"
+}

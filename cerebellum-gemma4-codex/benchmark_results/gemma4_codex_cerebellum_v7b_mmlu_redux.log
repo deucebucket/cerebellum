@@ -1,0 +1,2411 @@
+MMLU-REDUX BENCHMARK — gemma4_codex_cerebellum_v7b
+Loading questions...
+Loaded 2400 questions
+Workers: 4
+  [   1/2400] 100.0% accuracy, 1.3 q/s, ETA 1812s
+  [   2/2400] 50.0% accuracy, 2.3 q/s, ETA 1038s
+  [   3/2400] 66.7% accuracy, 3.5 q/s, ETA 691s
+  [   4/2400] 50.0% accuracy, 4.6 q/s, ETA 518s
+  [   5/2400] 40.0% accuracy, 3.1 q/s, ETA 785s
+  [   6/2400] 33.3% accuracy, 3.7 q/s, ETA 654s
+  [   7/2400] 28.6% accuracy, 3.9 q/s, ETA 611s
+  [   8/2400] 37.5% accuracy, 4.5 q/s, ETA 535s
+  [   9/2400] 44.4% accuracy, 3.5 q/s, ETA 679s
+  [  10/2400] 50.0% accuracy, 3.9 q/s, ETA 611s
+  [  11/2400] 54.5% accuracy, 4.1 q/s, ETA 577s
+  [  12/2400] 58.3% accuracy, 4.5 q/s, ETA 529s
+  [  13/2400] 53.8% accuracy, 3.8 q/s, ETA 633s
+  [  14/2400] 50.0% accuracy, 4.1 q/s, ETA 587s
+  [  15/2400] 53.3% accuracy, 4.2 q/s, ETA 571s
+  [  16/2400] 56.2% accuracy, 4.5 q/s, ETA 535s
+  [  17/2400] 58.8% accuracy, 3.9 q/s, ETA 609s
+  [  18/2400] 61.1% accuracy, 4.1 q/s, ETA 575s
+  [  19/2400] 57.9% accuracy, 4.3 q/s, ETA 557s
+  [  20/2400] 60.0% accuracy, 4.5 q/s, ETA 529s
+  [  21/2400] 57.1% accuracy, 4.0 q/s, ETA 588s
+  [  22/2400] 59.1% accuracy, 4.2 q/s, ETA 561s
+  [  23/2400] 60.9% accuracy, 4.3 q/s, ETA 550s
+  [  24/2400] 58.3% accuracy, 4.5 q/s, ETA 526s
+  [  25/2400] 60.0% accuracy, 4.1 q/s, ETA 578s
+  [  26/2400] 61.5% accuracy, 4.3 q/s, ETA 555s
+  [  27/2400] 63.0% accuracy, 4.3 q/s, ETA 547s
+  [  28/2400] 64.3% accuracy, 4.5 q/s, ETA 527s
+  [  29/2400] 62.1% accuracy, 4.1 q/s, ETA 577s
+  [  30/2400] 63.3% accuracy, 4.3 q/s, ETA 557s
+  [  31/2400] 61.3% accuracy, 4.3 q/s, ETA 549s
+  [  32/2400] 62.5% accuracy, 4.5 q/s, ETA 532s
+  [  33/2400] 63.6% accuracy, 4.1 q/s, ETA 578s
+  [  34/2400] 64.7% accuracy, 4.2 q/s, ETA 561s
+  [  35/2400] 62.9% accuracy, 4.3 q/s, ETA 553s
+  [  36/2400] 63.9% accuracy, 4.4 q/s, ETA 538s
+  [  37/2400] 64.9% accuracy, 4.1 q/s, ETA 583s
+  [  38/2400] 65.8% accuracy, 4.2 q/s, ETA 568s
+  [  39/2400] 66.7% accuracy, 4.2 q/s, ETA 564s
+  [  40/2400] 65.0% accuracy, 4.3 q/s, ETA 549s
+  [  41/2400] 63.4% accuracy, 4.0 q/s, ETA 583s
+  [  42/2400] 64.3% accuracy, 4.1 q/s, ETA 572s
+  [  43/2400] 65.1% accuracy, 4.2 q/s, ETA 559s
+  [  44/2400] 65.9% accuracy, 4.2 q/s, ETA 556s
+  [  45/2400] 66.7% accuracy, 4.0 q/s, ETA 587s
+  [  46/2400] 67.4% accuracy, 4.1 q/s, ETA 577s
+  [  47/2400] 68.1% accuracy, 4.2 q/s, ETA 565s
+  [  48/2400] 68.8% accuracy, 4.2 q/s, ETA 561s
+  [  49/2400] 69.4% accuracy, 4.0 q/s, ETA 587s
+  [  50/2400] 70.0% accuracy, 4.1 q/s, ETA 578s
+  [  51/2400] 70.6% accuracy, 4.1 q/s, ETA 566s
+  [  52/2400] 71.2% accuracy, 4.2 q/s, ETA 562s
+  [  53/2400] 71.7% accuracy, 4.0 q/s, ETA 588s
+  [  54/2400] 72.2% accuracy, 4.0 q/s, ETA 580s
+  [  55/2400] 70.9% accuracy, 4.1 q/s, ETA 569s
+  [  56/2400] 71.4% accuracy, 4.1 q/s, ETA 566s
+  [  57/2400] 71.9% accuracy, 4.0 q/s, ETA 586s
+  [  58/2400] 72.4% accuracy, 4.1 q/s, ETA 578s
+  [  59/2400] 72.9% accuracy, 4.1 q/s, ETA 568s
+  [  60/2400] 73.3% accuracy, 4.1 q/s, ETA 565s
+  [  61/2400] 73.8% accuracy, 4.0 q/s, ETA 588s
+  [  62/2400] 72.6% accuracy, 4.0 q/s, ETA 581s
+  [  63/2400] 73.0% accuracy, 4.1 q/s, ETA 572s
+  [  64/2400] 73.4% accuracy, 4.1 q/s, ETA 568s
+  [  65/2400] 73.8% accuracy, 4.0 q/s, ETA 587s
+  [  66/2400] 74.2% accuracy, 4.0 q/s, ETA 581s
+  [  67/2400] 74.6% accuracy, 4.1 q/s, ETA 572s
+  [  68/2400] 75.0% accuracy, 4.1 q/s, ETA 569s
+  [  69/2400] 75.4% accuracy, 4.0 q/s, ETA 587s
+  [  70/2400] 75.7% accuracy, 4.0 q/s, ETA 580s
+  [  71/2400] 76.1% accuracy, 4.1 q/s, ETA 572s
+  [  72/2400] 75.0% accuracy, 4.1 q/s, ETA 569s
+  [  73/2400] 75.3% accuracy, 4.0 q/s, ETA 584s
+  [  74/2400] 74.3% accuracy, 4.0 q/s, ETA 579s
+  [  75/2400] 74.7% accuracy, 4.1 q/s, ETA 571s
+  [  76/2400] 75.0% accuracy, 4.1 q/s, ETA 568s
+  [  77/2400] 75.3% accuracy, 4.0 q/s, ETA 585s
+  [  78/2400] 75.6% accuracy, 4.0 q/s, ETA 579s
+  [  79/2400] 75.9% accuracy, 4.1 q/s, ETA 572s
+  [  80/2400] 76.2% accuracy, 4.1 q/s, ETA 569s
+  [  81/2400] 76.5% accuracy, 4.0 q/s, ETA 584s
+  [  82/2400] 76.8% accuracy, 4.0 q/s, ETA 579s
+  [  83/2400] 77.1% accuracy, 4.1 q/s, ETA 572s
+  [  84/2400] 77.4% accuracy, 4.1 q/s, ETA 569s
+  [  85/2400] 77.6% accuracy, 3.9 q/s, ETA 586s
+  [  86/2400] 77.9% accuracy, 4.0 q/s, ETA 581s
+  [  87/2400] 78.2% accuracy, 4.0 q/s, ETA 574s
+  [  88/2400] 78.4% accuracy, 4.0 q/s, ETA 573s
+  [  89/2400] 78.7% accuracy, 3.9 q/s, ETA 587s
+  [  90/2400] 78.9% accuracy, 4.0 q/s, ETA 582s
+  [  91/2400] 79.1% accuracy, 4.0 q/s, ETA 575s
+  [  92/2400] 79.3% accuracy, 4.0 q/s, ETA 573s
+  [  93/2400] 78.5% accuracy, 3.9 q/s, ETA 586s
+  [  94/2400] 78.7% accuracy, 4.0 q/s, ETA 582s
+  [  95/2400] 77.9% accuracy, 4.0 q/s, ETA 575s
+  [  96/2400] 77.1% accuracy, 4.0 q/s, ETA 573s
+  [  97/2400] 77.3% accuracy, 3.9 q/s, ETA 588s
+  [  98/2400] 76.5% accuracy, 3.9 q/s, ETA 583s
+  [  99/2400] 76.8% accuracy, 4.0 q/s, ETA 579s
+  [ 100/2400] 77.0% accuracy, 4.0 q/s, ETA 573s
+  [ 101/2400] 76.2% accuracy, 3.9 q/s, ETA 586s
+  [ 102/2400] 75.5% accuracy, 3.9 q/s, ETA 582s
+  [ 103/2400] 75.7% accuracy, 4.0 q/s, ETA 578s
+  [ 104/2400] 76.0% accuracy, 4.0 q/s, ETA 572s
+  [ 105/2400] 76.2% accuracy, 3.9 q/s, ETA 585s
+  [ 106/2400] 76.4% accuracy, 4.0 q/s, ETA 581s
+  [ 107/2400] 76.6% accuracy, 4.0 q/s, ETA 576s
+  [ 108/2400] 76.9% accuracy, 4.0 q/s, ETA 571s
+  [ 109/2400] 77.1% accuracy, 3.9 q/s, ETA 583s
+  [ 110/2400] 77.3% accuracy, 4.0 q/s, ETA 579s
+  [ 111/2400] 76.6% accuracy, 4.0 q/s, ETA 576s
+  [ 112/2400] 76.8% accuracy, 4.0 q/s, ETA 570s
+  [ 113/2400] 77.0% accuracy, 3.9 q/s, ETA 584s
+  [ 114/2400] 76.3% accuracy, 3.9 q/s, ETA 581s
+  [ 115/2400] 76.5% accuracy, 4.0 q/s, ETA 577s
+  [ 116/2400] 76.7% accuracy, 4.0 q/s, ETA 572s
+  [ 117/2400] 76.9% accuracy, 3.9 q/s, ETA 583s
+  [ 118/2400] 77.1% accuracy, 3.9 q/s, ETA 580s
+  [ 119/2400] 76.5% accuracy, 4.0 q/s, ETA 577s
+  [ 120/2400] 76.7% accuracy, 4.0 q/s, ETA 572s
+  [ 121/2400] 76.9% accuracy, 3.9 q/s, ETA 582s
+  [ 122/2400] 77.0% accuracy, 3.9 q/s, ETA 578s
+  [ 123/2400] 77.2% accuracy, 4.0 q/s, ETA 575s
+  [ 124/2400] 77.4% accuracy, 4.0 q/s, ETA 570s
+  [ 125/2400] 77.6% accuracy, 3.9 q/s, ETA 581s
+  [ 126/2400] 77.8% accuracy, 3.9 q/s, ETA 578s
+  [ 127/2400] 78.0% accuracy, 4.0 q/s, ETA 575s
+  [ 128/2400] 78.1% accuracy, 4.0 q/s, ETA 570s
+  [ 129/2400] 78.3% accuracy, 3.9 q/s, ETA 582s
+  [ 130/2400] 78.5% accuracy, 3.9 q/s, ETA 579s
+  [ 131/2400] 78.6% accuracy, 3.9 q/s, ETA 576s
+  [ 132/2400] 78.0% accuracy, 4.0 q/s, ETA 571s
+  [ 133/2400] 78.2% accuracy, 3.9 q/s, ETA 582s
+  [ 134/2400] 78.4% accuracy, 3.9 q/s, ETA 579s
+  [ 135/2400] 78.5% accuracy, 3.9 q/s, ETA 576s
+  [ 136/2400] 78.7% accuracy, 4.0 q/s, ETA 571s
+  [ 137/2400] 78.8% accuracy, 3.9 q/s, ETA 580s
+  [ 138/2400] 79.0% accuracy, 3.9 q/s, ETA 578s
+  [ 139/2400] 79.1% accuracy, 3.9 q/s, ETA 575s
+  [ 140/2400] 79.3% accuracy, 4.0 q/s, ETA 570s
+  [ 141/2400] 79.4% accuracy, 3.9 q/s, ETA 579s
+  [ 142/2400] 79.6% accuracy, 3.9 q/s, ETA 576s
+  [ 143/2400] 79.7% accuracy, 3.9 q/s, ETA 573s
+  [ 144/2400] 79.9% accuracy, 4.0 q/s, ETA 569s
+  [ 145/2400] 80.0% accuracy, 3.9 q/s, ETA 577s
+  [ 146/2400] 80.1% accuracy, 3.9 q/s, ETA 575s
+  [ 147/2400] 80.3% accuracy, 3.9 q/s, ETA 572s
+  [ 148/2400] 80.4% accuracy, 4.0 q/s, ETA 568s
+  [ 149/2400] 80.5% accuracy, 3.9 q/s, ETA 576s
+  [ 150/2400] 80.0% accuracy, 3.9 q/s, ETA 573s
+  [ 151/2400] 80.1% accuracy, 3.9 q/s, ETA 571s
+  [ 152/2400] 80.3% accuracy, 4.0 q/s, ETA 567s
+  [ 153/2400] 80.4% accuracy, 3.9 q/s, ETA 575s
+  [ 154/2400] 80.5% accuracy, 3.9 q/s, ETA 572s
+  [ 155/2400] 80.6% accuracy, 3.9 q/s, ETA 570s
+  [ 156/2400] 80.1% accuracy, 4.0 q/s, ETA 566s
+  [ 157/2400] 80.3% accuracy, 3.9 q/s, ETA 575s
+  [ 158/2400] 80.4% accuracy, 3.9 q/s, ETA 572s
+  [ 159/2400] 80.5% accuracy, 3.9 q/s, ETA 569s
+  [ 160/2400] 80.0% accuracy, 4.0 q/s, ETA 565s
+  [ 161/2400] 80.1% accuracy, 3.9 q/s, ETA 575s
+  [ 162/2400] 80.2% accuracy, 3.9 q/s, ETA 572s
+  [ 163/2400] 80.4% accuracy, 3.9 q/s, ETA 570s
+  [ 164/2400] 80.5% accuracy, 4.0 q/s, ETA 566s
+  [ 165/2400] 80.0% accuracy, 3.9 q/s, ETA 574s
+  [ 166/2400] 79.5% accuracy, 3.9 q/s, ETA 572s
+  [ 167/2400] 79.6% accuracy, 3.9 q/s, ETA 569s
+  [ 168/2400] 79.8% accuracy, 3.9 q/s, ETA 565s
+  [ 169/2400] 79.3% accuracy, 3.9 q/s, ETA 574s
+  [ 170/2400] 78.8% accuracy, 3.9 q/s, ETA 571s
+  [ 171/2400] 78.9% accuracy, 3.9 q/s, ETA 569s
+  [ 172/2400] 79.1% accuracy, 3.9 q/s, ETA 565s
+  [ 173/2400] 79.2% accuracy, 3.9 q/s, ETA 574s
+  [ 174/2400] 79.3% accuracy, 3.9 q/s, ETA 572s
+  [ 175/2400] 79.4% accuracy, 3.9 q/s, ETA 569s
+  [ 176/2400] 79.0% accuracy, 3.9 q/s, ETA 566s
+  [ 177/2400] 79.1% accuracy, 3.9 q/s, ETA 574s
+  [ 178/2400] 79.2% accuracy, 3.9 q/s, ETA 571s
+  [ 179/2400] 79.3% accuracy, 3.9 q/s, ETA 569s
+  [ 180/2400] 79.4% accuracy, 3.9 q/s, ETA 566s
+  [ 181/2400] 79.6% accuracy, 3.9 q/s, ETA 574s
+  [ 182/2400] 79.7% accuracy, 3.9 q/s, ETA 571s
+  [ 183/2400] 79.8% accuracy, 3.9 q/s, ETA 569s
+  [ 184/2400] 79.9% accuracy, 3.9 q/s, ETA 566s
+  [ 185/2400] 79.5% accuracy, 3.9 q/s, ETA 572s
+  [ 186/2400] 79.6% accuracy, 3.9 q/s, ETA 570s
+  [ 187/2400] 79.7% accuracy, 3.9 q/s, ETA 568s
+  [ 188/2400] 79.8% accuracy, 3.9 q/s, ETA 564s
+  [ 189/2400] 79.9% accuracy, 3.9 q/s, ETA 571s
+  [ 190/2400] 80.0% accuracy, 3.9 q/s, ETA 569s
+  [ 191/2400] 80.1% accuracy, 3.9 q/s, ETA 566s
+  [ 192/2400] 80.2% accuracy, 3.9 q/s, ETA 563s
+  [ 193/2400] 80.3% accuracy, 3.9 q/s, ETA 571s
+  [ 194/2400] 80.4% accuracy, 3.9 q/s, ETA 569s
+  [ 195/2400] 80.5% accuracy, 3.9 q/s, ETA 566s
+  [ 196/2400] 80.6% accuracy, 3.9 q/s, ETA 563s
+  [ 197/2400] 80.7% accuracy, 3.9 q/s, ETA 570s
+  [ 198/2400] 80.8% accuracy, 3.9 q/s, ETA 567s
+  [ 199/2400] 80.9% accuracy, 3.9 q/s, ETA 566s
+  [ 200/2400] 81.0% accuracy, 3.9 q/s, ETA 563s
+  [ 201/2400] 81.1% accuracy, 3.9 q/s, ETA 569s
+  [ 202/2400] 81.2% accuracy, 3.9 q/s, ETA 567s
+  [ 203/2400] 81.3% accuracy, 3.9 q/s, ETA 565s
+  [ 204/2400] 81.4% accuracy, 3.9 q/s, ETA 562s
+  [ 205/2400] 81.5% accuracy, 3.9 q/s, ETA 568s
+  [ 206/2400] 81.6% accuracy, 3.9 q/s, ETA 566s
+  [ 207/2400] 81.6% accuracy, 3.9 q/s, ETA 564s
+  [ 208/2400] 81.7% accuracy, 3.9 q/s, ETA 561s
+  [ 209/2400] 81.8% accuracy, 3.9 q/s, ETA 567s
+  [ 210/2400] 81.9% accuracy, 3.9 q/s, ETA 565s
+  [ 211/2400] 81.5% accuracy, 3.9 q/s, ETA 564s
+  [ 212/2400] 81.1% accuracy, 3.9 q/s, ETA 561s
+  [ 213/2400] 81.2% accuracy, 3.9 q/s, ETA 567s
+  [ 214/2400] 81.3% accuracy, 3.9 q/s, ETA 565s
+  [ 215/2400] 81.4% accuracy, 3.9 q/s, ETA 563s
+  [ 216/2400] 81.5% accuracy, 3.9 q/s, ETA 560s
+  [ 217/2400] 81.6% accuracy, 3.9 q/s, ETA 566s
+  [ 218/2400] 81.7% accuracy, 3.9 q/s, ETA 564s
+  [ 219/2400] 81.7% accuracy, 3.9 q/s, ETA 562s
+  [ 220/2400] 81.8% accuracy, 3.9 q/s, ETA 559s
+  [ 221/2400] 81.9% accuracy, 3.9 q/s, ETA 564s
+  [ 222/2400] 82.0% accuracy, 3.9 q/s, ETA 562s
+  [ 223/2400] 82.1% accuracy, 3.9 q/s, ETA 560s
+  [ 224/2400] 82.1% accuracy, 3.9 q/s, ETA 557s
+  [ 225/2400] 82.2% accuracy, 3.9 q/s, ETA 562s
+  [ 226/2400] 81.9% accuracy, 3.9 q/s, ETA 560s
+  [ 227/2400] 81.9% accuracy, 3.9 q/s, ETA 558s
+  [ 228/2400] 82.0% accuracy, 3.9 q/s, ETA 556s
+  [ 229/2400] 82.1% accuracy, 3.9 q/s, ETA 561s
+  [ 230/2400] 81.7% accuracy, 3.9 q/s, ETA 559s
+  [ 231/2400] 81.8% accuracy, 3.9 q/s, ETA 558s
+  [ 232/2400] 81.5% accuracy, 3.9 q/s, ETA 555s
+  [ 233/2400] 81.5% accuracy, 3.9 q/s, ETA 561s
+  [ 234/2400] 81.6% accuracy, 3.9 q/s, ETA 559s
+  [ 235/2400] 81.7% accuracy, 3.9 q/s, ETA 557s
+  [ 236/2400] 81.8% accuracy, 3.9 q/s, ETA 554s
+  [ 237/2400] 81.4% accuracy, 3.9 q/s, ETA 559s
+  [ 238/2400] 81.5% accuracy, 3.9 q/s, ETA 557s
+  [ 239/2400] 81.6% accuracy, 3.9 q/s, ETA 555s
+  [ 240/2400] 81.7% accuracy, 3.9 q/s, ETA 553s
+  [ 241/2400] 81.7% accuracy, 3.9 q/s, ETA 558s
+  [ 242/2400] 81.8% accuracy, 3.9 q/s, ETA 556s
+  [ 243/2400] 81.5% accuracy, 3.9 q/s, ETA 554s
+  [ 244/2400] 81.6% accuracy, 3.9 q/s, ETA 552s
+  [ 245/2400] 81.6% accuracy, 3.9 q/s, ETA 556s
+  [ 246/2400] 81.7% accuracy, 3.9 q/s, ETA 555s
+  [ 247/2400] 81.8% accuracy, 3.9 q/s, ETA 553s
+  [ 248/2400] 81.9% accuracy, 3.9 q/s, ETA 550s
+  [ 249/2400] 81.9% accuracy, 3.9 q/s, ETA 555s
+  [ 250/2400] 82.0% accuracy, 3.9 q/s, ETA 553s
+  [ 251/2400] 82.1% accuracy, 3.9 q/s, ETA 551s
+  [ 252/2400] 82.1% accuracy, 3.9 q/s, ETA 549s
+  [ 253/2400] 81.8% accuracy, 3.9 q/s, ETA 553s
+  [ 254/2400] 81.9% accuracy, 3.9 q/s, ETA 552s
+  [ 255/2400] 82.0% accuracy, 3.9 q/s, ETA 550s
+  [ 256/2400] 82.0% accuracy, 3.9 q/s, ETA 548s
+  [ 257/2400] 82.1% accuracy, 3.9 q/s, ETA 552s
+  [ 258/2400] 81.8% accuracy, 3.9 q/s, ETA 551s
+  [ 259/2400] 81.9% accuracy, 3.9 q/s, ETA 549s
+  [ 260/2400] 81.9% accuracy, 3.9 q/s, ETA 547s
+  [ 261/2400] 82.0% accuracy, 3.9 q/s, ETA 552s
+  [ 262/2400] 82.1% accuracy, 3.9 q/s, ETA 551s
+  [ 263/2400] 81.7% accuracy, 3.9 q/s, ETA 549s
+  [ 264/2400] 81.8% accuracy, 3.9 q/s, ETA 547s
+  [ 265/2400] 81.5% accuracy, 3.9 q/s, ETA 551s
+  [ 266/2400] 81.6% accuracy, 3.9 q/s, ETA 549s
+  [ 267/2400] 81.6% accuracy, 3.9 q/s, ETA 548s
+  [ 268/2400] 81.7% accuracy, 3.9 q/s, ETA 546s
+  [ 269/2400] 81.8% accuracy, 3.9 q/s, ETA 550s
+  [ 270/2400] 81.5% accuracy, 3.9 q/s, ETA 548s
+  [ 271/2400] 81.5% accuracy, 3.9 q/s, ETA 547s
+  [ 272/2400] 81.6% accuracy, 3.9 q/s, ETA 544s
+  [ 273/2400] 81.7% accuracy, 3.9 q/s, ETA 549s
+  [ 274/2400] 81.8% accuracy, 3.9 q/s, ETA 548s
+  [ 275/2400] 81.5% accuracy, 3.9 q/s, ETA 546s
+  [ 276/2400] 81.5% accuracy, 3.9 q/s, ETA 544s
+  [ 277/2400] 81.6% accuracy, 3.9 q/s, ETA 548s
+  [ 278/2400] 81.3% accuracy, 3.9 q/s, ETA 547s
+  [ 279/2400] 81.4% accuracy, 3.9 q/s, ETA 545s
+  [ 280/2400] 81.1% accuracy, 3.9 q/s, ETA 543s
+  [ 281/2400] 81.1% accuracy, 3.9 q/s, ETA 547s
+  [ 282/2400] 81.2% accuracy, 3.9 q/s, ETA 545s
+  [ 283/2400] 81.3% accuracy, 3.9 q/s, ETA 543s
+  [ 284/2400] 81.3% accuracy, 3.9 q/s, ETA 541s
+  [ 285/2400] 81.4% accuracy, 3.9 q/s, ETA 546s
+  [ 286/2400] 81.5% accuracy, 3.9 q/s, ETA 544s
+  [ 287/2400] 81.5% accuracy, 3.9 q/s, ETA 543s
+  [ 288/2400] 81.6% accuracy, 3.9 q/s, ETA 541s
+  [ 289/2400] 81.3% accuracy, 3.9 q/s, ETA 546s
+  [ 290/2400] 81.4% accuracy, 3.9 q/s, ETA 544s
+  [ 291/2400] 81.4% accuracy, 3.9 q/s, ETA 543s
+  [ 292/2400] 81.5% accuracy, 3.9 q/s, ETA 540s
+  [ 293/2400] 81.6% accuracy, 3.9 q/s, ETA 545s
+  [ 294/2400] 81.6% accuracy, 3.9 q/s, ETA 543s
+  [ 295/2400] 81.7% accuracy, 3.9 q/s, ETA 542s
+  [ 296/2400] 81.8% accuracy, 3.9 q/s, ETA 540s
+  [ 297/2400] 81.8% accuracy, 3.9 q/s, ETA 544s
+  [ 298/2400] 81.9% accuracy, 3.9 q/s, ETA 542s
+  [ 299/2400] 81.9% accuracy, 3.9 q/s, ETA 541s
+  [ 300/2400] 82.0% accuracy, 3.9 q/s, ETA 539s
+  [ 301/2400] 81.7% accuracy, 3.9 q/s, ETA 543s
+  [ 302/2400] 81.5% accuracy, 3.9 q/s, ETA 541s
+  [ 303/2400] 81.5% accuracy, 3.9 q/s, ETA 540s
+  [ 304/2400] 81.6% accuracy, 3.9 q/s, ETA 538s
+  [ 305/2400] 81.6% accuracy, 3.9 q/s, ETA 541s
+  [ 306/2400] 81.7% accuracy, 3.9 q/s, ETA 540s
+  [ 307/2400] 81.8% accuracy, 3.9 q/s, ETA 539s
+  [ 308/2400] 81.5% accuracy, 3.9 q/s, ETA 537s
+  [ 309/2400] 81.2% accuracy, 3.9 q/s, ETA 541s
+  [ 310/2400] 81.3% accuracy, 3.9 q/s, ETA 540s
+  [ 311/2400] 81.4% accuracy, 3.9 q/s, ETA 538s
+  [ 312/2400] 81.4% accuracy, 3.9 q/s, ETA 536s
+  [ 313/2400] 81.2% accuracy, 3.9 q/s, ETA 541s
+  [ 314/2400] 80.9% accuracy, 3.9 q/s, ETA 540s
+  [ 315/2400] 80.6% accuracy, 3.9 q/s, ETA 538s
+  [ 316/2400] 80.4% accuracy, 3.9 q/s, ETA 536s
+  [ 317/2400] 80.4% accuracy, 3.9 q/s, ETA 541s
+  [ 318/2400] 80.2% accuracy, 3.9 q/s, ETA 539s
+  [ 319/2400] 80.3% accuracy, 3.9 q/s, ETA 538s
+  [ 320/2400] 80.0% accuracy, 3.9 q/s, ETA 536s
+  [ 321/2400] 79.8% accuracy, 3.9 q/s, ETA 540s
+  [ 322/2400] 79.5% accuracy, 3.9 q/s, ETA 538s
+  [ 323/2400] 79.3% accuracy, 3.9 q/s, ETA 537s
+  [ 324/2400] 79.3% accuracy, 3.9 q/s, ETA 535s
+  [ 325/2400] 79.1% accuracy, 3.9 q/s, ETA 538s
+  [ 326/2400] 78.8% accuracy, 3.9 q/s, ETA 537s
+  [ 327/2400] 78.6% accuracy, 3.9 q/s, ETA 536s
+  [ 328/2400] 78.4% accuracy, 3.9 q/s, ETA 534s
+  [ 329/2400] 78.4% accuracy, 3.9 q/s, ETA 537s
+  [ 330/2400] 78.2% accuracy, 3.9 q/s, ETA 536s
+  [ 331/2400] 78.2% accuracy, 3.9 q/s, ETA 535s
+  [ 332/2400] 78.0% accuracy, 3.9 q/s, ETA 533s
+  [ 333/2400] 78.1% accuracy, 3.9 q/s, ETA 536s
+  [ 334/2400] 77.8% accuracy, 3.9 q/s, ETA 535s
+  [ 335/2400] 77.6% accuracy, 3.9 q/s, ETA 534s
+  [ 336/2400] 77.7% accuracy, 3.9 q/s, ETA 532s
+  [ 337/2400] 77.7% accuracy, 3.8 q/s, ETA 536s
+  [ 338/2400] 77.8% accuracy, 3.9 q/s, ETA 535s
+  [ 339/2400] 77.9% accuracy, 3.9 q/s, ETA 533s
+  [ 340/2400] 77.9% accuracy, 3.9 q/s, ETA 532s
+  [ 341/2400] 78.0% accuracy, 3.8 q/s, ETA 536s
+  [ 342/2400] 78.1% accuracy, 3.8 q/s, ETA 535s
+  [ 343/2400] 78.1% accuracy, 3.9 q/s, ETA 533s
+  [ 344/2400] 77.9% accuracy, 3.9 q/s, ETA 532s
+  [ 345/2400] 78.0% accuracy, 3.8 q/s, ETA 535s
+  [ 346/2400] 78.0% accuracy, 3.8 q/s, ETA 534s
+  [ 347/2400] 78.1% accuracy, 3.9 q/s, ETA 533s
+  [ 348/2400] 77.9% accuracy, 3.9 q/s, ETA 531s
+  [ 349/2400] 77.9% accuracy, 3.8 q/s, ETA 535s
+  [ 350/2400] 78.0% accuracy, 3.8 q/s, ETA 533s
+  [ 351/2400] 78.1% accuracy, 3.9 q/s, ETA 532s
+  [ 352/2400] 78.1% accuracy, 3.9 q/s, ETA 530s
+  [ 353/2400] 78.2% accuracy, 3.8 q/s, ETA 533s
+  [ 354/2400] 78.2% accuracy, 3.8 q/s, ETA 532s
+  [ 355/2400] 78.0% accuracy, 3.9 q/s, ETA 531s
+  [ 356/2400] 78.1% accuracy, 3.9 q/s, ETA 529s
+  [ 357/2400] 78.2% accuracy, 3.8 q/s, ETA 532s
+  [ 358/2400] 78.2% accuracy, 3.8 q/s, ETA 531s
+  [ 359/2400] 78.0% accuracy, 3.9 q/s, ETA 530s
+  [ 360/2400] 77.8% accuracy, 3.9 q/s, ETA 528s
+  [ 361/2400] 77.8% accuracy, 3.8 q/s, ETA 531s
+  [ 362/2400] 77.9% accuracy, 3.8 q/s, ETA 530s
+  [ 363/2400] 78.0% accuracy, 3.9 q/s, ETA 529s
+  [ 364/2400] 78.0% accuracy, 3.9 q/s, ETA 527s
+  [ 365/2400] 78.1% accuracy, 3.8 q/s, ETA 530s
+  [ 366/2400] 78.1% accuracy, 3.8 q/s, ETA 529s
+  [ 367/2400] 78.2% accuracy, 3.8 q/s, ETA 528s
+  [ 368/2400] 78.3% accuracy, 3.9 q/s, ETA 526s
+  [ 369/2400] 78.3% accuracy, 3.8 q/s, ETA 530s
+  [ 370/2400] 78.4% accuracy, 3.8 q/s, ETA 528s
+  [ 371/2400] 78.4% accuracy, 3.8 q/s, ETA 527s
+  [ 372/2400] 78.5% accuracy, 3.9 q/s, ETA 526s
+  [ 373/2400] 78.6% accuracy, 3.8 q/s, ETA 529s
+  [ 374/2400] 78.6% accuracy, 3.8 q/s, ETA 528s
+  [ 375/2400] 78.7% accuracy, 3.8 q/s, ETA 526s
+  [ 376/2400] 78.7% accuracy, 3.9 q/s, ETA 525s
+  [ 377/2400] 78.8% accuracy, 3.8 q/s, ETA 528s
+  [ 378/2400] 78.6% accuracy, 3.8 q/s, ETA 527s
+  [ 379/2400] 78.4% accuracy, 3.8 q/s, ETA 526s
+  [ 380/2400] 78.2% accuracy, 3.9 q/s, ETA 524s
+  [ 381/2400] 78.0% accuracy, 3.8 q/s, ETA 527s
+  [ 382/2400] 77.7% accuracy, 3.8 q/s, ETA 526s
+  [ 383/2400] 77.8% accuracy, 3.8 q/s, ETA 525s
+  [ 384/2400] 77.6% accuracy, 3.9 q/s, ETA 523s
+  [ 385/2400] 77.4% accuracy, 3.8 q/s, ETA 526s
+  [ 386/2400] 77.2% accuracy, 3.8 q/s, ETA 525s
+  [ 387/2400] 77.0% accuracy, 3.8 q/s, ETA 524s
+  [ 388/2400] 77.1% accuracy, 3.9 q/s, ETA 522s
+  [ 389/2400] 76.9% accuracy, 3.8 q/s, ETA 525s
+  [ 390/2400] 76.7% accuracy, 3.8 q/s, ETA 524s
+  [ 391/2400] 76.5% accuracy, 3.8 q/s, ETA 523s
+  [ 392/2400] 76.3% accuracy, 3.9 q/s, ETA 521s
+  [ 393/2400] 76.1% accuracy, 3.8 q/s, ETA 525s
+  [ 394/2400] 75.9% accuracy, 3.8 q/s, ETA 523s
+  [ 395/2400] 75.9% accuracy, 3.8 q/s, ETA 522s
+  [ 396/2400] 75.8% accuracy, 3.8 q/s, ETA 521s
+  [ 397/2400] 75.6% accuracy, 3.8 q/s, ETA 524s
+  [ 398/2400] 75.6% accuracy, 3.8 q/s, ETA 523s
+  [ 399/2400] 75.4% accuracy, 3.8 q/s, ETA 522s
+  [ 400/2400] 75.2% accuracy, 3.8 q/s, ETA 520s
+  [ 401/2400] 75.3% accuracy, 3.8 q/s, ETA 524s
+  [ 402/2400] 75.4% accuracy, 3.8 q/s, ETA 522s
+  [ 403/2400] 75.4% accuracy, 3.8 q/s, ETA 521s
+  [ 404/2400] 75.2% accuracy, 3.8 q/s, ETA 520s
+  [ 405/2400] 75.3% accuracy, 3.8 q/s, ETA 523s
+  [ 406/2400] 75.4% accuracy, 3.8 q/s, ETA 522s
+  [ 407/2400] 75.4% accuracy, 3.8 q/s, ETA 521s
+  [ 408/2400] 75.5% accuracy, 3.8 q/s, ETA 519s
+  [ 409/2400] 75.3% accuracy, 3.8 q/s, ETA 522s
+  [ 410/2400] 75.1% accuracy, 3.8 q/s, ETA 521s
+  [ 411/2400] 75.2% accuracy, 3.8 q/s, ETA 520s
+  [ 412/2400] 75.2% accuracy, 3.8 q/s, ETA 518s
+  [ 413/2400] 75.3% accuracy, 3.8 q/s, ETA 521s
+  [ 414/2400] 75.1% accuracy, 3.8 q/s, ETA 520s
+  [ 415/2400] 74.9% accuracy, 3.8 q/s, ETA 519s
+  [ 416/2400] 75.0% accuracy, 3.8 q/s, ETA 518s
+  [ 417/2400] 74.8% accuracy, 3.8 q/s, ETA 521s
+  [ 418/2400] 74.9% accuracy, 3.8 q/s, ETA 520s
+  [ 419/2400] 74.7% accuracy, 3.8 q/s, ETA 518s
+  [ 420/2400] 74.8% accuracy, 3.8 q/s, ETA 517s
+  [ 421/2400] 74.6% accuracy, 3.8 q/s, ETA 520s
+  [ 422/2400] 74.6% accuracy, 3.8 q/s, ETA 519s
+  [ 423/2400] 74.7% accuracy, 3.8 q/s, ETA 517s
+  [ 424/2400] 74.8% accuracy, 3.8 q/s, ETA 516s
+  [ 425/2400] 74.8% accuracy, 3.8 q/s, ETA 519s
+  [ 426/2400] 74.9% accuracy, 3.8 q/s, ETA 518s
+  [ 427/2400] 74.9% accuracy, 3.8 q/s, ETA 517s
+  [ 428/2400] 74.8% accuracy, 3.8 q/s, ETA 515s
+  [ 429/2400] 74.8% accuracy, 3.8 q/s, ETA 518s
+  [ 430/2400] 74.9% accuracy, 3.8 q/s, ETA 516s
+  [ 431/2400] 74.9% accuracy, 3.8 q/s, ETA 515s
+  [ 432/2400] 75.0% accuracy, 3.8 q/s, ETA 514s
+  [ 433/2400] 75.1% accuracy, 3.8 q/s, ETA 517s
+  [ 434/2400] 75.1% accuracy, 3.8 q/s, ETA 516s
+  [ 435/2400] 75.2% accuracy, 3.8 q/s, ETA 515s
+  [ 436/2400] 75.2% accuracy, 3.8 q/s, ETA 513s
+  [ 437/2400] 75.3% accuracy, 3.8 q/s, ETA 515s
+  [ 438/2400] 75.1% accuracy, 3.8 q/s, ETA 514s
+  [ 439/2400] 75.2% accuracy, 3.8 q/s, ETA 513s
+  [ 440/2400] 75.0% accuracy, 3.8 q/s, ETA 512s
+  [ 441/2400] 75.1% accuracy, 3.8 q/s, ETA 514s
+  [ 442/2400] 74.9% accuracy, 3.8 q/s, ETA 513s
+  [ 443/2400] 74.9% accuracy, 3.8 q/s, ETA 512s
+  [ 444/2400] 75.0% accuracy, 3.8 q/s, ETA 511s
+  [ 445/2400] 75.1% accuracy, 3.8 q/s, ETA 513s
+  [ 446/2400] 74.9% accuracy, 3.8 q/s, ETA 513s
+  [ 447/2400] 74.9% accuracy, 3.8 q/s, ETA 512s
+  [ 448/2400] 74.8% accuracy, 3.8 q/s, ETA 510s
+  [ 449/2400] 74.8% accuracy, 3.8 q/s, ETA 513s
+  [ 450/2400] 74.9% accuracy, 3.8 q/s, ETA 512s
+  [ 451/2400] 74.9% accuracy, 3.8 q/s, ETA 511s
+  [ 452/2400] 75.0% accuracy, 3.8 q/s, ETA 509s
+  [ 453/2400] 75.1% accuracy, 3.8 q/s, ETA 512s
+  [ 454/2400] 74.9% accuracy, 3.8 q/s, ETA 511s
+  [ 455/2400] 74.9% accuracy, 3.8 q/s, ETA 510s
+  [ 456/2400] 75.0% accuracy, 3.8 q/s, ETA 509s
+  [ 457/2400] 75.1% accuracy, 3.8 q/s, ETA 511s
+  [ 458/2400] 75.1% accuracy, 3.8 q/s, ETA 510s
+  [ 459/2400] 75.2% accuracy, 3.8 q/s, ETA 509s
+  [ 460/2400] 75.2% accuracy, 3.8 q/s, ETA 508s
+  [ 461/2400] 75.3% accuracy, 3.8 q/s, ETA 510s
+  [ 462/2400] 75.3% accuracy, 3.8 q/s, ETA 509s
+  [ 463/2400] 75.4% accuracy, 3.8 q/s, ETA 508s
+  [ 464/2400] 75.4% accuracy, 3.8 q/s, ETA 506s
+  [ 465/2400] 75.3% accuracy, 3.8 q/s, ETA 509s
+  [ 466/2400] 75.3% accuracy, 3.8 q/s, ETA 508s
+  [ 467/2400] 75.2% accuracy, 3.8 q/s, ETA 507s
+  [ 468/2400] 75.2% accuracy, 3.8 q/s, ETA 506s
+  [ 469/2400] 75.3% accuracy, 3.8 q/s, ETA 508s
+  [ 470/2400] 75.1% accuracy, 3.8 q/s, ETA 507s
+  [ 471/2400] 75.2% accuracy, 3.8 q/s, ETA 506s
+  [ 472/2400] 75.2% accuracy, 3.8 q/s, ETA 505s
+  [ 473/2400] 75.3% accuracy, 3.8 q/s, ETA 507s
+  [ 474/2400] 75.1% accuracy, 3.8 q/s, ETA 506s
+  [ 475/2400] 75.2% accuracy, 3.8 q/s, ETA 505s
+  [ 476/2400] 75.2% accuracy, 3.8 q/s, ETA 504s
+  [ 477/2400] 75.3% accuracy, 3.8 q/s, ETA 506s
+  [ 478/2400] 75.3% accuracy, 3.8 q/s, ETA 505s
+  [ 479/2400] 75.4% accuracy, 3.8 q/s, ETA 504s
+  [ 480/2400] 75.4% accuracy, 3.8 q/s, ETA 503s
+  [ 481/2400] 75.5% accuracy, 3.8 q/s, ETA 505s
+  [ 482/2400] 75.5% accuracy, 3.8 q/s, ETA 504s
+  [ 483/2400] 75.4% accuracy, 3.8 q/s, ETA 504s
+  [ 484/2400] 75.4% accuracy, 3.8 q/s, ETA 502s
+  [ 485/2400] 75.5% accuracy, 3.8 q/s, ETA 505s
+  [ 486/2400] 75.5% accuracy, 3.8 q/s, ETA 504s
+  [ 487/2400] 75.6% accuracy, 3.8 q/s, ETA 503s
+  [ 488/2400] 75.6% accuracy, 3.8 q/s, ETA 502s
+  [ 489/2400] 75.7% accuracy, 3.8 q/s, ETA 504s
+  [ 490/2400] 75.7% accuracy, 3.8 q/s, ETA 503s
+  [ 491/2400] 75.6% accuracy, 3.8 q/s, ETA 502s
+  [ 492/2400] 75.6% accuracy, 3.8 q/s, ETA 501s
+  [ 493/2400] 75.7% accuracy, 3.8 q/s, ETA 503s
+  [ 494/2400] 75.7% accuracy, 3.8 q/s, ETA 502s
+  [ 495/2400] 75.8% accuracy, 3.8 q/s, ETA 501s
+  [ 496/2400] 75.8% accuracy, 3.8 q/s, ETA 500s
+  [ 497/2400] 75.9% accuracy, 3.8 q/s, ETA 502s
+  [ 498/2400] 75.7% accuracy, 3.8 q/s, ETA 501s
+  [ 499/2400] 75.6% accuracy, 3.8 q/s, ETA 501s
+  [ 500/2400] 75.6% accuracy, 3.8 q/s, ETA 499s
+  [ 501/2400] 75.4% accuracy, 3.8 q/s, ETA 501s
+  [ 502/2400] 75.5% accuracy, 3.8 q/s, ETA 501s
+  [ 503/2400] 75.3% accuracy, 3.8 q/s, ETA 500s
+  [ 504/2400] 75.4% accuracy, 3.8 q/s, ETA 498s
+  [ 505/2400] 75.4% accuracy, 3.8 q/s, ETA 501s
+  [ 506/2400] 75.3% accuracy, 3.8 q/s, ETA 500s
+  [ 507/2400] 75.3% accuracy, 3.8 q/s, ETA 499s
+  [ 508/2400] 75.2% accuracy, 3.8 q/s, ETA 498s
+  [ 509/2400] 75.2% accuracy, 3.8 q/s, ETA 500s
+  [ 510/2400] 75.3% accuracy, 3.8 q/s, ETA 499s
+  [ 511/2400] 75.3% accuracy, 3.8 q/s, ETA 498s
+  [ 512/2400] 75.4% accuracy, 3.8 q/s, ETA 497s
+  [ 513/2400] 75.2% accuracy, 3.8 q/s, ETA 499s
+  [ 514/2400] 75.1% accuracy, 3.8 q/s, ETA 498s
+  [ 515/2400] 75.0% accuracy, 3.8 q/s, ETA 497s
+  [ 516/2400] 75.0% accuracy, 3.8 q/s, ETA 496s
+  [ 517/2400] 74.9% accuracy, 3.8 q/s, ETA 498s
+  [ 518/2400] 74.7% accuracy, 3.8 q/s, ETA 497s
+  [ 519/2400] 74.8% accuracy, 3.8 q/s, ETA 497s
+  [ 520/2400] 74.8% accuracy, 3.8 q/s, ETA 495s
+  [ 521/2400] 74.9% accuracy, 3.8 q/s, ETA 498s
+  [ 522/2400] 74.7% accuracy, 3.8 q/s, ETA 497s
+  [ 523/2400] 74.8% accuracy, 3.8 q/s, ETA 496s
+  [ 524/2400] 74.6% accuracy, 3.8 q/s, ETA 495s
+  [ 525/2400] 74.5% accuracy, 3.8 q/s, ETA 497s
+  [ 526/2400] 74.3% accuracy, 3.8 q/s, ETA 496s
+  [ 527/2400] 74.4% accuracy, 3.8 q/s, ETA 495s
+  [ 528/2400] 74.4% accuracy, 3.8 q/s, ETA 494s
+  [ 529/2400] 74.3% accuracy, 3.8 q/s, ETA 496s
+  [ 530/2400] 74.3% accuracy, 3.8 q/s, ETA 495s
+  [ 531/2400] 74.4% accuracy, 3.8 q/s, ETA 494s
+  [ 532/2400] 74.4% accuracy, 3.8 q/s, ETA 493s
+  [ 533/2400] 74.3% accuracy, 3.8 q/s, ETA 495s
+  [ 534/2400] 74.3% accuracy, 3.8 q/s, ETA 494s
+  [ 535/2400] 74.2% accuracy, 3.8 q/s, ETA 493s
+  [ 536/2400] 74.3% accuracy, 3.8 q/s, ETA 492s
+  [ 537/2400] 74.3% accuracy, 3.8 q/s, ETA 494s
+  [ 538/2400] 74.3% accuracy, 3.8 q/s, ETA 493s
+  [ 539/2400] 74.2% accuracy, 3.8 q/s, ETA 492s
+  [ 540/2400] 74.3% accuracy, 3.8 q/s, ETA 491s
+  [ 541/2400] 74.3% accuracy, 3.8 q/s, ETA 493s
+  [ 542/2400] 74.4% accuracy, 3.8 q/s, ETA 492s
+  [ 543/2400] 74.4% accuracy, 3.8 q/s, ETA 491s
+  [ 544/2400] 74.3% accuracy, 3.8 q/s, ETA 490s
+  [ 545/2400] 74.3% accuracy, 3.8 q/s, ETA 492s
+  [ 546/2400] 74.4% accuracy, 3.8 q/s, ETA 491s
+  [ 547/2400] 74.2% accuracy, 3.8 q/s, ETA 490s
+  [ 548/2400] 74.3% accuracy, 3.8 q/s, ETA 489s
+  [ 549/2400] 74.1% accuracy, 3.8 q/s, ETA 491s
+  [ 550/2400] 74.0% accuracy, 3.8 q/s, ETA 490s
+  [ 551/2400] 73.9% accuracy, 3.8 q/s, ETA 489s
+  [ 552/2400] 73.7% accuracy, 3.8 q/s, ETA 488s
+  [ 553/2400] 73.8% accuracy, 3.8 q/s, ETA 490s
+  [ 554/2400] 73.8% accuracy, 3.8 q/s, ETA 489s
+  [ 555/2400] 73.9% accuracy, 3.8 q/s, ETA 488s
+  [ 556/2400] 73.7% accuracy, 3.8 q/s, ETA 487s
+  [ 557/2400] 73.8% accuracy, 3.8 q/s, ETA 489s
+  [ 558/2400] 73.8% accuracy, 3.8 q/s, ETA 488s
+  [ 559/2400] 73.9% accuracy, 3.8 q/s, ETA 488s
+  [ 560/2400] 73.8% accuracy, 3.8 q/s, ETA 487s
+  [ 561/2400] 73.8% accuracy, 3.8 q/s, ETA 488s
+  [ 562/2400] 73.7% accuracy, 3.8 q/s, ETA 488s
+  [ 563/2400] 73.5% accuracy, 3.8 q/s, ETA 487s
+  [ 564/2400] 73.6% accuracy, 3.8 q/s, ETA 486s
+  [ 565/2400] 73.6% accuracy, 3.8 q/s, ETA 487s
+  [ 566/2400] 73.5% accuracy, 3.8 q/s, ETA 487s
+  [ 567/2400] 73.5% accuracy, 3.8 q/s, ETA 486s
+  [ 568/2400] 73.4% accuracy, 3.8 q/s, ETA 485s
+  [ 569/2400] 73.5% accuracy, 3.8 q/s, ETA 486s
+  [ 570/2400] 73.3% accuracy, 3.8 q/s, ETA 485s
+  [ 571/2400] 73.4% accuracy, 3.8 q/s, ETA 485s
+  [ 572/2400] 73.4% accuracy, 3.8 q/s, ETA 483s
+  [ 573/2400] 73.3% accuracy, 3.8 q/s, ETA 486s
+  [ 574/2400] 73.2% accuracy, 3.8 q/s, ETA 485s
+  [ 575/2400] 73.0% accuracy, 3.8 q/s, ETA 484s
+  [ 576/2400] 73.1% accuracy, 3.8 q/s, ETA 483s
+  [ 577/2400] 73.1% accuracy, 3.8 q/s, ETA 485s
+  [ 578/2400] 73.0% accuracy, 3.8 q/s, ETA 484s
+  [ 579/2400] 73.1% accuracy, 3.8 q/s, ETA 483s
+  [ 580/2400] 73.1% accuracy, 3.8 q/s, ETA 482s
+  [ 581/2400] 73.0% accuracy, 3.8 q/s, ETA 484s
+  [ 582/2400] 72.9% accuracy, 3.8 q/s, ETA 483s
+  [ 583/2400] 72.9% accuracy, 3.8 q/s, ETA 482s
+  [ 584/2400] 72.8% accuracy, 3.8 q/s, ETA 481s
+  [ 585/2400] 72.8% accuracy, 3.8 q/s, ETA 483s
+  [ 586/2400] 72.7% accuracy, 3.8 q/s, ETA 482s
+  [ 587/2400] 72.7% accuracy, 3.8 q/s, ETA 481s
+  [ 588/2400] 72.6% accuracy, 3.8 q/s, ETA 480s
+  [ 589/2400] 72.7% accuracy, 3.8 q/s, ETA 482s
+  [ 590/2400] 72.7% accuracy, 3.8 q/s, ETA 481s
+  [ 591/2400] 72.8% accuracy, 3.8 q/s, ETA 480s
+  [ 592/2400] 72.6% accuracy, 3.8 q/s, ETA 479s
+  [ 593/2400] 72.7% accuracy, 3.8 q/s, ETA 481s
+  [ 594/2400] 72.6% accuracy, 3.8 q/s, ETA 480s
+  [ 595/2400] 72.6% accuracy, 3.8 q/s, ETA 479s
+  [ 596/2400] 72.7% accuracy, 3.8 q/s, ETA 478s
+  [ 597/2400] 72.5% accuracy, 3.8 q/s, ETA 480s
+  [ 598/2400] 72.4% accuracy, 3.8 q/s, ETA 480s
+  [ 599/2400] 72.5% accuracy, 3.8 q/s, ETA 479s
+  [ 600/2400] 72.5% accuracy, 3.8 q/s, ETA 478s
+  [ 601/2400] 72.4% accuracy, 3.7 q/s, ETA 481s
+  [ 602/2400] 72.4% accuracy, 3.7 q/s, ETA 480s
+  [ 603/2400] 72.5% accuracy, 3.8 q/s, ETA 479s
+  [ 604/2400] 72.4% accuracy, 3.8 q/s, ETA 478s
+  [ 605/2400] 72.2% accuracy, 3.7 q/s, ETA 480s
+  [ 606/2400] 72.1% accuracy, 3.7 q/s, ETA 480s
+  [ 607/2400] 72.2% accuracy, 3.7 q/s, ETA 479s
+  [ 608/2400] 72.2% accuracy, 3.8 q/s, ETA 477s
+  [ 609/2400] 72.1% accuracy, 3.7 q/s, ETA 479s
+  [ 610/2400] 72.1% accuracy, 3.7 q/s, ETA 479s
+  [ 611/2400] 72.2% accuracy, 3.7 q/s, ETA 478s
+  [ 612/2400] 72.1% accuracy, 3.8 q/s, ETA 477s
+  [ 613/2400] 72.1% accuracy, 3.7 q/s, ETA 479s
+  [ 614/2400] 72.1% accuracy, 3.7 q/s, ETA 478s
+  [ 615/2400] 72.2% accuracy, 3.7 q/s, ETA 477s
+  [ 616/2400] 72.1% accuracy, 3.7 q/s, ETA 476s
+  [ 617/2400] 72.1% accuracy, 3.7 q/s, ETA 477s
+  [ 618/2400] 72.2% accuracy, 3.7 q/s, ETA 477s
+  [ 619/2400] 72.2% accuracy, 3.7 q/s, ETA 476s
+  [ 620/2400] 72.3% accuracy, 3.8 q/s, ETA 475s
+  [ 621/2400] 72.3% accuracy, 3.7 q/s, ETA 476s
+  [ 622/2400] 72.3% accuracy, 3.7 q/s, ETA 475s
+  [ 623/2400] 72.4% accuracy, 3.7 q/s, ETA 474s
+  [ 624/2400] 72.4% accuracy, 3.8 q/s, ETA 473s
+  [ 625/2400] 72.5% accuracy, 3.7 q/s, ETA 475s
+  [ 626/2400] 72.5% accuracy, 3.7 q/s, ETA 474s
+  [ 627/2400] 72.6% accuracy, 3.8 q/s, ETA 473s
+  [ 628/2400] 72.6% accuracy, 3.8 q/s, ETA 472s
+  [ 629/2400] 72.7% accuracy, 3.7 q/s, ETA 473s
+  [ 630/2400] 72.7% accuracy, 3.7 q/s, ETA 472s
+  [ 631/2400] 72.7% accuracy, 3.8 q/s, ETA 471s
+  [ 632/2400] 72.8% accuracy, 3.8 q/s, ETA 470s
+  [ 633/2400] 72.7% accuracy, 3.7 q/s, ETA 472s
+  [ 634/2400] 72.7% accuracy, 3.7 q/s, ETA 471s
+  [ 635/2400] 72.8% accuracy, 3.8 q/s, ETA 470s
+  [ 636/2400] 72.6% accuracy, 3.8 q/s, ETA 469s
+  [ 637/2400] 72.7% accuracy, 3.7 q/s, ETA 470s
+  [ 638/2400] 72.7% accuracy, 3.8 q/s, ETA 470s
+  [ 639/2400] 72.8% accuracy, 3.8 q/s, ETA 469s
+  [ 640/2400] 72.8% accuracy, 3.8 q/s, ETA 468s
+  [ 641/2400] 72.9% accuracy, 3.7 q/s, ETA 469s
+  [ 642/2400] 72.9% accuracy, 3.8 q/s, ETA 468s
+  [ 643/2400] 72.8% accuracy, 3.8 q/s, ETA 467s
+  [ 644/2400] 72.7% accuracy, 3.8 q/s, ETA 466s
+  [ 645/2400] 72.6% accuracy, 3.8 q/s, ETA 468s
+  [ 646/2400] 72.6% accuracy, 3.8 q/s, ETA 467s
+  [ 647/2400] 72.6% accuracy, 3.8 q/s, ETA 466s
+  [ 648/2400] 72.7% accuracy, 3.8 q/s, ETA 465s
+  [ 649/2400] 72.7% accuracy, 3.8 q/s, ETA 467s
+  [ 650/2400] 72.8% accuracy, 3.8 q/s, ETA 466s
+  [ 651/2400] 72.8% accuracy, 3.8 q/s, ETA 465s
+  [ 652/2400] 72.9% accuracy, 3.8 q/s, ETA 464s
+  [ 653/2400] 72.9% accuracy, 3.8 q/s, ETA 465s
+  [ 654/2400] 72.9% accuracy, 3.8 q/s, ETA 465s
+  [ 655/2400] 72.8% accuracy, 3.8 q/s, ETA 464s
+  [ 656/2400] 72.9% accuracy, 3.8 q/s, ETA 463s
+  [ 657/2400] 72.9% accuracy, 3.8 q/s, ETA 464s
+  [ 658/2400] 72.9% accuracy, 3.8 q/s, ETA 464s
+  [ 659/2400] 73.0% accuracy, 3.8 q/s, ETA 463s
+  [ 660/2400] 73.0% accuracy, 3.8 q/s, ETA 462s
+  [ 661/2400] 73.1% accuracy, 3.8 q/s, ETA 463s
+  [ 662/2400] 73.0% accuracy, 3.8 q/s, ETA 462s
+  [ 663/2400] 73.0% accuracy, 3.8 q/s, ETA 461s
+  [ 664/2400] 72.9% accuracy, 3.8 q/s, ETA 460s
+  [ 665/2400] 72.9% accuracy, 3.8 q/s, ETA 462s
+  [ 666/2400] 73.0% accuracy, 3.8 q/s, ETA 461s
+  [ 667/2400] 73.0% accuracy, 3.8 q/s, ETA 460s
+  [ 668/2400] 72.9% accuracy, 3.8 q/s, ETA 459s
+  [ 669/2400] 72.9% accuracy, 3.8 q/s, ETA 460s
+  [ 670/2400] 73.0% accuracy, 3.8 q/s, ETA 460s
+  [ 671/2400] 73.0% accuracy, 3.8 q/s, ETA 459s
+  [ 672/2400] 73.1% accuracy, 3.8 q/s, ETA 458s
+  [ 673/2400] 73.1% accuracy, 3.8 q/s, ETA 459s
+  [ 674/2400] 73.1% accuracy, 3.8 q/s, ETA 458s
+  [ 675/2400] 73.0% accuracy, 3.8 q/s, ETA 457s
+  [ 676/2400] 73.1% accuracy, 3.8 q/s, ETA 456s
+  [ 677/2400] 73.1% accuracy, 3.8 q/s, ETA 457s
+  [ 678/2400] 73.2% accuracy, 3.8 q/s, ETA 457s
+  [ 679/2400] 73.2% accuracy, 3.8 q/s, ETA 456s
+  [ 680/2400] 73.2% accuracy, 3.8 q/s, ETA 455s
+  [ 681/2400] 73.1% accuracy, 3.8 q/s, ETA 456s
+  [ 682/2400] 73.2% accuracy, 3.8 q/s, ETA 455s
+  [ 683/2400] 73.1% accuracy, 3.8 q/s, ETA 455s
+  [ 684/2400] 73.1% accuracy, 3.8 q/s, ETA 454s
+  [ 685/2400] 73.1% accuracy, 3.8 q/s, ETA 455s
+  [ 686/2400] 73.2% accuracy, 3.8 q/s, ETA 454s
+  [ 687/2400] 73.1% accuracy, 3.8 q/s, ETA 453s
+  [ 688/2400] 73.0% accuracy, 3.8 q/s, ETA 452s
+  [ 689/2400] 73.0% accuracy, 3.8 q/s, ETA 453s
+  [ 690/2400] 73.0% accuracy, 3.8 q/s, ETA 453s
+  [ 691/2400] 73.1% accuracy, 3.8 q/s, ETA 452s
+  [ 692/2400] 73.1% accuracy, 3.8 q/s, ETA 451s
+  [ 693/2400] 73.2% accuracy, 3.8 q/s, ETA 452s
+  [ 694/2400] 73.2% accuracy, 3.8 q/s, ETA 451s
+  [ 695/2400] 73.2% accuracy, 3.8 q/s, ETA 450s
+  [ 696/2400] 73.3% accuracy, 3.8 q/s, ETA 449s
+  [ 697/2400] 73.3% accuracy, 3.8 q/s, ETA 451s
+  [ 698/2400] 73.2% accuracy, 3.8 q/s, ETA 450s
+  [ 699/2400] 73.2% accuracy, 3.8 q/s, ETA 449s
+  [ 700/2400] 73.1% accuracy, 3.8 q/s, ETA 448s
+  [ 701/2400] 73.0% accuracy, 3.8 q/s, ETA 449s
+  [ 702/2400] 72.9% accuracy, 3.8 q/s, ETA 449s
+  [ 703/2400] 73.0% accuracy, 3.8 q/s, ETA 448s
+  [ 704/2400] 73.0% accuracy, 3.8 q/s, ETA 447s
+  [ 705/2400] 73.0% accuracy, 3.8 q/s, ETA 448s
+  [ 706/2400] 72.9% accuracy, 3.8 q/s, ETA 448s
+  [ 707/2400] 73.0% accuracy, 3.8 q/s, ETA 447s
+  [ 708/2400] 73.0% accuracy, 3.8 q/s, ETA 446s
+  [ 709/2400] 72.9% accuracy, 3.8 q/s, ETA 447s
+  [ 710/2400] 72.8% accuracy, 3.8 q/s, ETA 447s
+  [ 711/2400] 72.7% accuracy, 3.8 q/s, ETA 446s
+  [ 712/2400] 72.6% accuracy, 3.8 q/s, ETA 445s
+  [ 713/2400] 72.7% accuracy, 3.8 q/s, ETA 446s
+  [ 714/2400] 72.7% accuracy, 3.8 q/s, ETA 445s
+  [ 715/2400] 72.7% accuracy, 3.8 q/s, ETA 444s
+  [ 716/2400] 72.8% accuracy, 3.8 q/s, ETA 443s
+  [ 717/2400] 72.8% accuracy, 3.8 q/s, ETA 445s
+  [ 718/2400] 72.7% accuracy, 3.8 q/s, ETA 444s
+  [ 719/2400] 72.7% accuracy, 3.8 q/s, ETA 443s
+  [ 720/2400] 72.8% accuracy, 3.8 q/s, ETA 442s
+  [ 721/2400] 72.7% accuracy, 3.8 q/s, ETA 444s
+  [ 722/2400] 72.6% accuracy, 3.8 q/s, ETA 443s
+  [ 723/2400] 72.6% accuracy, 3.8 q/s, ETA 442s
+  [ 724/2400] 72.7% accuracy, 3.8 q/s, ETA 441s
+  [ 725/2400] 72.7% accuracy, 3.8 q/s, ETA 443s
+  [ 726/2400] 72.7% accuracy, 3.8 q/s, ETA 442s
+  [ 727/2400] 72.6% accuracy, 3.8 q/s, ETA 441s
+  [ 728/2400] 72.5% accuracy, 3.8 q/s, ETA 440s
+  [ 729/2400] 72.4% accuracy, 3.8 q/s, ETA 441s
+  [ 730/2400] 72.5% accuracy, 3.8 q/s, ETA 441s
+  [ 731/2400] 72.5% accuracy, 3.8 q/s, ETA 440s
+  [ 732/2400] 72.5% accuracy, 3.8 q/s, ETA 439s
+  [ 733/2400] 72.6% accuracy, 3.8 q/s, ETA 440s
+  [ 734/2400] 72.6% accuracy, 3.8 q/s, ETA 440s
+  [ 735/2400] 72.7% accuracy, 3.8 q/s, ETA 439s
+  [ 736/2400] 72.6% accuracy, 3.8 q/s, ETA 438s
+  [ 737/2400] 72.6% accuracy, 3.8 q/s, ETA 439s
+  [ 738/2400] 72.6% accuracy, 3.8 q/s, ETA 438s
+  [ 739/2400] 72.7% accuracy, 3.8 q/s, ETA 437s
+  [ 740/2400] 72.6% accuracy, 3.8 q/s, ETA 437s
+  [ 741/2400] 72.6% accuracy, 3.8 q/s, ETA 438s
+  [ 742/2400] 72.6% accuracy, 3.8 q/s, ETA 437s
+  [ 743/2400] 72.7% accuracy, 3.8 q/s, ETA 436s
+  [ 744/2400] 72.7% accuracy, 3.8 q/s, ETA 435s
+  [ 745/2400] 72.8% accuracy, 3.8 q/s, ETA 436s
+  [ 746/2400] 72.8% accuracy, 3.8 q/s, ETA 436s
+  [ 747/2400] 72.8% accuracy, 3.8 q/s, ETA 435s
+  [ 748/2400] 72.9% accuracy, 3.8 q/s, ETA 434s
+  [ 749/2400] 72.9% accuracy, 3.8 q/s, ETA 435s
+  [ 750/2400] 72.9% accuracy, 3.8 q/s, ETA 435s
+  [ 751/2400] 72.8% accuracy, 3.8 q/s, ETA 434s
+  [ 752/2400] 72.7% accuracy, 3.8 q/s, ETA 433s
+  [ 753/2400] 72.8% accuracy, 3.8 q/s, ETA 434s
+  [ 754/2400] 72.8% accuracy, 3.8 q/s, ETA 433s
+  [ 755/2400] 72.8% accuracy, 3.8 q/s, ETA 432s
+  [ 756/2400] 72.9% accuracy, 3.8 q/s, ETA 432s
+  [ 757/2400] 72.9% accuracy, 3.8 q/s, ETA 433s
+  [ 758/2400] 72.8% accuracy, 3.8 q/s, ETA 433s
+  [ 759/2400] 72.9% accuracy, 3.8 q/s, ETA 432s
+  [ 760/2400] 72.9% accuracy, 3.8 q/s, ETA 431s
+  [ 761/2400] 72.9% accuracy, 3.8 q/s, ETA 432s
+  [ 762/2400] 73.0% accuracy, 3.8 q/s, ETA 431s
+  [ 763/2400] 72.9% accuracy, 3.8 q/s, ETA 431s
+  [ 764/2400] 72.8% accuracy, 3.8 q/s, ETA 430s
+  [ 765/2400] 72.7% accuracy, 3.8 q/s, ETA 431s
+  [ 766/2400] 72.6% accuracy, 3.8 q/s, ETA 430s
+  [ 767/2400] 72.6% accuracy, 3.8 q/s, ETA 429s
+  [ 768/2400] 72.7% accuracy, 3.8 q/s, ETA 428s
+  [ 769/2400] 72.6% accuracy, 3.8 q/s, ETA 429s
+  [ 770/2400] 72.6% accuracy, 3.8 q/s, ETA 429s
+  [ 771/2400] 72.6% accuracy, 3.8 q/s, ETA 428s
+  [ 772/2400] 72.5% accuracy, 3.8 q/s, ETA 427s
+  [ 773/2400] 72.6% accuracy, 3.8 q/s, ETA 428s
+  [ 774/2400] 72.6% accuracy, 3.8 q/s, ETA 428s
+  [ 775/2400] 72.6% accuracy, 3.8 q/s, ETA 427s
+  [ 776/2400] 72.7% accuracy, 3.8 q/s, ETA 426s
+  [ 777/2400] 72.6% accuracy, 3.8 q/s, ETA 427s
+  [ 778/2400] 72.6% accuracy, 3.8 q/s, ETA 427s
+  [ 779/2400] 72.7% accuracy, 3.8 q/s, ETA 426s
+  [ 780/2400] 72.7% accuracy, 3.8 q/s, ETA 425s
+  [ 781/2400] 72.7% accuracy, 3.8 q/s, ETA 426s
+  [ 782/2400] 72.6% accuracy, 3.8 q/s, ETA 426s
+  [ 783/2400] 72.7% accuracy, 3.8 q/s, ETA 425s
+  [ 784/2400] 72.6% accuracy, 3.8 q/s, ETA 424s
+  [ 785/2400] 72.5% accuracy, 3.8 q/s, ETA 425s
+  [ 786/2400] 72.4% accuracy, 3.8 q/s, ETA 425s
+  [ 787/2400] 72.3% accuracy, 3.8 q/s, ETA 424s
+  [ 788/2400] 72.3% accuracy, 3.8 q/s, ETA 423s
+  [ 789/2400] 72.4% accuracy, 3.8 q/s, ETA 424s
+  [ 790/2400] 72.3% accuracy, 3.8 q/s, ETA 424s
+  [ 791/2400] 72.3% accuracy, 3.8 q/s, ETA 423s
+  [ 792/2400] 72.2% accuracy, 3.8 q/s, ETA 422s
+  [ 793/2400] 72.1% accuracy, 3.8 q/s, ETA 423s
+  [ 794/2400] 72.0% accuracy, 3.8 q/s, ETA 423s
+  [ 795/2400] 71.9% accuracy, 3.8 q/s, ETA 422s
+  [ 796/2400] 72.0% accuracy, 3.8 q/s, ETA 421s
+  [ 797/2400] 72.0% accuracy, 3.8 q/s, ETA 422s
+  [ 798/2400] 71.9% accuracy, 3.8 q/s, ETA 422s
+  [ 799/2400] 72.0% accuracy, 3.8 q/s, ETA 421s
+  [ 800/2400] 71.9% accuracy, 3.8 q/s, ETA 420s
+  [ 801/2400] 71.9% accuracy, 3.8 q/s, ETA 421s
+  [ 802/2400] 71.9% accuracy, 3.8 q/s, ETA 421s
+  [ 803/2400] 72.0% accuracy, 3.8 q/s, ETA 420s
+  [ 804/2400] 71.9% accuracy, 3.8 q/s, ETA 419s
+  [ 805/2400] 71.8% accuracy, 3.8 q/s, ETA 420s
+  [ 806/2400] 71.8% accuracy, 3.8 q/s, ETA 420s
+  [ 807/2400] 71.9% accuracy, 3.8 q/s, ETA 419s
+  [ 808/2400] 71.9% accuracy, 3.8 q/s, ETA 418s
+  [ 809/2400] 71.9% accuracy, 3.8 q/s, ETA 420s
+  [ 810/2400] 71.9% accuracy, 3.8 q/s, ETA 419s
+  [ 811/2400] 71.8% accuracy, 3.8 q/s, ETA 418s
+  [ 812/2400] 71.8% accuracy, 3.8 q/s, ETA 417s
+  [ 813/2400] 71.8% accuracy, 3.8 q/s, ETA 418s
+  [ 814/2400] 71.9% accuracy, 3.8 q/s, ETA 418s
+  [ 815/2400] 71.8% accuracy, 3.8 q/s, ETA 417s
+  [ 816/2400] 71.8% accuracy, 3.8 q/s, ETA 416s
+  [ 817/2400] 71.8% accuracy, 3.8 q/s, ETA 418s
+  [ 818/2400] 71.9% accuracy, 3.8 q/s, ETA 417s
+  [ 819/2400] 71.9% accuracy, 3.8 q/s, ETA 416s
+  [ 820/2400] 72.0% accuracy, 3.8 q/s, ETA 416s
+  [ 821/2400] 71.9% accuracy, 3.8 q/s, ETA 417s
+  [ 822/2400] 71.8% accuracy, 3.8 q/s, ETA 416s
+  [ 823/2400] 71.7% accuracy, 3.8 q/s, ETA 415s
+  [ 824/2400] 71.7% accuracy, 3.8 q/s, ETA 414s
+  [ 825/2400] 71.8% accuracy, 3.8 q/s, ETA 415s
+  [ 826/2400] 71.8% accuracy, 3.8 q/s, ETA 415s
+  [ 827/2400] 71.8% accuracy, 3.8 q/s, ETA 414s
+  [ 828/2400] 71.9% accuracy, 3.8 q/s, ETA 413s
+  [ 829/2400] 71.8% accuracy, 3.8 q/s, ETA 414s
+  [ 830/2400] 71.8% accuracy, 3.8 q/s, ETA 414s
+  [ 831/2400] 71.7% accuracy, 3.8 q/s, ETA 413s
+  [ 832/2400] 71.6% accuracy, 3.8 q/s, ETA 412s
+  [ 833/2400] 71.7% accuracy, 3.8 q/s, ETA 413s
+  [ 834/2400] 71.6% accuracy, 3.8 q/s, ETA 413s
+  [ 835/2400] 71.5% accuracy, 3.8 q/s, ETA 412s
+  [ 836/2400] 71.5% accuracy, 3.8 q/s, ETA 411s
+  [ 837/2400] 71.6% accuracy, 3.8 q/s, ETA 412s
+  [ 838/2400] 71.6% accuracy, 3.8 q/s, ETA 412s
+  [ 839/2400] 71.5% accuracy, 3.8 q/s, ETA 411s
+  [ 840/2400] 71.5% accuracy, 3.8 q/s, ETA 410s
+  [ 841/2400] 71.6% accuracy, 3.8 q/s, ETA 411s
+  [ 842/2400] 71.5% accuracy, 3.8 q/s, ETA 411s
+  [ 843/2400] 71.5% accuracy, 3.8 q/s, ETA 410s
+  [ 844/2400] 71.6% accuracy, 3.8 q/s, ETA 409s
+  [ 845/2400] 71.6% accuracy, 3.8 q/s, ETA 410s
+  [ 846/2400] 71.6% accuracy, 3.8 q/s, ETA 410s
+  [ 847/2400] 71.7% accuracy, 3.8 q/s, ETA 409s
+  [ 848/2400] 71.7% accuracy, 3.8 q/s, ETA 408s
+  [ 849/2400] 71.6% accuracy, 3.8 q/s, ETA 409s
+  [ 850/2400] 71.6% accuracy, 3.8 q/s, ETA 408s
+  [ 851/2400] 71.7% accuracy, 3.8 q/s, ETA 408s
+  [ 852/2400] 71.7% accuracy, 3.8 q/s, ETA 407s
+  [ 853/2400] 71.6% accuracy, 3.8 q/s, ETA 408s
+  [ 854/2400] 71.7% accuracy, 3.8 q/s, ETA 407s
+  [ 855/2400] 71.7% accuracy, 3.8 q/s, ETA 407s
+  [ 856/2400] 71.6% accuracy, 3.8 q/s, ETA 406s
+  [ 857/2400] 71.6% accuracy, 3.8 q/s, ETA 407s
+  [ 858/2400] 71.6% accuracy, 3.8 q/s, ETA 406s
+  [ 859/2400] 71.5% accuracy, 3.8 q/s, ETA 406s
+  [ 860/2400] 71.4% accuracy, 3.8 q/s, ETA 405s
+  [ 861/2400] 71.4% accuracy, 3.8 q/s, ETA 406s
+  [ 862/2400] 71.3% accuracy, 3.8 q/s, ETA 405s
+  [ 863/2400] 71.4% accuracy, 3.8 q/s, ETA 405s
+  [ 864/2400] 71.3% accuracy, 3.8 q/s, ETA 404s
+  [ 865/2400] 71.3% accuracy, 3.8 q/s, ETA 405s
+  [ 866/2400] 71.4% accuracy, 3.8 q/s, ETA 404s
+  [ 867/2400] 71.3% accuracy, 3.8 q/s, ETA 404s
+  [ 868/2400] 71.3% accuracy, 3.8 q/s, ETA 403s
+  [ 869/2400] 71.2% accuracy, 3.8 q/s, ETA 404s
+  [ 870/2400] 71.3% accuracy, 3.8 q/s, ETA 403s
+  [ 871/2400] 71.3% accuracy, 3.8 q/s, ETA 403s
+  [ 872/2400] 71.2% accuracy, 3.8 q/s, ETA 402s
+  [ 873/2400] 71.2% accuracy, 3.8 q/s, ETA 403s
+  [ 874/2400] 71.3% accuracy, 3.8 q/s, ETA 402s
+  [ 875/2400] 71.3% accuracy, 3.8 q/s, ETA 401s
+  [ 876/2400] 71.2% accuracy, 3.8 q/s, ETA 401s
+  [ 877/2400] 71.3% accuracy, 3.8 q/s, ETA 402s
+  [ 878/2400] 71.3% accuracy, 3.8 q/s, ETA 401s
+  [ 879/2400] 71.3% accuracy, 3.8 q/s, ETA 400s
+  [ 880/2400] 71.4% accuracy, 3.8 q/s, ETA 400s
+  [ 881/2400] 71.3% accuracy, 3.8 q/s, ETA 401s
+  [ 882/2400] 71.3% accuracy, 3.8 q/s, ETA 400s
+  [ 883/2400] 71.2% accuracy, 3.8 q/s, ETA 399s
+  [ 884/2400] 71.3% accuracy, 3.8 q/s, ETA 399s
+  [ 885/2400] 71.3% accuracy, 3.8 q/s, ETA 399s
+  [ 886/2400] 71.3% accuracy, 3.8 q/s, ETA 399s
+  [ 887/2400] 71.4% accuracy, 3.8 q/s, ETA 398s
+  [ 888/2400] 71.3% accuracy, 3.8 q/s, ETA 397s
+  [ 889/2400] 71.2% accuracy, 3.8 q/s, ETA 398s
+  [ 890/2400] 71.1% accuracy, 3.8 q/s, ETA 398s
+  [ 891/2400] 71.0% accuracy, 3.8 q/s, ETA 397s
+  [ 892/2400] 71.1% accuracy, 3.8 q/s, ETA 396s
+  [ 893/2400] 71.1% accuracy, 3.8 q/s, ETA 397s
+  [ 894/2400] 71.1% accuracy, 3.8 q/s, ETA 397s
+  [ 895/2400] 71.1% accuracy, 3.8 q/s, ETA 396s
+  [ 896/2400] 71.1% accuracy, 3.8 q/s, ETA 395s
+  [ 897/2400] 71.1% accuracy, 3.8 q/s, ETA 396s
+  [ 898/2400] 71.2% accuracy, 3.8 q/s, ETA 396s
+  [ 899/2400] 71.1% accuracy, 3.8 q/s, ETA 395s
+  [ 900/2400] 71.1% accuracy, 3.8 q/s, ETA 394s
+  [ 901/2400] 71.1% accuracy, 3.8 q/s, ETA 395s
+  [ 902/2400] 71.1% accuracy, 3.8 q/s, ETA 394s
+  [ 903/2400] 71.1% accuracy, 3.8 q/s, ETA 394s
+  [ 904/2400] 71.0% accuracy, 3.8 q/s, ETA 393s
+  [ 905/2400] 70.9% accuracy, 3.8 q/s, ETA 394s
+  [ 906/2400] 70.9% accuracy, 3.8 q/s, ETA 393s
+  [ 907/2400] 70.8% accuracy, 3.8 q/s, ETA 392s
+  [ 908/2400] 70.8% accuracy, 3.8 q/s, ETA 392s
+  [ 909/2400] 70.8% accuracy, 3.8 q/s, ETA 392s
+  [ 910/2400] 70.9% accuracy, 3.8 q/s, ETA 392s
+  [ 911/2400] 70.8% accuracy, 3.8 q/s, ETA 391s
+  [ 912/2400] 70.8% accuracy, 3.8 q/s, ETA 391s
+  [ 913/2400] 70.8% accuracy, 3.8 q/s, ETA 391s
+  [ 914/2400] 70.8% accuracy, 3.8 q/s, ETA 391s
+  [ 915/2400] 70.8% accuracy, 3.8 q/s, ETA 390s
+  [ 916/2400] 70.9% accuracy, 3.8 q/s, ETA 389s
+  [ 917/2400] 70.9% accuracy, 3.8 q/s, ETA 390s
+  [ 918/2400] 70.8% accuracy, 3.8 q/s, ETA 389s
+  [ 919/2400] 70.8% accuracy, 3.8 q/s, ETA 389s
+  [ 920/2400] 70.9% accuracy, 3.8 q/s, ETA 388s
+  [ 921/2400] 70.9% accuracy, 3.8 q/s, ETA 389s
+  [ 922/2400] 70.9% accuracy, 3.8 q/s, ETA 388s
+  [ 923/2400] 71.0% accuracy, 3.8 q/s, ETA 387s
+  [ 924/2400] 71.0% accuracy, 3.8 q/s, ETA 387s
+  [ 925/2400] 70.9% accuracy, 3.8 q/s, ETA 387s
+  [ 926/2400] 71.0% accuracy, 3.8 q/s, ETA 387s
+  [ 927/2400] 70.9% accuracy, 3.8 q/s, ETA 386s
+  [ 928/2400] 70.9% accuracy, 3.8 q/s, ETA 385s
+  [ 929/2400] 70.9% accuracy, 3.8 q/s, ETA 386s
+  [ 930/2400] 70.9% accuracy, 3.8 q/s, ETA 386s
+  [ 931/2400] 70.8% accuracy, 3.8 q/s, ETA 385s
+  [ 932/2400] 70.8% accuracy, 3.8 q/s, ETA 384s
+  [ 933/2400] 70.8% accuracy, 3.8 q/s, ETA 385s
+  [ 934/2400] 70.9% accuracy, 3.8 q/s, ETA 384s
+  [ 935/2400] 70.9% accuracy, 3.8 q/s, ETA 384s
+  [ 936/2400] 70.9% accuracy, 3.8 q/s, ETA 383s
+  [ 937/2400] 71.0% accuracy, 3.8 q/s, ETA 384s
+  [ 938/2400] 71.0% accuracy, 3.8 q/s, ETA 383s
+  [ 939/2400] 71.0% accuracy, 3.8 q/s, ETA 383s
+  [ 940/2400] 71.1% accuracy, 3.8 q/s, ETA 382s
+  [ 941/2400] 71.1% accuracy, 3.8 q/s, ETA 382s
+  [ 942/2400] 71.1% accuracy, 3.8 q/s, ETA 382s
+  [ 943/2400] 71.2% accuracy, 3.8 q/s, ETA 381s
+  [ 944/2400] 71.1% accuracy, 3.8 q/s, ETA 381s
+  [ 945/2400] 71.1% accuracy, 3.8 q/s, ETA 381s
+  [ 946/2400] 71.1% accuracy, 3.8 q/s, ETA 381s
+  [ 947/2400] 71.2% accuracy, 3.8 q/s, ETA 380s
+  [ 948/2400] 71.2% accuracy, 3.8 q/s, ETA 379s
+  [ 949/2400] 71.1% accuracy, 3.8 q/s, ETA 380s
+  [ 950/2400] 71.2% accuracy, 3.8 q/s, ETA 380s
+  [ 951/2400] 71.2% accuracy, 3.8 q/s, ETA 379s
+  [ 952/2400] 71.2% accuracy, 3.8 q/s, ETA 378s
+  [ 953/2400] 71.2% accuracy, 3.8 q/s, ETA 379s
+  [ 954/2400] 71.3% accuracy, 3.8 q/s, ETA 378s
+  [ 955/2400] 71.3% accuracy, 3.8 q/s, ETA 378s
+  [ 956/2400] 71.2% accuracy, 3.8 q/s, ETA 377s
+  [ 957/2400] 71.3% accuracy, 3.8 q/s, ETA 378s
+  [ 958/2400] 71.3% accuracy, 3.8 q/s, ETA 377s
+  [ 959/2400] 71.2% accuracy, 3.8 q/s, ETA 377s
+  [ 960/2400] 71.2% accuracy, 3.8 q/s, ETA 376s
+  [ 961/2400] 71.2% accuracy, 3.8 q/s, ETA 377s
+  [ 962/2400] 71.2% accuracy, 3.8 q/s, ETA 376s
+  [ 963/2400] 71.2% accuracy, 3.8 q/s, ETA 375s
+  [ 964/2400] 71.3% accuracy, 3.8 q/s, ETA 375s
+  [ 965/2400] 71.3% accuracy, 3.8 q/s, ETA 375s
+  [ 966/2400] 71.3% accuracy, 3.8 q/s, ETA 375s
+  [ 967/2400] 71.4% accuracy, 3.8 q/s, ETA 374s
+  [ 968/2400] 71.4% accuracy, 3.8 q/s, ETA 374s
+  [ 969/2400] 71.3% accuracy, 3.8 q/s, ETA 374s
+  [ 970/2400] 71.3% accuracy, 3.8 q/s, ETA 374s
+  [ 971/2400] 71.4% accuracy, 3.8 q/s, ETA 373s
+  [ 972/2400] 71.4% accuracy, 3.8 q/s, ETA 373s
+  [ 973/2400] 71.4% accuracy, 3.8 q/s, ETA 373s
+  [ 974/2400] 71.5% accuracy, 3.8 q/s, ETA 373s
+  [ 975/2400] 71.5% accuracy, 3.8 q/s, ETA 372s
+  [ 976/2400] 71.5% accuracy, 3.8 q/s, ETA 371s
+  [ 977/2400] 71.5% accuracy, 3.8 q/s, ETA 372s
+  [ 978/2400] 71.6% accuracy, 3.8 q/s, ETA 372s
+  [ 979/2400] 71.5% accuracy, 3.8 q/s, ETA 371s
+  [ 980/2400] 71.5% accuracy, 3.8 q/s, ETA 370s
+  [ 981/2400] 71.6% accuracy, 3.8 q/s, ETA 371s
+  [ 982/2400] 71.6% accuracy, 3.8 q/s, ETA 370s
+  [ 983/2400] 71.5% accuracy, 3.8 q/s, ETA 370s
+  [ 984/2400] 71.4% accuracy, 3.8 q/s, ETA 369s
+  [ 985/2400] 71.5% accuracy, 3.8 q/s, ETA 370s
+  [ 986/2400] 71.5% accuracy, 3.8 q/s, ETA 369s
+  [ 987/2400] 71.4% accuracy, 3.8 q/s, ETA 368s
+  [ 988/2400] 71.5% accuracy, 3.8 q/s, ETA 368s
+  [ 989/2400] 71.4% accuracy, 3.8 q/s, ETA 368s
+  [ 990/2400] 71.4% accuracy, 3.8 q/s, ETA 368s
+  [ 991/2400] 71.3% accuracy, 3.8 q/s, ETA 367s
+  [ 992/2400] 71.3% accuracy, 3.8 q/s, ETA 367s
+  [ 993/2400] 71.2% accuracy, 3.8 q/s, ETA 367s
+  [ 994/2400] 71.2% accuracy, 3.8 q/s, ETA 367s
+  [ 995/2400] 71.3% accuracy, 3.8 q/s, ETA 366s
+  [ 996/2400] 71.3% accuracy, 3.8 q/s, ETA 366s
+  [ 997/2400] 71.3% accuracy, 3.8 q/s, ETA 366s
+  [ 998/2400] 71.3% accuracy, 3.8 q/s, ETA 366s
+  [ 999/2400] 71.4% accuracy, 3.8 q/s, ETA 365s
+  [1000/2400] 71.4% accuracy, 3.8 q/s, ETA 364s
+  [1001/2400] 71.4% accuracy, 3.8 q/s, ETA 365s
+  [1002/2400] 71.5% accuracy, 3.8 q/s, ETA 365s
+  [1003/2400] 71.5% accuracy, 3.8 q/s, ETA 364s
+  [1004/2400] 71.5% accuracy, 3.8 q/s, ETA 363s
+  [1005/2400] 71.5% accuracy, 3.8 q/s, ETA 364s
+  [1006/2400] 71.5% accuracy, 3.8 q/s, ETA 363s
+  [1007/2400] 71.5% accuracy, 3.8 q/s, ETA 363s
+  [1008/2400] 71.4% accuracy, 3.8 q/s, ETA 362s
+  [1009/2400] 71.4% accuracy, 3.8 q/s, ETA 363s
+  [1010/2400] 71.3% accuracy, 3.8 q/s, ETA 362s
+  [1011/2400] 71.2% accuracy, 3.8 q/s, ETA 362s
+  [1012/2400] 71.2% accuracy, 3.8 q/s, ETA 361s
+  [1013/2400] 71.3% accuracy, 3.8 q/s, ETA 362s
+  [1014/2400] 71.2% accuracy, 3.8 q/s, ETA 361s
+  [1015/2400] 71.1% accuracy, 3.8 q/s, ETA 361s
+  [1016/2400] 71.1% accuracy, 3.8 q/s, ETA 360s
+  [1017/2400] 71.1% accuracy, 3.8 q/s, ETA 361s
+  [1018/2400] 71.0% accuracy, 3.8 q/s, ETA 361s
+  [1019/2400] 71.1% accuracy, 3.8 q/s, ETA 360s
+  [1020/2400] 71.0% accuracy, 3.8 q/s, ETA 359s
+  [1021/2400] 70.9% accuracy, 3.8 q/s, ETA 360s
+  [1022/2400] 70.8% accuracy, 3.8 q/s, ETA 359s
+  [1023/2400] 70.9% accuracy, 3.8 q/s, ETA 359s
+  [1024/2400] 70.8% accuracy, 3.8 q/s, ETA 358s
+  [1025/2400] 70.7% accuracy, 3.8 q/s, ETA 359s
+  [1026/2400] 70.7% accuracy, 3.8 q/s, ETA 358s
+  [1027/2400] 70.7% accuracy, 3.8 q/s, ETA 358s
+  [1028/2400] 70.6% accuracy, 3.8 q/s, ETA 357s
+  [1029/2400] 70.7% accuracy, 3.8 q/s, ETA 358s
+  [1030/2400] 70.7% accuracy, 3.8 q/s, ETA 357s
+  [1031/2400] 70.7% accuracy, 3.8 q/s, ETA 357s
+  [1032/2400] 70.6% accuracy, 3.8 q/s, ETA 356s
+  [1033/2400] 70.7% accuracy, 3.8 q/s, ETA 357s
+  [1034/2400] 70.7% accuracy, 3.8 q/s, ETA 356s
+  [1035/2400] 70.6% accuracy, 3.8 q/s, ETA 356s
+  [1036/2400] 70.6% accuracy, 3.8 q/s, ETA 355s
+  [1037/2400] 70.6% accuracy, 3.8 q/s, ETA 356s
+  [1038/2400] 70.6% accuracy, 3.8 q/s, ETA 355s
+  [1039/2400] 70.6% accuracy, 3.8 q/s, ETA 355s
+  [1040/2400] 70.7% accuracy, 3.8 q/s, ETA 354s
+  [1041/2400] 70.6% accuracy, 3.8 q/s, ETA 355s
+  [1042/2400] 70.5% accuracy, 3.8 q/s, ETA 355s
+  [1043/2400] 70.6% accuracy, 3.8 q/s, ETA 354s
+  [1044/2400] 70.6% accuracy, 3.8 q/s, ETA 353s
+  [1045/2400] 70.5% accuracy, 3.8 q/s, ETA 354s
+  [1046/2400] 70.5% accuracy, 3.8 q/s, ETA 354s
+  [1047/2400] 70.4% accuracy, 3.8 q/s, ETA 353s
+  [1048/2400] 70.3% accuracy, 3.8 q/s, ETA 352s
+  [1049/2400] 70.3% accuracy, 3.8 q/s, ETA 353s
+  [1050/2400] 70.2% accuracy, 3.8 q/s, ETA 353s
+  [1051/2400] 70.2% accuracy, 3.8 q/s, ETA 352s
+  [1052/2400] 70.2% accuracy, 3.8 q/s, ETA 351s
+  [1053/2400] 70.1% accuracy, 3.8 q/s, ETA 352s
+  [1054/2400] 70.1% accuracy, 3.8 q/s, ETA 352s
+  [1055/2400] 70.0% accuracy, 3.8 q/s, ETA 351s
+  [1056/2400] 70.0% accuracy, 3.8 q/s, ETA 350s
+  [1057/2400] 70.0% accuracy, 3.8 q/s, ETA 351s
+  [1058/2400] 69.9% accuracy, 3.8 q/s, ETA 351s
+  [1059/2400] 69.9% accuracy, 3.8 q/s, ETA 350s
+  [1060/2400] 69.9% accuracy, 3.8 q/s, ETA 349s
+  [1061/2400] 69.8% accuracy, 3.8 q/s, ETA 350s
+  [1062/2400] 69.9% accuracy, 3.8 q/s, ETA 350s
+  [1063/2400] 69.9% accuracy, 3.8 q/s, ETA 349s
+  [1064/2400] 69.9% accuracy, 3.8 q/s, ETA 348s
+  [1065/2400] 69.9% accuracy, 3.8 q/s, ETA 349s
+  [1066/2400] 69.9% accuracy, 3.8 q/s, ETA 349s
+  [1067/2400] 69.9% accuracy, 3.8 q/s, ETA 348s
+  [1068/2400] 69.9% accuracy, 3.8 q/s, ETA 347s
+  [1069/2400] 69.8% accuracy, 3.8 q/s, ETA 348s
+  [1070/2400] 69.8% accuracy, 3.8 q/s, ETA 348s
+  [1071/2400] 69.7% accuracy, 3.8 q/s, ETA 347s
+  [1072/2400] 69.7% accuracy, 3.8 q/s, ETA 346s
+  [1073/2400] 69.6% accuracy, 3.8 q/s, ETA 347s
+  [1074/2400] 69.6% accuracy, 3.8 q/s, ETA 347s
+  [1075/2400] 69.6% accuracy, 3.8 q/s, ETA 346s
+  [1076/2400] 69.6% accuracy, 3.8 q/s, ETA 345s
+  [1077/2400] 69.6% accuracy, 3.8 q/s, ETA 346s
+  [1078/2400] 69.7% accuracy, 3.8 q/s, ETA 346s
+  [1079/2400] 69.6% accuracy, 3.8 q/s, ETA 345s
+  [1080/2400] 69.6% accuracy, 3.8 q/s, ETA 344s
+  [1081/2400] 69.6% accuracy, 3.8 q/s, ETA 345s
+  [1082/2400] 69.6% accuracy, 3.8 q/s, ETA 345s
+  [1083/2400] 69.5% accuracy, 3.8 q/s, ETA 344s
+  [1084/2400] 69.5% accuracy, 3.8 q/s, ETA 343s
+  [1085/2400] 69.5% accuracy, 3.8 q/s, ETA 344s
+  [1086/2400] 69.4% accuracy, 3.8 q/s, ETA 343s
+  [1087/2400] 69.5% accuracy, 3.8 q/s, ETA 343s
+  [1088/2400] 69.4% accuracy, 3.8 q/s, ETA 342s
+  [1089/2400] 69.3% accuracy, 3.8 q/s, ETA 343s
+  [1090/2400] 69.4% accuracy, 3.8 q/s, ETA 342s
+  [1091/2400] 69.3% accuracy, 3.8 q/s, ETA 342s
+  [1092/2400] 69.3% accuracy, 3.8 q/s, ETA 341s
+  [1093/2400] 69.3% accuracy, 3.8 q/s, ETA 342s
+  [1094/2400] 69.2% accuracy, 3.8 q/s, ETA 341s
+  [1095/2400] 69.1% accuracy, 3.8 q/s, ETA 341s
+  [1096/2400] 69.2% accuracy, 3.8 q/s, ETA 340s
+  [1097/2400] 69.1% accuracy, 3.8 q/s, ETA 341s
+  [1098/2400] 69.0% accuracy, 3.8 q/s, ETA 340s
+  [1099/2400] 69.0% accuracy, 3.8 q/s, ETA 340s
+  [1100/2400] 69.0% accuracy, 3.8 q/s, ETA 339s
+  [1101/2400] 68.9% accuracy, 3.8 q/s, ETA 339s
+  [1102/2400] 69.0% accuracy, 3.8 q/s, ETA 339s
+  [1103/2400] 68.9% accuracy, 3.8 q/s, ETA 338s
+  [1104/2400] 68.8% accuracy, 3.8 q/s, ETA 338s
+  [1105/2400] 68.8% accuracy, 3.8 q/s, ETA 338s
+  [1106/2400] 68.8% accuracy, 3.8 q/s, ETA 338s
+  [1107/2400] 68.8% accuracy, 3.8 q/s, ETA 337s
+  [1108/2400] 68.8% accuracy, 3.8 q/s, ETA 337s
+  [1109/2400] 68.8% accuracy, 3.8 q/s, ETA 337s
+  [1110/2400] 68.7% accuracy, 3.8 q/s, ETA 337s
+  [1111/2400] 68.8% accuracy, 3.8 q/s, ETA 336s
+  [1112/2400] 68.8% accuracy, 3.8 q/s, ETA 336s
+  [1113/2400] 68.7% accuracy, 3.8 q/s, ETA 336s
+  [1114/2400] 68.7% accuracy, 3.8 q/s, ETA 336s
+  [1115/2400] 68.7% accuracy, 3.8 q/s, ETA 335s
+  [1116/2400] 68.7% accuracy, 3.8 q/s, ETA 334s
+  [1117/2400] 68.7% accuracy, 3.8 q/s, ETA 335s
+  [1118/2400] 68.6% accuracy, 3.8 q/s, ETA 334s
+  [1119/2400] 68.5% accuracy, 3.8 q/s, ETA 334s
+  [1120/2400] 68.6% accuracy, 3.8 q/s, ETA 333s
+  [1121/2400] 68.6% accuracy, 3.8 q/s, ETA 333s
+  [1122/2400] 68.6% accuracy, 3.8 q/s, ETA 333s
+  [1123/2400] 68.6% accuracy, 3.8 q/s, ETA 332s
+  [1124/2400] 68.6% accuracy, 3.8 q/s, ETA 332s
+  [1125/2400] 68.5% accuracy, 3.8 q/s, ETA 332s
+  [1126/2400] 68.5% accuracy, 3.8 q/s, ETA 331s
+  [1127/2400] 68.5% accuracy, 3.8 q/s, ETA 331s
+  [1128/2400] 68.5% accuracy, 3.9 q/s, ETA 330s
+  [1129/2400] 68.5% accuracy, 3.8 q/s, ETA 330s
+  [1130/2400] 68.4% accuracy, 3.8 q/s, ETA 330s
+  [1131/2400] 68.3% accuracy, 3.9 q/s, ETA 329s
+  [1132/2400] 68.3% accuracy, 3.9 q/s, ETA 329s
+  [1133/2400] 68.3% accuracy, 3.9 q/s, ETA 329s
+  [1134/2400] 68.3% accuracy, 3.9 q/s, ETA 328s
+  [1135/2400] 68.3% accuracy, 3.9 q/s, ETA 328s
+  [1136/2400] 68.2% accuracy, 3.9 q/s, ETA 327s
+  [1137/2400] 68.2% accuracy, 3.9 q/s, ETA 327s
+  [1138/2400] 68.2% accuracy, 3.9 q/s, ETA 327s
+  [1139/2400] 68.1% accuracy, 3.9 q/s, ETA 326s
+  [1140/2400] 68.1% accuracy, 3.9 q/s, ETA 326s
+  [1141/2400] 68.1% accuracy, 3.9 q/s, ETA 326s
+  [1142/2400] 68.1% accuracy, 3.9 q/s, ETA 325s
+  [1143/2400] 68.2% accuracy, 3.9 q/s, ETA 325s
+  [1144/2400] 68.2% accuracy, 3.9 q/s, ETA 324s
+  [1145/2400] 68.1% accuracy, 3.9 q/s, ETA 324s
+  [1146/2400] 68.2% accuracy, 3.9 q/s, ETA 324s
+  [1147/2400] 68.1% accuracy, 3.9 q/s, ETA 323s
+  [1148/2400] 68.1% accuracy, 3.9 q/s, ETA 323s
+  [1149/2400] 68.1% accuracy, 3.9 q/s, ETA 323s
+  [1150/2400] 68.2% accuracy, 3.9 q/s, ETA 322s
+  [1151/2400] 68.1% accuracy, 3.9 q/s, ETA 322s
+  [1152/2400] 68.1% accuracy, 3.9 q/s, ETA 321s
+  [1153/2400] 68.0% accuracy, 3.9 q/s, ETA 321s
+  [1154/2400] 68.0% accuracy, 3.9 q/s, ETA 321s
+  [1155/2400] 68.1% accuracy, 3.9 q/s, ETA 320s
+  [1156/2400] 68.1% accuracy, 3.9 q/s, ETA 320s
+  [1157/2400] 68.1% accuracy, 3.9 q/s, ETA 320s
+  [1158/2400] 68.0% accuracy, 3.9 q/s, ETA 320s
+  [1159/2400] 68.1% accuracy, 3.9 q/s, ETA 319s
+  [1160/2400] 68.0% accuracy, 3.9 q/s, ETA 318s
+  [1161/2400] 68.0% accuracy, 3.9 q/s, ETA 318s
+  [1162/2400] 68.0% accuracy, 3.9 q/s, ETA 318s
+  [1163/2400] 68.0% accuracy, 3.9 q/s, ETA 318s
+  [1164/2400] 68.0% accuracy, 3.9 q/s, ETA 317s
+  [1165/2400] 68.1% accuracy, 3.9 q/s, ETA 317s
+  [1166/2400] 68.1% accuracy, 3.9 q/s, ETA 317s
+  [1167/2400] 68.1% accuracy, 3.9 q/s, ETA 316s
+  [1168/2400] 68.2% accuracy, 3.9 q/s, ETA 316s
+  [1169/2400] 68.2% accuracy, 3.9 q/s, ETA 316s
+  [1170/2400] 68.1% accuracy, 3.9 q/s, ETA 315s
+  [1171/2400] 68.1% accuracy, 3.9 q/s, ETA 315s
+  [1172/2400] 68.0% accuracy, 3.9 q/s, ETA 314s
+  [1173/2400] 68.0% accuracy, 3.9 q/s, ETA 314s
+  [1174/2400] 68.0% accuracy, 3.9 q/s, ETA 314s
+  [1175/2400] 67.9% accuracy, 3.9 q/s, ETA 314s
+  [1176/2400] 67.9% accuracy, 3.9 q/s, ETA 313s
+  [1177/2400] 67.8% accuracy, 3.9 q/s, ETA 313s
+  [1178/2400] 67.7% accuracy, 3.9 q/s, ETA 313s
+  [1179/2400] 67.7% accuracy, 3.9 q/s, ETA 312s
+  [1180/2400] 67.6% accuracy, 3.9 q/s, ETA 312s
+  [1181/2400] 67.7% accuracy, 3.9 q/s, ETA 312s
+  [1182/2400] 67.7% accuracy, 3.9 q/s, ETA 311s
+  [1183/2400] 67.7% accuracy, 3.9 q/s, ETA 311s
+  [1184/2400] 67.7% accuracy, 3.9 q/s, ETA 310s
+  [1185/2400] 67.7% accuracy, 3.9 q/s, ETA 310s
+  [1186/2400] 67.7% accuracy, 3.9 q/s, ETA 310s
+  [1187/2400] 67.6% accuracy, 3.9 q/s, ETA 309s
+  [1188/2400] 67.7% accuracy, 3.9 q/s, ETA 309s
+  [1189/2400] 67.7% accuracy, 3.9 q/s, ETA 309s
+  [1190/2400] 67.6% accuracy, 3.9 q/s, ETA 309s
+  [1191/2400] 67.6% accuracy, 3.9 q/s, ETA 308s
+  [1192/2400] 67.6% accuracy, 3.9 q/s, ETA 307s
+  [1193/2400] 67.6% accuracy, 3.9 q/s, ETA 307s
+  [1194/2400] 67.5% accuracy, 3.9 q/s, ETA 307s
+  [1195/2400] 67.5% accuracy, 3.9 q/s, ETA 307s
+  [1196/2400] 67.6% accuracy, 3.9 q/s, ETA 306s
+  [1197/2400] 67.5% accuracy, 3.9 q/s, ETA 306s
+  [1198/2400] 67.4% accuracy, 3.9 q/s, ETA 306s
+  [1199/2400] 67.4% accuracy, 3.9 q/s, ETA 305s
+  [1200/2400] 67.3% accuracy, 3.9 q/s, ETA 305s
+  [1201/2400] 67.3% accuracy, 3.9 q/s, ETA 305s
+  [1202/2400] 67.2% accuracy, 3.9 q/s, ETA 304s
+  [1203/2400] 67.2% accuracy, 3.9 q/s, ETA 304s
+  [1204/2400] 67.3% accuracy, 3.9 q/s, ETA 303s
+  [1205/2400] 67.3% accuracy, 3.9 q/s, ETA 303s
+  [1206/2400] 67.3% accuracy, 3.9 q/s, ETA 303s
+  [1207/2400] 67.4% accuracy, 3.9 q/s, ETA 302s
+  [1208/2400] 67.4% accuracy, 3.9 q/s, ETA 302s
+  [1209/2400] 67.4% accuracy, 3.9 q/s, ETA 302s
+  [1210/2400] 67.4% accuracy, 3.9 q/s, ETA 302s
+  [1211/2400] 67.4% accuracy, 3.9 q/s, ETA 301s
+  [1212/2400] 67.4% accuracy, 4.0 q/s, ETA 301s
+  [1213/2400] 67.4% accuracy, 3.9 q/s, ETA 301s
+  [1214/2400] 67.4% accuracy, 3.9 q/s, ETA 300s
+  [1215/2400] 67.4% accuracy, 4.0 q/s, ETA 300s
+  [1216/2400] 67.4% accuracy, 4.0 q/s, ETA 299s
+  [1217/2400] 67.5% accuracy, 4.0 q/s, ETA 299s
+  [1218/2400] 67.4% accuracy, 4.0 q/s, ETA 299s
+  [1219/2400] 67.4% accuracy, 4.0 q/s, ETA 299s
+  [1220/2400] 67.4% accuracy, 4.0 q/s, ETA 298s
+  [1221/2400] 67.3% accuracy, 4.0 q/s, ETA 298s
+  [1222/2400] 67.3% accuracy, 4.0 q/s, ETA 298s
+  [1223/2400] 67.4% accuracy, 4.0 q/s, ETA 297s
+  [1224/2400] 67.4% accuracy, 4.0 q/s, ETA 297s
+  [1225/2400] 67.4% accuracy, 4.0 q/s, ETA 297s
+  [1226/2400] 67.4% accuracy, 4.0 q/s, ETA 297s
+  [1227/2400] 67.3% accuracy, 4.0 q/s, ETA 296s
+  [1228/2400] 67.3% accuracy, 4.0 q/s, ETA 296s
+  [1229/2400] 67.3% accuracy, 4.0 q/s, ETA 296s
+  [1230/2400] 67.3% accuracy, 4.0 q/s, ETA 295s
+  [1231/2400] 67.3% accuracy, 4.0 q/s, ETA 295s
+  [1232/2400] 67.3% accuracy, 4.0 q/s, ETA 294s
+  [1233/2400] 67.2% accuracy, 4.0 q/s, ETA 294s
+  [1234/2400] 67.3% accuracy, 4.0 q/s, ETA 294s
+  [1235/2400] 67.3% accuracy, 4.0 q/s, ETA 293s
+  [1236/2400] 67.3% accuracy, 4.0 q/s, ETA 293s
+  [1237/2400] 67.3% accuracy, 4.0 q/s, ETA 293s
+  [1238/2400] 67.3% accuracy, 4.0 q/s, ETA 293s
+  [1239/2400] 67.3% accuracy, 4.0 q/s, ETA 292s
+  [1240/2400] 67.3% accuracy, 4.0 q/s, ETA 292s
+  [1241/2400] 67.4% accuracy, 4.0 q/s, ETA 292s
+  [1242/2400] 67.4% accuracy, 4.0 q/s, ETA 291s
+  [1243/2400] 67.4% accuracy, 4.0 q/s, ETA 291s
+  [1244/2400] 67.4% accuracy, 4.0 q/s, ETA 290s
+  [1245/2400] 67.5% accuracy, 4.0 q/s, ETA 290s
+  [1246/2400] 67.5% accuracy, 4.0 q/s, ETA 290s
+  [1247/2400] 67.5% accuracy, 4.0 q/s, ETA 290s
+  [1248/2400] 67.5% accuracy, 4.0 q/s, ETA 289s
+  [1249/2400] 67.6% accuracy, 4.0 q/s, ETA 289s
+  [1250/2400] 67.6% accuracy, 4.0 q/s, ETA 289s
+  [1251/2400] 67.5% accuracy, 4.0 q/s, ETA 288s
+  [1252/2400] 67.6% accuracy, 4.0 q/s, ETA 288s
+  [1253/2400] 67.6% accuracy, 4.0 q/s, ETA 288s
+  [1254/2400] 67.5% accuracy, 4.0 q/s, ETA 287s
+  [1255/2400] 67.6% accuracy, 4.0 q/s, ETA 287s
+  [1256/2400] 67.6% accuracy, 4.0 q/s, ETA 287s
+  [1257/2400] 67.6% accuracy, 4.0 q/s, ETA 286s
+  [1258/2400] 67.6% accuracy, 4.0 q/s, ETA 286s
+  [1259/2400] 67.6% accuracy, 4.0 q/s, ETA 286s
+  [1260/2400] 67.6% accuracy, 4.0 q/s, ETA 285s
+  [1261/2400] 67.6% accuracy, 4.0 q/s, ETA 285s
+  [1262/2400] 67.6% accuracy, 4.0 q/s, ETA 285s
+  [1263/2400] 67.6% accuracy, 4.0 q/s, ETA 284s
+  [1264/2400] 67.6% accuracy, 4.0 q/s, ETA 284s
+  [1265/2400] 67.7% accuracy, 4.0 q/s, ETA 284s
+  [1266/2400] 67.6% accuracy, 4.0 q/s, ETA 284s
+  [1267/2400] 67.6% accuracy, 4.0 q/s, ETA 283s
+  [1268/2400] 67.7% accuracy, 4.0 q/s, ETA 283s
+  [1269/2400] 67.7% accuracy, 4.0 q/s, ETA 283s
+  [1270/2400] 67.7% accuracy, 4.0 q/s, ETA 282s
+  [1271/2400] 67.7% accuracy, 4.0 q/s, ETA 282s
+  [1272/2400] 67.8% accuracy, 4.0 q/s, ETA 281s
+  [1273/2400] 67.7% accuracy, 4.0 q/s, ETA 282s
+  [1274/2400] 67.7% accuracy, 4.0 q/s, ETA 281s
+  [1275/2400] 67.8% accuracy, 4.0 q/s, ETA 281s
+  [1276/2400] 67.8% accuracy, 4.0 q/s, ETA 280s
+  [1277/2400] 67.8% accuracy, 4.0 q/s, ETA 280s
+  [1278/2400] 67.8% accuracy, 4.0 q/s, ETA 280s
+  [1279/2400] 67.9% accuracy, 4.0 q/s, ETA 279s
+  [1280/2400] 67.8% accuracy, 4.0 q/s, ETA 279s
+  [1281/2400] 67.8% accuracy, 4.0 q/s, ETA 279s
+  [1282/2400] 67.8% accuracy, 4.0 q/s, ETA 279s
+  [1283/2400] 67.7% accuracy, 4.0 q/s, ETA 278s
+  [1284/2400] 67.8% accuracy, 4.0 q/s, ETA 278s
+  [1285/2400] 67.7% accuracy, 4.0 q/s, ETA 278s
+  [1286/2400] 67.7% accuracy, 4.0 q/s, ETA 277s
+  [1287/2400] 67.8% accuracy, 4.0 q/s, ETA 277s
+  [1288/2400] 67.8% accuracy, 4.0 q/s, ETA 276s
+  [1289/2400] 67.8% accuracy, 4.0 q/s, ETA 277s
+  [1290/2400] 67.8% accuracy, 4.0 q/s, ETA 276s
+  [1291/2400] 67.8% accuracy, 4.0 q/s, ETA 276s
+  [1292/2400] 67.8% accuracy, 4.0 q/s, ETA 275s
+  [1293/2400] 67.7% accuracy, 4.0 q/s, ETA 275s
+  [1294/2400] 67.8% accuracy, 4.0 q/s, ETA 275s
+  [1295/2400] 67.8% accuracy, 4.0 q/s, ETA 274s
+  [1296/2400] 67.8% accuracy, 4.0 q/s, ETA 274s
+  [1297/2400] 67.8% accuracy, 4.0 q/s, ETA 274s
+  [1298/2400] 67.9% accuracy, 4.0 q/s, ETA 274s
+  [1299/2400] 67.8% accuracy, 4.0 q/s, ETA 273s
+  [1300/2400] 67.8% accuracy, 4.0 q/s, ETA 273s
+  [1301/2400] 67.8% accuracy, 4.0 q/s, ETA 273s
+  [1302/2400] 67.8% accuracy, 4.0 q/s, ETA 272s
+  [1303/2400] 67.8% accuracy, 4.0 q/s, ETA 272s
+  [1304/2400] 67.9% accuracy, 4.0 q/s, ETA 271s
+  [1305/2400] 67.9% accuracy, 4.0 q/s, ETA 271s
+  [1306/2400] 67.8% accuracy, 4.0 q/s, ETA 271s
+  [1307/2400] 67.8% accuracy, 4.0 q/s, ETA 271s
+  [1308/2400] 67.8% accuracy, 4.0 q/s, ETA 270s
+  [1309/2400] 67.8% accuracy, 4.0 q/s, ETA 270s
+  [1310/2400] 67.7% accuracy, 4.0 q/s, ETA 270s
+  [1311/2400] 67.7% accuracy, 4.0 q/s, ETA 269s
+  [1312/2400] 67.8% accuracy, 4.0 q/s, ETA 269s
+  [1313/2400] 67.8% accuracy, 4.0 q/s, ETA 269s
+  [1314/2400] 67.7% accuracy, 4.0 q/s, ETA 269s
+  [1315/2400] 67.8% accuracy, 4.0 q/s, ETA 268s
+  [1316/2400] 67.8% accuracy, 4.0 q/s, ETA 268s
+  [1317/2400] 67.7% accuracy, 4.0 q/s, ETA 268s
+  [1318/2400] 67.8% accuracy, 4.0 q/s, ETA 267s
+  [1319/2400] 67.8% accuracy, 4.0 q/s, ETA 267s
+  [1320/2400] 67.8% accuracy, 4.1 q/s, ETA 267s
+  [1321/2400] 67.8% accuracy, 4.0 q/s, ETA 267s
+  [1322/2400] 67.8% accuracy, 4.0 q/s, ETA 266s
+  [1323/2400] 67.7% accuracy, 4.1 q/s, ETA 266s
+  [1324/2400] 67.7% accuracy, 4.1 q/s, ETA 265s
+  [1325/2400] 67.8% accuracy, 4.1 q/s, ETA 265s
+  [1326/2400] 67.8% accuracy, 4.1 q/s, ETA 265s
+  [1327/2400] 67.7% accuracy, 4.1 q/s, ETA 265s
+  [1328/2400] 67.8% accuracy, 4.1 q/s, ETA 264s
+  [1329/2400] 67.7% accuracy, 4.1 q/s, ETA 264s
+  [1330/2400] 67.7% accuracy, 4.1 q/s, ETA 264s
+  [1331/2400] 67.8% accuracy, 4.1 q/s, ETA 263s
+  [1332/2400] 67.7% accuracy, 4.1 q/s, ETA 263s
+  [1333/2400] 67.7% accuracy, 4.1 q/s, ETA 263s
+  [1334/2400] 67.7% accuracy, 4.1 q/s, ETA 263s
+  [1335/2400] 67.7% accuracy, 4.1 q/s, ETA 262s
+  [1336/2400] 67.7% accuracy, 4.1 q/s, ETA 262s
+  [1337/2400] 67.7% accuracy, 4.1 q/s, ETA 262s
+  [1338/2400] 67.7% accuracy, 4.1 q/s, ETA 261s
+  [1339/2400] 67.7% accuracy, 4.1 q/s, ETA 261s
+  [1340/2400] 67.7% accuracy, 4.1 q/s, ETA 260s
+  [1341/2400] 67.7% accuracy, 4.1 q/s, ETA 260s
+  [1342/2400] 67.7% accuracy, 4.1 q/s, ETA 260s
+  [1343/2400] 67.8% accuracy, 4.1 q/s, ETA 260s
+  [1344/2400] 67.7% accuracy, 4.1 q/s, ETA 259s
+  [1345/2400] 67.7% accuracy, 4.1 q/s, ETA 259s
+  [1346/2400] 67.6% accuracy, 4.1 q/s, ETA 259s
+  [1347/2400] 67.6% accuracy, 4.1 q/s, ETA 258s
+  [1348/2400] 67.5% accuracy, 4.1 q/s, ETA 258s
+  [1349/2400] 67.5% accuracy, 4.1 q/s, ETA 258s
+  [1350/2400] 67.5% accuracy, 4.1 q/s, ETA 258s
+  [1351/2400] 67.4% accuracy, 4.1 q/s, ETA 257s
+  [1352/2400] 67.5% accuracy, 4.1 q/s, ETA 257s
+  [1353/2400] 67.4% accuracy, 4.1 q/s, ETA 257s
+  [1354/2400] 67.4% accuracy, 4.1 q/s, ETA 256s
+  [1355/2400] 67.5% accuracy, 4.1 q/s, ETA 256s
+  [1356/2400] 67.5% accuracy, 4.1 q/s, ETA 256s
+  [1357/2400] 67.4% accuracy, 4.1 q/s, ETA 256s
+  [1358/2400] 67.5% accuracy, 4.1 q/s, ETA 255s
+  [1359/2400] 67.4% accuracy, 4.1 q/s, ETA 255s
+  [1360/2400] 67.4% accuracy, 4.1 q/s, ETA 254s
+  [1361/2400] 67.5% accuracy, 4.1 q/s, ETA 254s
+  [1362/2400] 67.5% accuracy, 4.1 q/s, ETA 254s
+  [1363/2400] 67.4% accuracy, 4.1 q/s, ETA 254s
+  [1364/2400] 67.4% accuracy, 4.1 q/s, ETA 253s
+  [1365/2400] 67.3% accuracy, 4.1 q/s, ETA 253s
+  [1366/2400] 67.3% accuracy, 4.1 q/s, ETA 253s
+  [1367/2400] 67.4% accuracy, 4.1 q/s, ETA 252s
+  [1368/2400] 67.4% accuracy, 4.1 q/s, ETA 252s
+  [1369/2400] 67.3% accuracy, 4.1 q/s, ETA 252s
+  [1370/2400] 67.4% accuracy, 4.1 q/s, ETA 252s
+  [1371/2400] 67.4% accuracy, 4.1 q/s, ETA 251s
+  [1372/2400] 67.3% accuracy, 4.1 q/s, ETA 251s
+  [1373/2400] 67.4% accuracy, 4.1 q/s, ETA 251s
+  [1374/2400] 67.4% accuracy, 4.1 q/s, ETA 250s
+  [1375/2400] 67.3% accuracy, 4.1 q/s, ETA 250s
+  [1376/2400] 67.3% accuracy, 4.1 q/s, ETA 249s
+  [1377/2400] 67.2% accuracy, 4.1 q/s, ETA 249s
+  [1378/2400] 67.2% accuracy, 4.1 q/s, ETA 249s
+  [1379/2400] 67.2% accuracy, 4.1 q/s, ETA 249s
+  [1380/2400] 67.2% accuracy, 4.1 q/s, ETA 248s
+  [1381/2400] 67.2% accuracy, 4.1 q/s, ETA 248s
+  [1382/2400] 67.1% accuracy, 4.1 q/s, ETA 248s
+  [1383/2400] 67.1% accuracy, 4.1 q/s, ETA 248s
+  [1384/2400] 67.1% accuracy, 4.1 q/s, ETA 247s
+  [1385/2400] 67.1% accuracy, 4.1 q/s, ETA 247s
+  [1386/2400] 67.2% accuracy, 4.1 q/s, ETA 247s
+  [1387/2400] 67.1% accuracy, 4.1 q/s, ETA 246s
+  [1388/2400] 67.1% accuracy, 4.1 q/s, ETA 246s
+  [1389/2400] 67.0% accuracy, 4.1 q/s, ETA 246s
+  [1390/2400] 67.1% accuracy, 4.1 q/s, ETA 246s
+  [1391/2400] 67.1% accuracy, 4.1 q/s, ETA 245s
+  [1392/2400] 67.1% accuracy, 4.1 q/s, ETA 245s
+  [1393/2400] 67.0% accuracy, 4.1 q/s, ETA 245s
+  [1394/2400] 67.0% accuracy, 4.1 q/s, ETA 244s
+  [1395/2400] 67.0% accuracy, 4.1 q/s, ETA 244s
+  [1396/2400] 67.0% accuracy, 4.1 q/s, ETA 244s
+  [1397/2400] 66.9% accuracy, 4.1 q/s, ETA 244s
+  [1398/2400] 67.0% accuracy, 4.1 q/s, ETA 243s
+  [1399/2400] 67.0% accuracy, 4.1 q/s, ETA 243s
+  [1400/2400] 66.9% accuracy, 4.1 q/s, ETA 242s
+  [1401/2400] 66.9% accuracy, 4.1 q/s, ETA 242s
+  [1402/2400] 66.8% accuracy, 4.1 q/s, ETA 242s
+  [1403/2400] 66.9% accuracy, 4.1 q/s, ETA 242s
+  [1404/2400] 66.9% accuracy, 4.1 q/s, ETA 241s
+  [1405/2400] 66.8% accuracy, 4.1 q/s, ETA 241s
+  [1406/2400] 66.9% accuracy, 4.1 q/s, ETA 241s
+  [1407/2400] 66.9% accuracy, 4.1 q/s, ETA 240s
+  [1408/2400] 66.9% accuracy, 4.1 q/s, ETA 240s
+  [1409/2400] 66.9% accuracy, 4.1 q/s, ETA 240s
+  [1410/2400] 66.8% accuracy, 4.1 q/s, ETA 240s
+  [1411/2400] 66.8% accuracy, 4.1 q/s, ETA 239s
+  [1412/2400] 66.8% accuracy, 4.1 q/s, ETA 239s
+  [1413/2400] 66.8% accuracy, 4.1 q/s, ETA 239s
+  [1414/2400] 66.8% accuracy, 4.1 q/s, ETA 239s
+  [1415/2400] 66.9% accuracy, 4.1 q/s, ETA 238s
+  [1416/2400] 66.9% accuracy, 4.1 q/s, ETA 238s
+  [1417/2400] 66.9% accuracy, 4.1 q/s, ETA 238s
+  [1418/2400] 66.9% accuracy, 4.1 q/s, ETA 237s
+  [1419/2400] 66.9% accuracy, 4.1 q/s, ETA 237s
+  [1420/2400] 66.9% accuracy, 4.1 q/s, ETA 237s
+  [1421/2400] 66.9% accuracy, 4.1 q/s, ETA 237s
+  [1422/2400] 66.9% accuracy, 4.1 q/s, ETA 236s
+  [1423/2400] 66.9% accuracy, 4.1 q/s, ETA 236s
+  [1424/2400] 66.9% accuracy, 4.1 q/s, ETA 236s
+  [1425/2400] 66.9% accuracy, 4.1 q/s, ETA 236s
+  [1426/2400] 66.8% accuracy, 4.1 q/s, ETA 235s
+  [1427/2400] 66.9% accuracy, 4.1 q/s, ETA 235s
+  [1428/2400] 66.9% accuracy, 4.1 q/s, ETA 234s
+  [1429/2400] 66.8% accuracy, 4.1 q/s, ETA 234s
+  [1430/2400] 66.9% accuracy, 4.1 q/s, ETA 234s
+  [1431/2400] 66.8% accuracy, 4.1 q/s, ETA 234s
+  [1432/2400] 66.8% accuracy, 4.2 q/s, ETA 233s
+  [1433/2400] 66.8% accuracy, 4.1 q/s, ETA 233s
+  [1434/2400] 66.7% accuracy, 4.1 q/s, ETA 233s
+  [1435/2400] 66.8% accuracy, 4.2 q/s, ETA 232s
+  [1436/2400] 66.8% accuracy, 4.2 q/s, ETA 232s
+  [1437/2400] 66.8% accuracy, 4.2 q/s, ETA 232s
+  [1438/2400] 66.8% accuracy, 4.2 q/s, ETA 232s
+  [1439/2400] 66.9% accuracy, 4.2 q/s, ETA 231s
+  [1440/2400] 66.9% accuracy, 4.2 q/s, ETA 231s
+  [1441/2400] 66.8% accuracy, 4.2 q/s, ETA 231s
+  [1442/2400] 66.9% accuracy, 4.2 q/s, ETA 231s
+  [1443/2400] 66.9% accuracy, 4.2 q/s, ETA 230s
+  [1444/2400] 66.9% accuracy, 4.2 q/s, ETA 230s
+  [1445/2400] 66.9% accuracy, 4.2 q/s, ETA 230s
+  [1446/2400] 66.9% accuracy, 4.2 q/s, ETA 229s
+  [1447/2400] 67.0% accuracy, 4.2 q/s, ETA 229s
+  [1448/2400] 67.0% accuracy, 4.2 q/s, ETA 229s
+  [1449/2400] 66.9% accuracy, 4.2 q/s, ETA 229s
+  [1450/2400] 66.9% accuracy, 4.2 q/s, ETA 228s
+  [1451/2400] 66.9% accuracy, 4.2 q/s, ETA 228s
+  [1452/2400] 66.9% accuracy, 4.2 q/s, ETA 227s
+  [1453/2400] 67.0% accuracy, 4.2 q/s, ETA 227s
+  [1454/2400] 66.9% accuracy, 4.2 q/s, ETA 227s
+  [1455/2400] 66.9% accuracy, 4.2 q/s, ETA 227s
+  [1456/2400] 66.8% accuracy, 4.2 q/s, ETA 226s
+  [1457/2400] 66.8% accuracy, 4.2 q/s, ETA 226s
+  [1458/2400] 66.9% accuracy, 4.2 q/s, ETA 226s
+  [1459/2400] 66.8% accuracy, 4.2 q/s, ETA 226s
+  [1460/2400] 66.8% accuracy, 4.2 q/s, ETA 225s
+  [1461/2400] 66.9% accuracy, 4.2 q/s, ETA 225s
+  [1462/2400] 66.9% accuracy, 4.2 q/s, ETA 225s
+  [1463/2400] 66.9% accuracy, 4.2 q/s, ETA 225s
+  [1464/2400] 66.9% accuracy, 4.2 q/s, ETA 224s
+  [1465/2400] 67.0% accuracy, 4.2 q/s, ETA 224s
+  [1466/2400] 67.0% accuracy, 4.2 q/s, ETA 224s
+  [1467/2400] 67.0% accuracy, 4.2 q/s, ETA 224s
+  [1468/2400] 67.0% accuracy, 4.2 q/s, ETA 223s
+  [1469/2400] 67.1% accuracy, 4.2 q/s, ETA 223s
+  [1470/2400] 67.0% accuracy, 4.2 q/s, ETA 223s
+  [1471/2400] 67.0% accuracy, 4.2 q/s, ETA 223s
+  [1472/2400] 66.9% accuracy, 4.2 q/s, ETA 222s
+  [1473/2400] 66.9% accuracy, 4.2 q/s, ETA 222s
+  [1474/2400] 66.9% accuracy, 4.2 q/s, ETA 222s
+  [1475/2400] 66.9% accuracy, 4.2 q/s, ETA 221s
+  [1476/2400] 66.9% accuracy, 4.2 q/s, ETA 221s
+  [1477/2400] 67.0% accuracy, 4.2 q/s, ETA 221s
+  [1478/2400] 66.9% accuracy, 4.2 q/s, ETA 221s
+  [1479/2400] 66.9% accuracy, 4.2 q/s, ETA 220s
+  [1480/2400] 66.8% accuracy, 4.2 q/s, ETA 220s
+  [1481/2400] 66.8% accuracy, 4.2 q/s, ETA 220s
+  [1482/2400] 66.9% accuracy, 4.2 q/s, ETA 220s
+  [1483/2400] 66.9% accuracy, 4.2 q/s, ETA 219s
+  [1484/2400] 66.8% accuracy, 4.2 q/s, ETA 219s
+  [1485/2400] 66.9% accuracy, 4.2 q/s, ETA 219s
+  [1486/2400] 66.9% accuracy, 4.2 q/s, ETA 218s
+  [1487/2400] 66.9% accuracy, 4.2 q/s, ETA 218s
+  [1488/2400] 66.9% accuracy, 4.2 q/s, ETA 218s
+  [1489/2400] 66.9% accuracy, 4.2 q/s, ETA 218s
+  [1490/2400] 66.9% accuracy, 4.2 q/s, ETA 217s
+  [1491/2400] 66.9% accuracy, 4.2 q/s, ETA 217s
+  [1492/2400] 66.9% accuracy, 4.2 q/s, ETA 217s
+  [1493/2400] 66.9% accuracy, 4.2 q/s, ETA 217s
+  [1494/2400] 66.9% accuracy, 4.2 q/s, ETA 216s
+  [1495/2400] 67.0% accuracy, 4.2 q/s, ETA 216s
+  [1496/2400] 67.0% accuracy, 4.2 q/s, ETA 215s
+  [1497/2400] 66.9% accuracy, 4.2 q/s, ETA 215s
+  [1498/2400] 66.9% accuracy, 4.2 q/s, ETA 215s
+  [1499/2400] 66.8% accuracy, 4.2 q/s, ETA 215s
+  [1500/2400] 66.9% accuracy, 4.2 q/s, ETA 214s
+  [1501/2400] 66.8% accuracy, 4.2 q/s, ETA 214s
+  [1502/2400] 66.8% accuracy, 4.2 q/s, ETA 214s
+  [1503/2400] 66.8% accuracy, 4.2 q/s, ETA 214s
+  [1504/2400] 66.8% accuracy, 4.2 q/s, ETA 213s
+  [1505/2400] 66.8% accuracy, 4.2 q/s, ETA 213s
+  [1506/2400] 66.8% accuracy, 4.2 q/s, ETA 213s
+  [1507/2400] 66.8% accuracy, 4.2 q/s, ETA 213s
+  [1508/2400] 66.8% accuracy, 4.2 q/s, ETA 212s
+  [1509/2400] 66.9% accuracy, 4.2 q/s, ETA 212s
+  [1510/2400] 66.8% accuracy, 4.2 q/s, ETA 212s
+  [1511/2400] 66.8% accuracy, 4.2 q/s, ETA 212s
+  [1512/2400] 66.8% accuracy, 4.2 q/s, ETA 211s
+  [1513/2400] 66.8% accuracy, 4.2 q/s, ETA 211s
+  [1514/2400] 66.7% accuracy, 4.2 q/s, ETA 211s
+  [1515/2400] 66.7% accuracy, 4.2 q/s, ETA 211s
+  [1516/2400] 66.8% accuracy, 4.2 q/s, ETA 210s
+  [1517/2400] 66.8% accuracy, 4.2 q/s, ETA 210s
+  [1518/2400] 66.8% accuracy, 4.2 q/s, ETA 210s
+  [1519/2400] 66.8% accuracy, 4.2 q/s, ETA 210s
+  [1520/2400] 66.8% accuracy, 4.2 q/s, ETA 209s
+  [1521/2400] 66.8% accuracy, 4.2 q/s, ETA 209s
+  [1522/2400] 66.8% accuracy, 4.2 q/s, ETA 209s
+  [1523/2400] 66.8% accuracy, 4.2 q/s, ETA 208s
+  [1524/2400] 66.9% accuracy, 4.2 q/s, ETA 208s
+  [1525/2400] 66.9% accuracy, 4.2 q/s, ETA 208s
+  [1526/2400] 66.9% accuracy, 4.2 q/s, ETA 208s
+  [1527/2400] 66.9% accuracy, 4.2 q/s, ETA 207s
+  [1528/2400] 66.9% accuracy, 4.2 q/s, ETA 207s
+  [1529/2400] 66.9% accuracy, 4.2 q/s, ETA 207s
+  [1530/2400] 66.9% accuracy, 4.2 q/s, ETA 207s
+  [1531/2400] 66.9% accuracy, 4.2 q/s, ETA 206s
+  [1532/2400] 67.0% accuracy, 4.2 q/s, ETA 206s
+  [1533/2400] 67.0% accuracy, 4.2 q/s, ETA 206s
+  [1534/2400] 67.0% accuracy, 4.2 q/s, ETA 206s
+  [1535/2400] 67.0% accuracy, 4.2 q/s, ETA 205s
+  [1536/2400] 67.1% accuracy, 4.2 q/s, ETA 205s
+  [1537/2400] 67.1% accuracy, 4.2 q/s, ETA 205s
+  [1538/2400] 67.1% accuracy, 4.2 q/s, ETA 205s
+  [1539/2400] 67.1% accuracy, 4.2 q/s, ETA 204s
+  [1540/2400] 67.1% accuracy, 4.2 q/s, ETA 204s
+  [1541/2400] 67.1% accuracy, 4.2 q/s, ETA 204s
+  [1542/2400] 67.1% accuracy, 4.2 q/s, ETA 204s
+  [1543/2400] 67.1% accuracy, 4.2 q/s, ETA 203s
+  [1544/2400] 67.2% accuracy, 4.2 q/s, ETA 203s
+  [1545/2400] 67.2% accuracy, 4.2 q/s, ETA 203s
+  [1546/2400] 67.2% accuracy, 4.2 q/s, ETA 203s
+  [1547/2400] 67.2% accuracy, 4.2 q/s, ETA 202s
+  [1548/2400] 67.2% accuracy, 4.2 q/s, ETA 202s
+  [1549/2400] 67.2% accuracy, 4.2 q/s, ETA 202s
+  [1550/2400] 67.2% accuracy, 4.2 q/s, ETA 202s
+  [1551/2400] 67.2% accuracy, 4.2 q/s, ETA 201s
+  [1552/2400] 67.1% accuracy, 4.2 q/s, ETA 201s
+  [1553/2400] 67.1% accuracy, 4.2 q/s, ETA 201s
+  [1554/2400] 67.1% accuracy, 4.2 q/s, ETA 201s
+  [1555/2400] 67.1% accuracy, 4.2 q/s, ETA 200s
+  [1556/2400] 67.1% accuracy, 4.2 q/s, ETA 200s
+  [1557/2400] 67.1% accuracy, 4.2 q/s, ETA 200s
+  [1558/2400] 67.1% accuracy, 4.2 q/s, ETA 199s
+  [1559/2400] 67.1% accuracy, 4.2 q/s, ETA 199s
+  [1560/2400] 67.1% accuracy, 4.2 q/s, ETA 199s
+  [1561/2400] 67.1% accuracy, 4.2 q/s, ETA 199s
+  [1562/2400] 67.0% accuracy, 4.2 q/s, ETA 199s
+  [1563/2400] 67.0% accuracy, 4.2 q/s, ETA 198s
+  [1564/2400] 67.0% accuracy, 4.2 q/s, ETA 198s
+  [1565/2400] 67.0% accuracy, 4.2 q/s, ETA 198s
+  [1566/2400] 67.0% accuracy, 4.2 q/s, ETA 197s
+  [1567/2400] 67.1% accuracy, 4.2 q/s, ETA 197s
+  [1568/2400] 67.1% accuracy, 4.2 q/s, ETA 197s
+  [1569/2400] 67.1% accuracy, 4.2 q/s, ETA 197s
+  [1570/2400] 67.1% accuracy, 4.2 q/s, ETA 196s
+  [1571/2400] 67.1% accuracy, 4.2 q/s, ETA 196s
+  [1572/2400] 67.1% accuracy, 4.2 q/s, ETA 196s
+  [1573/2400] 67.1% accuracy, 4.2 q/s, ETA 196s
+  [1574/2400] 67.2% accuracy, 4.2 q/s, ETA 195s
+  [1575/2400] 67.2% accuracy, 4.2 q/s, ETA 195s
+  [1576/2400] 67.1% accuracy, 4.2 q/s, ETA 195s
+  [1577/2400] 67.2% accuracy, 4.2 q/s, ETA 195s
+  [1578/2400] 67.2% accuracy, 4.2 q/s, ETA 194s
+  [1579/2400] 67.1% accuracy, 4.2 q/s, ETA 194s
+  [1580/2400] 67.2% accuracy, 4.2 q/s, ETA 194s
+  [1581/2400] 67.2% accuracy, 4.2 q/s, ETA 194s
+  [1582/2400] 67.1% accuracy, 4.2 q/s, ETA 193s
+  [1583/2400] 67.2% accuracy, 4.2 q/s, ETA 193s
+  [1584/2400] 67.2% accuracy, 4.2 q/s, ETA 193s
+  [1585/2400] 67.2% accuracy, 4.2 q/s, ETA 193s
+  [1586/2400] 67.2% accuracy, 4.2 q/s, ETA 192s
+  [1587/2400] 67.2% accuracy, 4.2 q/s, ETA 192s
+  [1588/2400] 67.2% accuracy, 4.2 q/s, ETA 192s
+  [1589/2400] 67.2% accuracy, 4.2 q/s, ETA 192s
+  [1590/2400] 67.2% accuracy, 4.2 q/s, ETA 191s
+  [1591/2400] 67.1% accuracy, 4.2 q/s, ETA 191s
+  [1592/2400] 67.1% accuracy, 4.2 q/s, ETA 191s
+  [1593/2400] 67.2% accuracy, 4.2 q/s, ETA 191s
+  [1594/2400] 67.2% accuracy, 4.2 q/s, ETA 190s
+  [1595/2400] 67.2% accuracy, 4.2 q/s, ETA 190s
+  [1596/2400] 67.2% accuracy, 4.2 q/s, ETA 190s
+  [1597/2400] 67.2% accuracy, 4.2 q/s, ETA 189s
+  [1598/2400] 67.2% accuracy, 4.2 q/s, ETA 189s
+  [1599/2400] 67.2% accuracy, 4.2 q/s, ETA 189s
+  [1600/2400] 67.2% accuracy, 4.2 q/s, ETA 188s
+  [1601/2400] 67.3% accuracy, 4.2 q/s, ETA 188s
+  [1602/2400] 67.2% accuracy, 4.2 q/s, ETA 188s
+  [1603/2400] 67.2% accuracy, 4.2 q/s, ETA 188s
+  [1604/2400] 67.2% accuracy, 4.2 q/s, ETA 187s
+  [1605/2400] 67.2% accuracy, 4.2 q/s, ETA 187s
+  [1606/2400] 67.2% accuracy, 4.2 q/s, ETA 187s
+  [1607/2400] 67.3% accuracy, 4.2 q/s, ETA 187s
+  [1608/2400] 67.2% accuracy, 4.3 q/s, ETA 186s
+  [1609/2400] 67.2% accuracy, 4.2 q/s, ETA 186s
+  [1610/2400] 67.3% accuracy, 4.2 q/s, ETA 186s
+  [1611/2400] 67.2% accuracy, 4.3 q/s, ETA 186s
+  [1612/2400] 67.2% accuracy, 4.3 q/s, ETA 185s
+  [1613/2400] 67.3% accuracy, 4.3 q/s, ETA 185s
+  [1614/2400] 67.3% accuracy, 4.3 q/s, ETA 185s
+  [1615/2400] 67.3% accuracy, 4.3 q/s, ETA 184s
+  [1616/2400] 67.3% accuracy, 4.3 q/s, ETA 184s
+  [1617/2400] 67.3% accuracy, 4.3 q/s, ETA 184s
+  [1618/2400] 67.4% accuracy, 4.3 q/s, ETA 184s
+  [1619/2400] 67.4% accuracy, 4.3 q/s, ETA 183s
+  [1620/2400] 67.4% accuracy, 4.3 q/s, ETA 183s
+  [1621/2400] 67.4% accuracy, 4.3 q/s, ETA 183s
+  [1622/2400] 67.4% accuracy, 4.3 q/s, ETA 183s
+  [1623/2400] 67.4% accuracy, 4.3 q/s, ETA 182s
+  [1624/2400] 67.4% accuracy, 4.3 q/s, ETA 182s
+  [1625/2400] 67.4% accuracy, 4.3 q/s, ETA 182s
+  [1626/2400] 67.5% accuracy, 4.3 q/s, ETA 181s
+  [1627/2400] 67.5% accuracy, 4.3 q/s, ETA 181s
+  [1628/2400] 67.5% accuracy, 4.3 q/s, ETA 181s
+  [1629/2400] 67.5% accuracy, 4.3 q/s, ETA 181s
+  [1630/2400] 67.5% accuracy, 4.3 q/s, ETA 180s
+  [1631/2400] 67.6% accuracy, 4.3 q/s, ETA 180s
+  [1632/2400] 67.6% accuracy, 4.3 q/s, ETA 180s
+  [1633/2400] 67.6% accuracy, 4.3 q/s, ETA 180s
+  [1634/2400] 67.6% accuracy, 4.3 q/s, ETA 179s
+  [1635/2400] 67.6% accuracy, 4.3 q/s, ETA 179s
+  [1636/2400] 67.5% accuracy, 4.3 q/s, ETA 179s
+  [1637/2400] 67.6% accuracy, 4.3 q/s, ETA 179s
+  [1638/2400] 67.6% accuracy, 4.3 q/s, ETA 178s
+  [1639/2400] 67.6% accuracy, 4.3 q/s, ETA 178s
+  [1640/2400] 67.6% accuracy, 4.3 q/s, ETA 178s
+  [1641/2400] 67.5% accuracy, 4.3 q/s, ETA 177s
+  [1642/2400] 67.5% accuracy, 4.3 q/s, ETA 177s
+  [1643/2400] 67.5% accuracy, 4.3 q/s, ETA 177s
+  [1644/2400] 67.5% accuracy, 4.3 q/s, ETA 177s
+  [1645/2400] 67.5% accuracy, 4.3 q/s, ETA 176s
+  [1646/2400] 67.5% accuracy, 4.3 q/s, ETA 176s
+  [1647/2400] 67.5% accuracy, 4.3 q/s, ETA 176s
+  [1648/2400] 67.5% accuracy, 4.3 q/s, ETA 175s
+  [1649/2400] 67.5% accuracy, 4.3 q/s, ETA 175s
+  [1650/2400] 67.5% accuracy, 4.3 q/s, ETA 175s
+  [1651/2400] 67.5% accuracy, 4.3 q/s, ETA 175s
+  [1652/2400] 67.6% accuracy, 4.3 q/s, ETA 174s
+  [1653/2400] 67.6% accuracy, 4.3 q/s, ETA 174s
+  [1654/2400] 67.5% accuracy, 4.3 q/s, ETA 174s
+  [1655/2400] 67.6% accuracy, 4.3 q/s, ETA 174s
+  [1656/2400] 67.5% accuracy, 4.3 q/s, ETA 173s
+  [1657/2400] 67.5% accuracy, 4.3 q/s, ETA 173s
+  [1658/2400] 67.6% accuracy, 4.3 q/s, ETA 173s
+  [1659/2400] 67.6% accuracy, 4.3 q/s, ETA 173s
+  [1660/2400] 67.6% accuracy, 4.3 q/s, ETA 172s
+  [1661/2400] 67.6% accuracy, 4.3 q/s, ETA 172s
+  [1662/2400] 67.6% accuracy, 4.3 q/s, ETA 172s
+  [1663/2400] 67.6% accuracy, 4.3 q/s, ETA 171s
+  [1664/2400] 67.7% accuracy, 4.3 q/s, ETA 171s
+  [1665/2400] 67.6% accuracy, 4.3 q/s, ETA 171s
+  [1666/2400] 67.6% accuracy, 4.3 q/s, ETA 171s
+  [1667/2400] 67.7% accuracy, 4.3 q/s, ETA 170s
+  [1668/2400] 67.7% accuracy, 4.3 q/s, ETA 170s
+  [1669/2400] 67.7% accuracy, 4.3 q/s, ETA 170s
+  [1670/2400] 67.7% accuracy, 4.3 q/s, ETA 170s
+  [1671/2400] 67.7% accuracy, 4.3 q/s, ETA 169s
+  [1672/2400] 67.6% accuracy, 4.3 q/s, ETA 169s
+  [1673/2400] 67.7% accuracy, 4.3 q/s, ETA 169s
+  [1674/2400] 67.7% accuracy, 4.3 q/s, ETA 169s
+  [1675/2400] 67.7% accuracy, 4.3 q/s, ETA 168s
+  [1676/2400] 67.7% accuracy, 4.3 q/s, ETA 168s
+  [1677/2400] 67.7% accuracy, 4.3 q/s, ETA 168s
+  [1678/2400] 67.8% accuracy, 4.3 q/s, ETA 168s
+  [1679/2400] 67.8% accuracy, 4.3 q/s, ETA 167s
+  [1680/2400] 67.8% accuracy, 4.3 q/s, ETA 167s
+  [1681/2400] 67.8% accuracy, 4.3 q/s, ETA 167s
+  [1682/2400] 67.8% accuracy, 4.3 q/s, ETA 167s
+  [1683/2400] 67.8% accuracy, 4.3 q/s, ETA 166s
+  [1684/2400] 67.8% accuracy, 4.3 q/s, ETA 166s
+  [1685/2400] 67.8% accuracy, 4.3 q/s, ETA 166s
+  [1686/2400] 67.8% accuracy, 4.3 q/s, ETA 166s
+  [1687/2400] 67.8% accuracy, 4.3 q/s, ETA 165s
+  [1688/2400] 67.8% accuracy, 4.3 q/s, ETA 165s
+  [1689/2400] 67.8% accuracy, 4.3 q/s, ETA 165s
+  [1690/2400] 67.8% accuracy, 4.3 q/s, ETA 165s
+  [1691/2400] 67.8% accuracy, 4.3 q/s, ETA 164s
+  [1692/2400] 67.8% accuracy, 4.3 q/s, ETA 164s
+  [1693/2400] 67.7% accuracy, 4.3 q/s, ETA 164s
+  [1694/2400] 67.8% accuracy, 4.3 q/s, ETA 163s
+  [1695/2400] 67.7% accuracy, 4.3 q/s, ETA 163s
+  [1696/2400] 67.7% accuracy, 4.3 q/s, ETA 163s
+  [1697/2400] 67.8% accuracy, 4.3 q/s, ETA 163s
+  [1698/2400] 67.8% accuracy, 4.3 q/s, ETA 162s
+  [1699/2400] 67.7% accuracy, 4.3 q/s, ETA 162s
+  [1700/2400] 67.8% accuracy, 4.3 q/s, ETA 162s
+  [1701/2400] 67.8% accuracy, 4.3 q/s, ETA 162s
+  [1702/2400] 67.8% accuracy, 4.3 q/s, ETA 161s
+  [1703/2400] 67.8% accuracy, 4.3 q/s, ETA 161s
+  [1704/2400] 67.8% accuracy, 4.3 q/s, ETA 161s
+  [1705/2400] 67.9% accuracy, 4.3 q/s, ETA 161s
+  [1706/2400] 67.9% accuracy, 4.3 q/s, ETA 160s
+  [1707/2400] 67.9% accuracy, 4.3 q/s, ETA 160s
+  [1708/2400] 67.9% accuracy, 4.3 q/s, ETA 160s
+  [1709/2400] 67.9% accuracy, 4.3 q/s, ETA 160s
+  [1710/2400] 67.9% accuracy, 4.3 q/s, ETA 159s
+  [1711/2400] 67.9% accuracy, 4.3 q/s, ETA 159s
+  [1712/2400] 67.9% accuracy, 4.3 q/s, ETA 159s
+  [1713/2400] 67.9% accuracy, 4.3 q/s, ETA 159s
+  [1714/2400] 67.9% accuracy, 4.3 q/s, ETA 158s
+  [1715/2400] 67.9% accuracy, 4.3 q/s, ETA 158s
+  [1716/2400] 67.9% accuracy, 4.3 q/s, ETA 158s
+  [1717/2400] 67.9% accuracy, 4.3 q/s, ETA 158s
+  [1718/2400] 67.9% accuracy, 4.3 q/s, ETA 157s
+  [1719/2400] 67.9% accuracy, 4.3 q/s, ETA 157s
+  [1720/2400] 68.0% accuracy, 4.3 q/s, ETA 157s
+  [1721/2400] 68.0% accuracy, 4.3 q/s, ETA 157s
+  [1722/2400] 68.0% accuracy, 4.3 q/s, ETA 156s
+  [1723/2400] 68.0% accuracy, 4.3 q/s, ETA 156s
+  [1724/2400] 68.0% accuracy, 4.3 q/s, ETA 156s
+  [1725/2400] 68.0% accuracy, 4.3 q/s, ETA 155s
+  [1726/2400] 68.0% accuracy, 4.3 q/s, ETA 155s
+  [1727/2400] 68.0% accuracy, 4.3 q/s, ETA 155s
+  [1728/2400] 68.1% accuracy, 4.3 q/s, ETA 155s
+  [1729/2400] 68.1% accuracy, 4.3 q/s, ETA 154s
+  [1730/2400] 68.1% accuracy, 4.3 q/s, ETA 154s
+  [1731/2400] 68.1% accuracy, 4.3 q/s, ETA 154s
+  [1732/2400] 68.1% accuracy, 4.4 q/s, ETA 154s
+  [1733/2400] 68.1% accuracy, 4.3 q/s, ETA 153s
+  [1734/2400] 68.2% accuracy, 4.3 q/s, ETA 153s
+  [1735/2400] 68.2% accuracy, 4.3 q/s, ETA 153s
+  [1736/2400] 68.2% accuracy, 4.4 q/s, ETA 153s
+  [1737/2400] 68.2% accuracy, 4.3 q/s, ETA 152s
+  [1738/2400] 68.2% accuracy, 4.3 q/s, ETA 152s
+  [1739/2400] 68.2% accuracy, 4.4 q/s, ETA 152s
+  [1740/2400] 68.2% accuracy, 4.4 q/s, ETA 152s
+  [1741/2400] 68.2% accuracy, 4.4 q/s, ETA 151s
+  [1742/2400] 68.2% accuracy, 4.4 q/s, ETA 151s
+  [1743/2400] 68.2% accuracy, 4.4 q/s, ETA 151s
+  [1744/2400] 68.2% accuracy, 4.4 q/s, ETA 151s
+  [1745/2400] 68.3% accuracy, 4.4 q/s, ETA 150s
+  [1746/2400] 68.3% accuracy, 4.4 q/s, ETA 150s
+  [1747/2400] 68.3% accuracy, 4.4 q/s, ETA 150s
+  [1748/2400] 68.3% accuracy, 4.4 q/s, ETA 150s
+  [1749/2400] 68.3% accuracy, 4.4 q/s, ETA 149s
+  [1750/2400] 68.3% accuracy, 4.4 q/s, ETA 149s
+  [1751/2400] 68.3% accuracy, 4.4 q/s, ETA 149s
+  [1752/2400] 68.3% accuracy, 4.4 q/s, ETA 149s
+  [1753/2400] 68.3% accuracy, 4.4 q/s, ETA 148s
+  [1754/2400] 68.4% accuracy, 4.4 q/s, ETA 148s
+  [1755/2400] 68.4% accuracy, 4.4 q/s, ETA 148s
+  [1756/2400] 68.4% accuracy, 4.4 q/s, ETA 148s
+  [1757/2400] 68.4% accuracy, 4.4 q/s, ETA 147s
+  [1758/2400] 68.4% accuracy, 4.4 q/s, ETA 147s
+  [1759/2400] 68.4% accuracy, 4.4 q/s, ETA 147s
+  [1760/2400] 68.4% accuracy, 4.4 q/s, ETA 147s
+  [1761/2400] 68.4% accuracy, 4.4 q/s, ETA 146s
+  [1762/2400] 68.4% accuracy, 4.4 q/s, ETA 146s
+  [1763/2400] 68.4% accuracy, 4.4 q/s, ETA 146s
+  [1764/2400] 68.4% accuracy, 4.4 q/s, ETA 146s
+  [1765/2400] 68.4% accuracy, 4.4 q/s, ETA 145s
+  [1766/2400] 68.5% accuracy, 4.4 q/s, ETA 145s
+  [1767/2400] 68.5% accuracy, 4.4 q/s, ETA 145s
+  [1768/2400] 68.5% accuracy, 4.4 q/s, ETA 145s
+  [1769/2400] 68.5% accuracy, 4.4 q/s, ETA 144s
+  [1770/2400] 68.4% accuracy, 4.4 q/s, ETA 144s
+  [1771/2400] 68.4% accuracy, 4.4 q/s, ETA 144s
+  [1772/2400] 68.3% accuracy, 4.4 q/s, ETA 144s
+  [1773/2400] 68.4% accuracy, 4.4 q/s, ETA 143s
+  [1774/2400] 68.4% accuracy, 4.4 q/s, ETA 143s
+  [1775/2400] 68.4% accuracy, 4.4 q/s, ETA 143s
+  [1776/2400] 68.4% accuracy, 4.4 q/s, ETA 143s
+  [1777/2400] 68.4% accuracy, 4.4 q/s, ETA 142s
+  [1778/2400] 68.4% accuracy, 4.4 q/s, ETA 142s
+  [1779/2400] 68.5% accuracy, 4.4 q/s, ETA 142s
+  [1780/2400] 68.5% accuracy, 4.4 q/s, ETA 142s
+  [1781/2400] 68.5% accuracy, 4.4 q/s, ETA 141s
+  [1782/2400] 68.5% accuracy, 4.4 q/s, ETA 141s
+  [1783/2400] 68.5% accuracy, 4.4 q/s, ETA 141s
+  [1784/2400] 68.5% accuracy, 4.4 q/s, ETA 141s
+  [1785/2400] 68.5% accuracy, 4.4 q/s, ETA 140s
+  [1786/2400] 68.5% accuracy, 4.4 q/s, ETA 140s
+  [1787/2400] 68.5% accuracy, 4.4 q/s, ETA 140s
+  [1788/2400] 68.5% accuracy, 4.4 q/s, ETA 140s
+  [1789/2400] 68.5% accuracy, 4.4 q/s, ETA 139s
+  [1790/2400] 68.5% accuracy, 4.4 q/s, ETA 139s
+  [1791/2400] 68.6% accuracy, 4.4 q/s, ETA 139s
+  [1792/2400] 68.6% accuracy, 4.4 q/s, ETA 139s
+  [1793/2400] 68.5% accuracy, 4.4 q/s, ETA 138s
+  [1794/2400] 68.6% accuracy, 4.4 q/s, ETA 138s
+  [1795/2400] 68.5% accuracy, 4.4 q/s, ETA 138s
+  [1796/2400] 68.5% accuracy, 4.4 q/s, ETA 138s
+  [1797/2400] 68.6% accuracy, 4.4 q/s, ETA 137s
+  [1798/2400] 68.5% accuracy, 4.4 q/s, ETA 137s
+  [1799/2400] 68.5% accuracy, 4.4 q/s, ETA 137s
+  [1800/2400] 68.6% accuracy, 4.4 q/s, ETA 137s
+  [1801/2400] 68.6% accuracy, 4.4 q/s, ETA 136s
+  [1802/2400] 68.6% accuracy, 4.4 q/s, ETA 136s
+  [1803/2400] 68.6% accuracy, 4.4 q/s, ETA 136s
+  [1804/2400] 68.6% accuracy, 4.4 q/s, ETA 136s
+  [1805/2400] 68.6% accuracy, 4.4 q/s, ETA 135s
+  [1806/2400] 68.6% accuracy, 4.4 q/s, ETA 135s
+  [1807/2400] 68.6% accuracy, 4.4 q/s, ETA 135s
+  [1808/2400] 68.6% accuracy, 4.4 q/s, ETA 135s
+  [1809/2400] 68.6% accuracy, 4.4 q/s, ETA 134s
+  [1810/2400] 68.6% accuracy, 4.4 q/s, ETA 134s
+  [1811/2400] 68.6% accuracy, 4.4 q/s, ETA 134s
+  [1812/2400] 68.5% accuracy, 4.4 q/s, ETA 134s
+  [1813/2400] 68.5% accuracy, 4.4 q/s, ETA 133s
+  [1814/2400] 68.5% accuracy, 4.4 q/s, ETA 133s
+  [1815/2400] 68.5% accuracy, 4.4 q/s, ETA 133s
+  [1816/2400] 68.5% accuracy, 4.4 q/s, ETA 133s
+  [1817/2400] 68.5% accuracy, 4.4 q/s, ETA 132s
+  [1818/2400] 68.5% accuracy, 4.4 q/s, ETA 132s
+  [1819/2400] 68.6% accuracy, 4.4 q/s, ETA 132s
+  [1820/2400] 68.6% accuracy, 4.4 q/s, ETA 132s
+  [1821/2400] 68.6% accuracy, 4.4 q/s, ETA 132s
+  [1822/2400] 68.6% accuracy, 4.4 q/s, ETA 131s
+  [1823/2400] 68.6% accuracy, 4.4 q/s, ETA 131s
+  [1824/2400] 68.6% accuracy, 4.4 q/s, ETA 131s
+  [1825/2400] 68.6% accuracy, 4.4 q/s, ETA 131s
+  [1826/2400] 68.6% accuracy, 4.4 q/s, ETA 130s
+  [1827/2400] 68.6% accuracy, 4.4 q/s, ETA 130s
+  [1828/2400] 68.7% accuracy, 4.4 q/s, ETA 130s
+  [1829/2400] 68.7% accuracy, 4.4 q/s, ETA 130s
+  [1830/2400] 68.6% accuracy, 4.4 q/s, ETA 129s
+  [1831/2400] 68.7% accuracy, 4.4 q/s, ETA 129s
+  [1832/2400] 68.7% accuracy, 4.4 q/s, ETA 129s
+  [1833/2400] 68.7% accuracy, 4.4 q/s, ETA 129s
+  [1834/2400] 68.7% accuracy, 4.4 q/s, ETA 128s
+  [1835/2400] 68.7% accuracy, 4.4 q/s, ETA 128s
+  [1836/2400] 68.6% accuracy, 4.4 q/s, ETA 128s
+  [1837/2400] 68.6% accuracy, 4.4 q/s, ETA 128s
+  [1838/2400] 68.7% accuracy, 4.4 q/s, ETA 127s
+  [1839/2400] 68.7% accuracy, 4.4 q/s, ETA 127s
+  [1840/2400] 68.6% accuracy, 4.4 q/s, ETA 127s
+  [1841/2400] 68.7% accuracy, 4.4 q/s, ETA 127s
+  [1842/2400] 68.7% accuracy, 4.4 q/s, ETA 126s
+  [1843/2400] 68.6% accuracy, 4.4 q/s, ETA 126s
+  [1844/2400] 68.7% accuracy, 4.4 q/s, ETA 126s
+  [1845/2400] 68.6% accuracy, 4.4 q/s, ETA 126s
+  [1846/2400] 68.6% accuracy, 4.4 q/s, ETA 125s
+  [1847/2400] 68.5% accuracy, 4.4 q/s, ETA 125s
+  [1848/2400] 68.6% accuracy, 4.4 q/s, ETA 125s
+  [1849/2400] 68.5% accuracy, 4.4 q/s, ETA 125s
+  [1850/2400] 68.5% accuracy, 4.4 q/s, ETA 124s
+  [1851/2400] 68.4% accuracy, 4.4 q/s, ETA 124s
+  [1852/2400] 68.5% accuracy, 4.4 q/s, ETA 124s
+  [1853/2400] 68.5% accuracy, 4.4 q/s, ETA 124s
+  [1854/2400] 68.4% accuracy, 4.4 q/s, ETA 124s
+  [1855/2400] 68.5% accuracy, 4.4 q/s, ETA 123s
+  [1856/2400] 68.4% accuracy, 4.4 q/s, ETA 123s
+  [1857/2400] 68.4% accuracy, 4.4 q/s, ETA 123s
+  [1858/2400] 68.5% accuracy, 4.4 q/s, ETA 123s
+  [1859/2400] 68.5% accuracy, 4.4 q/s, ETA 122s
+  [1860/2400] 68.4% accuracy, 4.4 q/s, ETA 122s
+  [1861/2400] 68.5% accuracy, 4.4 q/s, ETA 122s
+  [1862/2400] 68.4% accuracy, 4.4 q/s, ETA 122s
+  [1863/2400] 68.4% accuracy, 4.4 q/s, ETA 121s
+  [1864/2400] 68.5% accuracy, 4.4 q/s, ETA 121s
+  [1865/2400] 68.4% accuracy, 4.4 q/s, ETA 121s
+  [1866/2400] 68.4% accuracy, 4.4 q/s, ETA 121s
+  [1867/2400] 68.5% accuracy, 4.4 q/s, ETA 120s
+  [1868/2400] 68.4% accuracy, 4.4 q/s, ETA 120s
+  [1869/2400] 68.4% accuracy, 4.4 q/s, ETA 120s
+  [1870/2400] 68.4% accuracy, 4.4 q/s, ETA 120s
+  [1871/2400] 68.4% accuracy, 4.4 q/s, ETA 119s
+  [1872/2400] 68.4% accuracy, 4.4 q/s, ETA 119s
+  [1873/2400] 68.4% accuracy, 4.4 q/s, ETA 119s
+  [1874/2400] 68.4% accuracy, 4.4 q/s, ETA 119s
+  [1875/2400] 68.4% accuracy, 4.4 q/s, ETA 119s
+  [1876/2400] 68.4% accuracy, 4.4 q/s, ETA 118s
+  [1877/2400] 68.5% accuracy, 4.4 q/s, ETA 118s
+  [1878/2400] 68.5% accuracy, 4.4 q/s, ETA 118s
+  [1879/2400] 68.4% accuracy, 4.4 q/s, ETA 118s
+  [1880/2400] 68.5% accuracy, 4.4 q/s, ETA 117s
+  [1881/2400] 68.5% accuracy, 4.4 q/s, ETA 117s
+  [1882/2400] 68.5% accuracy, 4.4 q/s, ETA 117s
+  [1883/2400] 68.5% accuracy, 4.4 q/s, ETA 117s
+  [1884/2400] 68.5% accuracy, 4.4 q/s, ETA 116s
+  [1885/2400] 68.5% accuracy, 4.4 q/s, ETA 116s
+  [1886/2400] 68.6% accuracy, 4.4 q/s, ETA 116s
+  [1887/2400] 68.6% accuracy, 4.4 q/s, ETA 116s
+  [1888/2400] 68.6% accuracy, 4.4 q/s, ETA 115s
+  [1889/2400] 68.6% accuracy, 4.4 q/s, ETA 115s
+  [1890/2400] 68.6% accuracy, 4.4 q/s, ETA 115s
+  [1891/2400] 68.6% accuracy, 4.4 q/s, ETA 115s
+  [1892/2400] 68.7% accuracy, 4.4 q/s, ETA 114s
+  [1893/2400] 68.7% accuracy, 4.4 q/s, ETA 114s
+  [1894/2400] 68.6% accuracy, 4.4 q/s, ETA 114s
+  [1895/2400] 68.7% accuracy, 4.4 q/s, ETA 114s
+  [1896/2400] 68.7% accuracy, 4.4 q/s, ETA 113s
+  [1897/2400] 68.7% accuracy, 4.4 q/s, ETA 113s
+  [1898/2400] 68.7% accuracy, 4.4 q/s, ETA 113s
+  [1899/2400] 68.7% accuracy, 4.4 q/s, ETA 113s
+  [1900/2400] 68.7% accuracy, 4.4 q/s, ETA 112s
+  [1901/2400] 68.7% accuracy, 4.4 q/s, ETA 112s
+  [1902/2400] 68.7% accuracy, 4.4 q/s, ETA 112s
+  [1903/2400] 68.7% accuracy, 4.4 q/s, ETA 112s
+  [1904/2400] 68.8% accuracy, 4.4 q/s, ETA 112s
+  [1905/2400] 68.8% accuracy, 4.4 q/s, ETA 111s
+  [1906/2400] 68.8% accuracy, 4.4 q/s, ETA 111s
+  [1907/2400] 68.8% accuracy, 4.4 q/s, ETA 111s
+  [1908/2400] 68.8% accuracy, 4.5 q/s, ETA 111s
+  [1909/2400] 68.8% accuracy, 4.4 q/s, ETA 110s
+  [1910/2400] 68.8% accuracy, 4.4 q/s, ETA 110s
+  [1911/2400] 68.8% accuracy, 4.5 q/s, ETA 110s
+  [1912/2400] 68.8% accuracy, 4.5 q/s, ETA 110s
+  [1913/2400] 68.8% accuracy, 4.5 q/s, ETA 109s
+  [1914/2400] 68.9% accuracy, 4.5 q/s, ETA 109s
+  [1915/2400] 68.9% accuracy, 4.5 q/s, ETA 109s
+  [1916/2400] 68.9% accuracy, 4.5 q/s, ETA 109s
+  [1917/2400] 68.9% accuracy, 4.5 q/s, ETA 108s
+  [1918/2400] 68.9% accuracy, 4.5 q/s, ETA 108s
+  [1919/2400] 68.9% accuracy, 4.5 q/s, ETA 108s
+  [1920/2400] 69.0% accuracy, 4.5 q/s, ETA 108s
+  [1921/2400] 69.0% accuracy, 4.5 q/s, ETA 108s
+  [1922/2400] 68.9% accuracy, 4.5 q/s, ETA 107s
+  [1923/2400] 69.0% accuracy, 4.5 q/s, ETA 107s
+  [1924/2400] 69.0% accuracy, 4.5 q/s, ETA 107s
+  [1925/2400] 68.9% accuracy, 4.5 q/s, ETA 107s
+  [1926/2400] 69.0% accuracy, 4.5 q/s, ETA 106s
+  [1927/2400] 69.0% accuracy, 4.5 q/s, ETA 106s
+  [1928/2400] 69.0% accuracy, 4.5 q/s, ETA 106s
+  [1929/2400] 69.0% accuracy, 4.5 q/s, ETA 106s
+  [1930/2400] 69.0% accuracy, 4.5 q/s, ETA 105s
+  [1931/2400] 69.0% accuracy, 4.5 q/s, ETA 105s
+  [1932/2400] 69.0% accuracy, 4.5 q/s, ETA 105s
+  [1933/2400] 69.0% accuracy, 4.5 q/s, ETA 105s
+  [1934/2400] 69.0% accuracy, 4.5 q/s, ETA 104s
+  [1935/2400] 68.9% accuracy, 4.5 q/s, ETA 104s
+  [1936/2400] 69.0% accuracy, 4.5 q/s, ETA 104s
+  [1937/2400] 69.0% accuracy, 4.5 q/s, ETA 104s
+  [1938/2400] 68.9% accuracy, 4.5 q/s, ETA 104s
+  [1939/2400] 69.0% accuracy, 4.5 q/s, ETA 103s
+  [1940/2400] 69.0% accuracy, 4.5 q/s, ETA 103s
+  [1941/2400] 69.0% accuracy, 4.5 q/s, ETA 103s
+  [1942/2400] 69.0% accuracy, 4.5 q/s, ETA 103s
+  [1943/2400] 69.0% accuracy, 4.5 q/s, ETA 102s
+  [1944/2400] 69.0% accuracy, 4.5 q/s, ETA 102s
+  [1945/2400] 69.0% accuracy, 4.5 q/s, ETA 102s
+  [1946/2400] 69.1% accuracy, 4.5 q/s, ETA 102s
+  [1947/2400] 69.0% accuracy, 4.5 q/s, ETA 101s
+  [1948/2400] 69.0% accuracy, 4.5 q/s, ETA 101s
+  [1949/2400] 69.0% accuracy, 4.5 q/s, ETA 101s
+  [1950/2400] 69.0% accuracy, 4.5 q/s, ETA 101s
+  [1951/2400] 69.0% accuracy, 4.5 q/s, ETA 100s
+  [1952/2400] 69.1% accuracy, 4.5 q/s, ETA 100s
+  [1953/2400] 69.1% accuracy, 4.5 q/s, ETA 100s
+  [1954/2400] 69.1% accuracy, 4.5 q/s, ETA 100s
+  [1955/2400] 69.1% accuracy, 4.5 q/s, ETA 99s
+  [1956/2400] 69.1% accuracy, 4.5 q/s, ETA 99s
+  [1957/2400] 69.1% accuracy, 4.5 q/s, ETA 99s
+  [1958/2400] 69.2% accuracy, 4.5 q/s, ETA 99s
+  [1959/2400] 69.1% accuracy, 4.5 q/s, ETA 98s
+  [1960/2400] 69.1% accuracy, 4.5 q/s, ETA 98s
+  [1961/2400] 69.1% accuracy, 4.5 q/s, ETA 98s
+  [1962/2400] 69.1% accuracy, 4.5 q/s, ETA 98s
+  [1963/2400] 69.1% accuracy, 4.5 q/s, ETA 98s
+  [1964/2400] 69.1% accuracy, 4.5 q/s, ETA 97s
+  [1965/2400] 69.2% accuracy, 4.5 q/s, ETA 97s
+  [1966/2400] 69.2% accuracy, 4.5 q/s, ETA 97s
+  [1967/2400] 69.2% accuracy, 4.5 q/s, ETA 97s
+  [1968/2400] 69.2% accuracy, 4.5 q/s, ETA 96s
+  [1969/2400] 69.2% accuracy, 4.5 q/s, ETA 96s
+  [1970/2400] 69.2% accuracy, 4.5 q/s, ETA 96s
+  [1971/2400] 69.3% accuracy, 4.5 q/s, ETA 96s
+  [1972/2400] 69.3% accuracy, 4.5 q/s, ETA 95s
+  [1973/2400] 69.3% accuracy, 4.5 q/s, ETA 95s
+  [1974/2400] 69.3% accuracy, 4.5 q/s, ETA 95s
+  [1975/2400] 69.3% accuracy, 4.5 q/s, ETA 95s
+  [1976/2400] 69.3% accuracy, 4.5 q/s, ETA 94s
+  [1977/2400] 69.3% accuracy, 4.5 q/s, ETA 94s
+  [1978/2400] 69.4% accuracy, 4.5 q/s, ETA 94s
+  [1979/2400] 69.4% accuracy, 4.5 q/s, ETA 94s
+  [1980/2400] 69.4% accuracy, 4.5 q/s, ETA 93s
+  [1981/2400] 69.4% accuracy, 4.5 q/s, ETA 93s
+  [1982/2400] 69.4% accuracy, 4.5 q/s, ETA 93s
+  [1983/2400] 69.4% accuracy, 4.5 q/s, ETA 93s
+  [1984/2400] 69.4% accuracy, 4.5 q/s, ETA 93s
+  [1985/2400] 69.4% accuracy, 4.5 q/s, ETA 92s
+  [1986/2400] 69.4% accuracy, 4.5 q/s, ETA 92s
+  [1987/2400] 69.4% accuracy, 4.5 q/s, ETA 92s
+  [1988/2400] 69.4% accuracy, 4.5 q/s, ETA 92s
+  [1989/2400] 69.4% accuracy, 4.5 q/s, ETA 91s
+  [1990/2400] 69.4% accuracy, 4.5 q/s, ETA 91s
+  [1991/2400] 69.5% accuracy, 4.5 q/s, ETA 91s
+  [1992/2400] 69.5% accuracy, 4.5 q/s, ETA 91s
+  [1993/2400] 69.5% accuracy, 4.5 q/s, ETA 91s
+  [1994/2400] 69.5% accuracy, 4.5 q/s, ETA 90s
+  [1995/2400] 69.5% accuracy, 4.5 q/s, ETA 90s
+  [1996/2400] 69.5% accuracy, 4.5 q/s, ETA 90s
+  [1997/2400] 69.6% accuracy, 4.5 q/s, ETA 90s
+  [1998/2400] 69.6% accuracy, 4.5 q/s, ETA 89s
+  [1999/2400] 69.6% accuracy, 4.5 q/s, ETA 89s
+  [2000/2400] 69.6% accuracy, 4.5 q/s, ETA 89s
+  [2001/2400] 69.6% accuracy, 4.5 q/s, ETA 89s
+  [2002/2400] 69.6% accuracy, 4.5 q/s, ETA 88s
+  [2003/2400] 69.6% accuracy, 4.5 q/s, ETA 88s
+  [2004/2400] 69.7% accuracy, 4.5 q/s, ETA 88s
+  [2005/2400] 69.7% accuracy, 4.5 q/s, ETA 88s
+  [2006/2400] 69.7% accuracy, 4.5 q/s, ETA 88s
+  [2007/2400] 69.7% accuracy, 4.5 q/s, ETA 87s
+  [2008/2400] 69.7% accuracy, 4.5 q/s, ETA 87s
+  [2009/2400] 69.6% accuracy, 4.5 q/s, ETA 87s
+  [2010/2400] 69.7% accuracy, 4.5 q/s, ETA 87s
+  [2011/2400] 69.7% accuracy, 4.5 q/s, ETA 86s
+  [2012/2400] 69.7% accuracy, 4.5 q/s, ETA 86s
+  [2013/2400] 69.7% accuracy, 4.5 q/s, ETA 86s
+  [2014/2400] 69.7% accuracy, 4.5 q/s, ETA 86s
+  [2015/2400] 69.7% accuracy, 4.5 q/s, ETA 85s
+  [2016/2400] 69.7% accuracy, 4.5 q/s, ETA 85s
+  [2017/2400] 69.7% accuracy, 4.5 q/s, ETA 85s
+  [2018/2400] 69.7% accuracy, 4.5 q/s, ETA 85s
+  [2019/2400] 69.7% accuracy, 4.5 q/s, ETA 84s
+  [2020/2400] 69.8% accuracy, 4.5 q/s, ETA 84s
+  [2021/2400] 69.7% accuracy, 4.5 q/s, ETA 84s
+  [2022/2400] 69.7% accuracy, 4.5 q/s, ETA 84s
+  [2023/2400] 69.7% accuracy, 4.5 q/s, ETA 84s
+  [2024/2400] 69.8% accuracy, 4.5 q/s, ETA 83s
+  [2025/2400] 69.8% accuracy, 4.5 q/s, ETA 83s
+  [2026/2400] 69.8% accuracy, 4.5 q/s, ETA 83s
+  [2027/2400] 69.8% accuracy, 4.5 q/s, ETA 83s
+  [2028/2400] 69.8% accuracy, 4.5 q/s, ETA 82s
+  [2029/2400] 69.8% accuracy, 4.5 q/s, ETA 82s
+  [2030/2400] 69.8% accuracy, 4.5 q/s, ETA 82s
+  [2031/2400] 69.8% accuracy, 4.5 q/s, ETA 82s
+  [2032/2400] 69.8% accuracy, 4.5 q/s, ETA 81s
+  [2033/2400] 69.8% accuracy, 4.5 q/s, ETA 81s
+  [2034/2400] 69.8% accuracy, 4.5 q/s, ETA 81s
+  [2035/2400] 69.8% accuracy, 4.5 q/s, ETA 81s
+  [2036/2400] 69.8% accuracy, 4.5 q/s, ETA 80s
+  [2037/2400] 69.9% accuracy, 4.5 q/s, ETA 80s
+  [2038/2400] 69.8% accuracy, 4.5 q/s, ETA 80s
+  [2039/2400] 69.8% accuracy, 4.5 q/s, ETA 80s
+  [2040/2400] 69.8% accuracy, 4.5 q/s, ETA 80s
+  [2041/2400] 69.8% accuracy, 4.5 q/s, ETA 79s
+  [2042/2400] 69.8% accuracy, 4.5 q/s, ETA 79s
+  [2043/2400] 69.8% accuracy, 4.5 q/s, ETA 79s
+  [2044/2400] 69.9% accuracy, 4.5 q/s, ETA 79s
+  [2045/2400] 69.8% accuracy, 4.5 q/s, ETA 78s
+  [2046/2400] 69.8% accuracy, 4.5 q/s, ETA 78s
+  [2047/2400] 69.9% accuracy, 4.5 q/s, ETA 78s
+  [2048/2400] 69.9% accuracy, 4.5 q/s, ETA 78s
+  [2049/2400] 69.9% accuracy, 4.5 q/s, ETA 78s
+  [2050/2400] 69.9% accuracy, 4.5 q/s, ETA 77s
+  [2051/2400] 69.9% accuracy, 4.5 q/s, ETA 77s
+  [2052/2400] 69.9% accuracy, 4.5 q/s, ETA 77s
+  [2053/2400] 69.8% accuracy, 4.5 q/s, ETA 77s
+  [2054/2400] 69.9% accuracy, 4.5 q/s, ETA 76s
+  [2055/2400] 69.9% accuracy, 4.5 q/s, ETA 76s
+  [2056/2400] 69.9% accuracy, 4.5 q/s, ETA 76s
+  [2057/2400] 69.9% accuracy, 4.5 q/s, ETA 76s
+  [2058/2400] 69.9% accuracy, 4.5 q/s, ETA 75s
+  [2059/2400] 69.9% accuracy, 4.5 q/s, ETA 75s
+  [2060/2400] 69.9% accuracy, 4.5 q/s, ETA 75s
+  [2061/2400] 69.9% accuracy, 4.5 q/s, ETA 75s
+  [2062/2400] 69.8% accuracy, 4.5 q/s, ETA 75s
+  [2063/2400] 69.8% accuracy, 4.5 q/s, ETA 74s
+  [2064/2400] 69.9% accuracy, 4.5 q/s, ETA 74s
+  [2065/2400] 69.9% accuracy, 4.5 q/s, ETA 74s
+  [2066/2400] 69.8% accuracy, 4.5 q/s, ETA 74s
+  [2067/2400] 69.9% accuracy, 4.5 q/s, ETA 73s
+  [2068/2400] 69.9% accuracy, 4.5 q/s, ETA 73s
+  [2069/2400] 69.9% accuracy, 4.5 q/s, ETA 73s
+  [2070/2400] 69.9% accuracy, 4.5 q/s, ETA 73s
+  [2071/2400] 69.9% accuracy, 4.5 q/s, ETA 72s
+  [2072/2400] 69.9% accuracy, 4.5 q/s, ETA 72s
+  [2073/2400] 69.9% accuracy, 4.5 q/s, ETA 72s
+  [2074/2400] 69.9% accuracy, 4.5 q/s, ETA 72s
+  [2075/2400] 69.9% accuracy, 4.5 q/s, ETA 72s
+  [2076/2400] 69.9% accuracy, 4.5 q/s, ETA 71s
+  [2077/2400] 69.9% accuracy, 4.5 q/s, ETA 71s
+  [2078/2400] 69.9% accuracy, 4.5 q/s, ETA 71s
+  [2079/2400] 69.9% accuracy, 4.5 q/s, ETA 71s
+  [2080/2400] 70.0% accuracy, 4.5 q/s, ETA 70s
+  [2081/2400] 70.0% accuracy, 4.5 q/s, ETA 70s
+  [2082/2400] 70.0% accuracy, 4.5 q/s, ETA 70s
+  [2083/2400] 70.0% accuracy, 4.5 q/s, ETA 70s
+  [2084/2400] 70.0% accuracy, 4.5 q/s, ETA 69s
+  [2085/2400] 70.0% accuracy, 4.5 q/s, ETA 69s
+  [2086/2400] 70.0% accuracy, 4.5 q/s, ETA 69s
+  [2087/2400] 70.0% accuracy, 4.5 q/s, ETA 69s
+  [2088/2400] 70.0% accuracy, 4.6 q/s, ETA 69s
+  [2089/2400] 70.0% accuracy, 4.5 q/s, ETA 68s
+  [2090/2400] 70.0% accuracy, 4.5 q/s, ETA 68s
+  [2091/2400] 70.0% accuracy, 4.6 q/s, ETA 68s
+  [2092/2400] 70.0% accuracy, 4.6 q/s, ETA 68s
+  [2093/2400] 70.0% accuracy, 4.5 q/s, ETA 67s
+  [2094/2400] 70.0% accuracy, 4.6 q/s, ETA 67s
+  [2095/2400] 70.0% accuracy, 4.6 q/s, ETA 67s
+  [2096/2400] 70.0% accuracy, 4.6 q/s, ETA 67s
+  [2097/2400] 70.0% accuracy, 4.6 q/s, ETA 67s
+  [2098/2400] 70.0% accuracy, 4.6 q/s, ETA 66s
+  [2099/2400] 70.0% accuracy, 4.6 q/s, ETA 66s
+  [2100/2400] 70.0% accuracy, 4.6 q/s, ETA 66s
+  [2101/2400] 70.0% accuracy, 4.6 q/s, ETA 66s
+  [2102/2400] 69.9% accuracy, 4.6 q/s, ETA 65s
+  [2103/2400] 69.9% accuracy, 4.6 q/s, ETA 65s
+  [2104/2400] 70.0% accuracy, 4.6 q/s, ETA 65s
+  [2105/2400] 70.0% accuracy, 4.6 q/s, ETA 65s
+  [2106/2400] 70.0% accuracy, 4.6 q/s, ETA 65s
+  [2107/2400] 70.0% accuracy, 4.6 q/s, ETA 64s
+  [2108/2400] 70.0% accuracy, 4.6 q/s, ETA 64s
+  [2109/2400] 70.0% accuracy, 4.6 q/s, ETA 64s
+  [2110/2400] 70.0% accuracy, 4.6 q/s, ETA 64s
+  [2111/2400] 69.9% accuracy, 4.6 q/s, ETA 63s
+  [2112/2400] 69.9% accuracy, 4.6 q/s, ETA 63s
+  [2113/2400] 69.9% accuracy, 4.6 q/s, ETA 63s
+  [2114/2400] 70.0% accuracy, 4.6 q/s, ETA 63s
+  [2115/2400] 70.0% accuracy, 4.6 q/s, ETA 62s
+  [2116/2400] 70.0% accuracy, 4.6 q/s, ETA 62s
+  [2117/2400] 70.0% accuracy, 4.6 q/s, ETA 62s
+  [2118/2400] 70.0% accuracy, 4.6 q/s, ETA 62s
+  [2119/2400] 70.0% accuracy, 4.6 q/s, ETA 62s
+  [2120/2400] 70.0% accuracy, 4.6 q/s, ETA 61s
+  [2121/2400] 70.0% accuracy, 4.6 q/s, ETA 61s
+  [2122/2400] 70.0% accuracy, 4.6 q/s, ETA 61s
+  [2123/2400] 70.0% accuracy, 4.6 q/s, ETA 61s
+  [2124/2400] 70.0% accuracy, 4.6 q/s, ETA 60s
+  [2125/2400] 70.0% accuracy, 4.6 q/s, ETA 60s
+  [2126/2400] 70.0% accuracy, 4.6 q/s, ETA 60s
+  [2127/2400] 70.0% accuracy, 4.6 q/s, ETA 60s
+  [2128/2400] 70.0% accuracy, 4.6 q/s, ETA 60s
+  [2129/2400] 70.0% accuracy, 4.6 q/s, ETA 59s
+  [2130/2400] 70.0% accuracy, 4.6 q/s, ETA 59s
+  [2131/2400] 70.0% accuracy, 4.6 q/s, ETA 59s
+  [2132/2400] 70.0% accuracy, 4.6 q/s, ETA 59s
+  [2133/2400] 70.0% accuracy, 4.6 q/s, ETA 59s
+  [2134/2400] 70.0% accuracy, 4.6 q/s, ETA 58s
+  [2135/2400] 70.0% accuracy, 4.6 q/s, ETA 58s
+  [2136/2400] 70.0% accuracy, 4.6 q/s, ETA 58s
+  [2137/2400] 70.0% accuracy, 4.6 q/s, ETA 58s
+  [2138/2400] 70.0% accuracy, 4.6 q/s, ETA 57s
+  [2139/2400] 70.0% accuracy, 4.6 q/s, ETA 57s
+  [2140/2400] 70.0% accuracy, 4.6 q/s, ETA 57s
+  [2141/2400] 70.1% accuracy, 4.6 q/s, ETA 57s
+  [2142/2400] 70.1% accuracy, 4.6 q/s, ETA 56s
+  [2143/2400] 70.1% accuracy, 4.6 q/s, ETA 56s
+  [2144/2400] 70.1% accuracy, 4.6 q/s, ETA 56s
+  [2145/2400] 70.1% accuracy, 4.6 q/s, ETA 56s
+  [2146/2400] 70.1% accuracy, 4.6 q/s, ETA 56s
+  [2147/2400] 70.1% accuracy, 4.6 q/s, ETA 55s
+  [2148/2400] 70.1% accuracy, 4.6 q/s, ETA 55s
+  [2149/2400] 70.1% accuracy, 4.6 q/s, ETA 55s
+  [2150/2400] 70.1% accuracy, 4.6 q/s, ETA 55s
+  [2151/2400] 70.2% accuracy, 4.6 q/s, ETA 54s
+  [2152/2400] 70.1% accuracy, 4.6 q/s, ETA 54s
+  [2153/2400] 70.1% accuracy, 4.6 q/s, ETA 54s
+  [2154/2400] 70.1% accuracy, 4.6 q/s, ETA 54s
+  [2155/2400] 70.2% accuracy, 4.6 q/s, ETA 54s
+  [2156/2400] 70.2% accuracy, 4.6 q/s, ETA 53s
+  [2157/2400] 70.1% accuracy, 4.6 q/s, ETA 53s
+  [2158/2400] 70.1% accuracy, 4.6 q/s, ETA 53s
+  [2159/2400] 70.1% accuracy, 4.6 q/s, ETA 53s
+  [2160/2400] 70.1% accuracy, 4.6 q/s, ETA 52s
+  [2161/2400] 70.1% accuracy, 4.6 q/s, ETA 52s
+  [2162/2400] 70.1% accuracy, 4.6 q/s, ETA 52s
+  [2163/2400] 70.0% accuracy, 4.6 q/s, ETA 52s
+  [2164/2400] 70.1% accuracy, 4.6 q/s, ETA 52s
+  [2165/2400] 70.1% accuracy, 4.6 q/s, ETA 51s
+  [2166/2400] 70.0% accuracy, 4.6 q/s, ETA 51s
+  [2167/2400] 70.1% accuracy, 4.6 q/s, ETA 51s
+  [2168/2400] 70.1% accuracy, 4.6 q/s, ETA 51s
+  [2169/2400] 70.1% accuracy, 4.6 q/s, ETA 50s
+  [2170/2400] 70.1% accuracy, 4.6 q/s, ETA 50s
+  [2171/2400] 70.1% accuracy, 4.6 q/s, ETA 50s
+  [2172/2400] 70.1% accuracy, 4.6 q/s, ETA 50s
+  [2173/2400] 70.1% accuracy, 4.6 q/s, ETA 50s
+  [2174/2400] 70.1% accuracy, 4.6 q/s, ETA 49s
+  [2175/2400] 70.1% accuracy, 4.6 q/s, ETA 49s
+  [2176/2400] 70.0% accuracy, 4.6 q/s, ETA 49s
+  [2177/2400] 70.1% accuracy, 4.6 q/s, ETA 49s
+  [2178/2400] 70.1% accuracy, 4.6 q/s, ETA 48s
+  [2179/2400] 70.0% accuracy, 4.6 q/s, ETA 48s
+  [2180/2400] 70.0% accuracy, 4.6 q/s, ETA 48s
+  [2181/2400] 70.1% accuracy, 4.6 q/s, ETA 48s
+  [2182/2400] 70.1% accuracy, 4.6 q/s, ETA 48s
+  [2183/2400] 70.0% accuracy, 4.6 q/s, ETA 47s
+  [2184/2400] 70.1% accuracy, 4.6 q/s, ETA 47s
+  [2185/2400] 70.1% accuracy, 4.6 q/s, ETA 47s
+  [2186/2400] 70.0% accuracy, 4.6 q/s, ETA 47s
+  [2187/2400] 70.0% accuracy, 4.6 q/s, ETA 46s
+  [2188/2400] 70.0% accuracy, 4.6 q/s, ETA 46s
+  [2189/2400] 69.9% accuracy, 4.6 q/s, ETA 46s
+  [2190/2400] 69.9% accuracy, 4.6 q/s, ETA 46s
+  [2191/2400] 69.9% accuracy, 4.6 q/s, ETA 46s
+  [2192/2400] 69.9% accuracy, 4.6 q/s, ETA 45s
+  [2193/2400] 69.9% accuracy, 4.6 q/s, ETA 45s
+  [2194/2400] 70.0% accuracy, 4.6 q/s, ETA 45s
+  [2195/2400] 69.9% accuracy, 4.6 q/s, ETA 45s
+  [2196/2400] 69.9% accuracy, 4.6 q/s, ETA 44s
+  [2197/2400] 69.9% accuracy, 4.6 q/s, ETA 44s
+  [2198/2400] 69.9% accuracy, 4.6 q/s, ETA 44s
+  [2199/2400] 69.9% accuracy, 4.6 q/s, ETA 44s
+  [2200/2400] 69.9% accuracy, 4.6 q/s, ETA 44s
+  [2201/2400] 69.9% accuracy, 4.6 q/s, ETA 43s
+  [2202/2400] 69.9% accuracy, 4.6 q/s, ETA 43s
+  [2203/2400] 69.9% accuracy, 4.6 q/s, ETA 43s
+  [2204/2400] 69.9% accuracy, 4.6 q/s, ETA 43s
+  [2205/2400] 69.9% accuracy, 4.6 q/s, ETA 43s
+  [2206/2400] 69.9% accuracy, 4.6 q/s, ETA 42s
+  [2207/2400] 69.9% accuracy, 4.6 q/s, ETA 42s
+  [2208/2400] 69.9% accuracy, 4.6 q/s, ETA 42s
+  [2209/2400] 69.9% accuracy, 4.6 q/s, ETA 42s
+  [2210/2400] 70.0% accuracy, 4.6 q/s, ETA 41s
+  [2211/2400] 70.0% accuracy, 4.6 q/s, ETA 41s
+  [2212/2400] 70.0% accuracy, 4.6 q/s, ETA 41s
+  [2213/2400] 70.0% accuracy, 4.6 q/s, ETA 41s
+  [2214/2400] 70.0% accuracy, 4.6 q/s, ETA 41s
+  [2215/2400] 70.0% accuracy, 4.6 q/s, ETA 40s
+  [2216/2400] 70.0% accuracy, 4.6 q/s, ETA 40s
+  [2217/2400] 70.0% accuracy, 4.6 q/s, ETA 40s
+  [2218/2400] 70.1% accuracy, 4.6 q/s, ETA 40s
+  [2219/2400] 70.0% accuracy, 4.6 q/s, ETA 39s
+  [2220/2400] 70.0% accuracy, 4.6 q/s, ETA 39s
+  [2221/2400] 70.0% accuracy, 4.6 q/s, ETA 39s
+  [2222/2400] 70.0% accuracy, 4.6 q/s, ETA 39s
+  [2223/2400] 70.0% accuracy, 4.6 q/s, ETA 39s
+  [2224/2400] 70.1% accuracy, 4.6 q/s, ETA 38s
+  [2225/2400] 70.0% accuracy, 4.6 q/s, ETA 38s
+  [2226/2400] 70.0% accuracy, 4.6 q/s, ETA 38s
+  [2227/2400] 70.0% accuracy, 4.6 q/s, ETA 38s
+  [2228/2400] 70.1% accuracy, 4.6 q/s, ETA 37s
+  [2229/2400] 70.1% accuracy, 4.6 q/s, ETA 37s
+  [2230/2400] 70.1% accuracy, 4.6 q/s, ETA 37s
+  [2231/2400] 70.1% accuracy, 4.6 q/s, ETA 37s
+  [2232/2400] 70.1% accuracy, 4.6 q/s, ETA 36s
+  [2233/2400] 70.1% accuracy, 4.6 q/s, ETA 36s
+  [2234/2400] 70.1% accuracy, 4.6 q/s, ETA 36s
+  [2235/2400] 70.1% accuracy, 4.6 q/s, ETA 36s
+  [2236/2400] 70.0% accuracy, 4.6 q/s, ETA 36s
+  [2237/2400] 70.0% accuracy, 4.6 q/s, ETA 35s
+  [2238/2400] 70.1% accuracy, 4.6 q/s, ETA 35s
+  [2239/2400] 70.1% accuracy, 4.6 q/s, ETA 35s
+  [2240/2400] 70.0% accuracy, 4.6 q/s, ETA 35s
+  [2241/2400] 70.1% accuracy, 4.6 q/s, ETA 35s
+  [2242/2400] 70.1% accuracy, 4.6 q/s, ETA 34s
+  [2243/2400] 70.1% accuracy, 4.6 q/s, ETA 34s
+  [2244/2400] 70.1% accuracy, 4.6 q/s, ETA 34s
+  [2245/2400] 70.1% accuracy, 4.6 q/s, ETA 34s
+  [2246/2400] 70.1% accuracy, 4.6 q/s, ETA 33s
+  [2247/2400] 70.1% accuracy, 4.6 q/s, ETA 33s
+  [2248/2400] 70.2% accuracy, 4.6 q/s, ETA 33s
+  [2249/2400] 70.2% accuracy, 4.6 q/s, ETA 33s
+  [2250/2400] 70.2% accuracy, 4.6 q/s, ETA 33s
+  [2251/2400] 70.1% accuracy, 4.6 q/s, ETA 32s
+  [2252/2400] 70.2% accuracy, 4.6 q/s, ETA 32s
+  [2253/2400] 70.2% accuracy, 4.6 q/s, ETA 32s
+  [2254/2400] 70.1% accuracy, 4.6 q/s, ETA 32s
+  [2255/2400] 70.1% accuracy, 4.6 q/s, ETA 31s
+  [2256/2400] 70.1% accuracy, 4.6 q/s, ETA 31s
+  [2257/2400] 70.1% accuracy, 4.6 q/s, ETA 31s
+  [2258/2400] 70.2% accuracy, 4.6 q/s, ETA 31s
+  [2259/2400] 70.2% accuracy, 4.6 q/s, ETA 31s
+  [2260/2400] 70.2% accuracy, 4.6 q/s, ETA 30s
+  [2261/2400] 70.2% accuracy, 4.6 q/s, ETA 30s
+  [2262/2400] 70.2% accuracy, 4.6 q/s, ETA 30s
+  [2263/2400] 70.2% accuracy, 4.6 q/s, ETA 30s
+  [2264/2400] 70.2% accuracy, 4.6 q/s, ETA 29s
+  [2265/2400] 70.2% accuracy, 4.6 q/s, ETA 29s
+  [2266/2400] 70.2% accuracy, 4.6 q/s, ETA 29s
+  [2267/2400] 70.2% accuracy, 4.6 q/s, ETA 29s
+  [2268/2400] 70.2% accuracy, 4.6 q/s, ETA 29s
+  [2269/2400] 70.3% accuracy, 4.6 q/s, ETA 28s
+  [2270/2400] 70.2% accuracy, 4.6 q/s, ETA 28s
+  [2271/2400] 70.2% accuracy, 4.6 q/s, ETA 28s
+  [2272/2400] 70.2% accuracy, 4.6 q/s, ETA 28s
+  [2273/2400] 70.2% accuracy, 4.6 q/s, ETA 28s
+  [2274/2400] 70.2% accuracy, 4.6 q/s, ETA 27s
+  [2275/2400] 70.2% accuracy, 4.6 q/s, ETA 27s
+  [2276/2400] 70.3% accuracy, 4.6 q/s, ETA 27s
+  [2277/2400] 70.3% accuracy, 4.6 q/s, ETA 27s
+  [2278/2400] 70.3% accuracy, 4.6 q/s, ETA 26s
+  [2279/2400] 70.3% accuracy, 4.6 q/s, ETA 26s
+  [2280/2400] 70.3% accuracy, 4.6 q/s, ETA 26s
+  [2281/2400] 70.3% accuracy, 4.6 q/s, ETA 26s
+  [2282/2400] 70.3% accuracy, 4.6 q/s, ETA 26s
+  [2283/2400] 70.3% accuracy, 4.6 q/s, ETA 25s
+  [2284/2400] 70.3% accuracy, 4.6 q/s, ETA 25s
+  [2285/2400] 70.3% accuracy, 4.6 q/s, ETA 25s
+  [2286/2400] 70.3% accuracy, 4.6 q/s, ETA 25s
+  [2287/2400] 70.3% accuracy, 4.6 q/s, ETA 24s
+  [2288/2400] 70.3% accuracy, 4.6 q/s, ETA 24s
+  [2289/2400] 70.3% accuracy, 4.6 q/s, ETA 24s
+  [2290/2400] 70.3% accuracy, 4.6 q/s, ETA 24s
+  [2291/2400] 70.3% accuracy, 4.6 q/s, ETA 24s
+  [2292/2400] 70.3% accuracy, 4.6 q/s, ETA 23s
+  [2293/2400] 70.3% accuracy, 4.6 q/s, ETA 23s
+  [2294/2400] 70.3% accuracy, 4.6 q/s, ETA 23s
+  [2295/2400] 70.3% accuracy, 4.6 q/s, ETA 23s
+  [2296/2400] 70.3% accuracy, 4.6 q/s, ETA 22s
+  [2297/2400] 70.3% accuracy, 4.6 q/s, ETA 22s
+  [2298/2400] 70.3% accuracy, 4.6 q/s, ETA 22s
+  [2299/2400] 70.3% accuracy, 4.6 q/s, ETA 22s
+  [2300/2400] 70.3% accuracy, 4.6 q/s, ETA 22s
+  [2301/2400] 70.3% accuracy, 4.6 q/s, ETA 21s
+  [2302/2400] 70.3% accuracy, 4.6 q/s, ETA 21s
+  [2303/2400] 70.3% accuracy, 4.6 q/s, ETA 21s
+  [2304/2400] 70.3% accuracy, 4.6 q/s, ETA 21s
+  [2305/2400] 70.3% accuracy, 4.6 q/s, ETA 21s
+  [2306/2400] 70.3% accuracy, 4.6 q/s, ETA 20s
+  [2307/2400] 70.3% accuracy, 4.6 q/s, ETA 20s
+  [2308/2400] 70.3% accuracy, 4.6 q/s, ETA 20s
+  [2309/2400] 70.3% accuracy, 4.6 q/s, ETA 20s
+  [2310/2400] 70.3% accuracy, 4.6 q/s, ETA 19s
+  [2311/2400] 70.4% accuracy, 4.6 q/s, ETA 19s
+  [2312/2400] 70.3% accuracy, 4.6 q/s, ETA 19s
+  [2313/2400] 70.3% accuracy, 4.6 q/s, ETA 19s
+  [2314/2400] 70.4% accuracy, 4.6 q/s, ETA 19s
+  [2315/2400] 70.3% accuracy, 4.6 q/s, ETA 18s
+  [2316/2400] 70.3% accuracy, 4.6 q/s, ETA 18s
+  [2317/2400] 70.3% accuracy, 4.6 q/s, ETA 18s
+  [2318/2400] 70.3% accuracy, 4.6 q/s, ETA 18s
+  [2319/2400] 70.3% accuracy, 4.6 q/s, ETA 17s
+  [2320/2400] 70.3% accuracy, 4.6 q/s, ETA 17s
+  [2321/2400] 70.3% accuracy, 4.6 q/s, ETA 17s
+  [2322/2400] 70.3% accuracy, 4.6 q/s, ETA 17s
+  [2323/2400] 70.3% accuracy, 4.6 q/s, ETA 17s
+  [2324/2400] 70.4% accuracy, 4.6 q/s, ETA 16s
+  [2325/2400] 70.4% accuracy, 4.6 q/s, ETA 16s
+  [2326/2400] 70.3% accuracy, 4.6 q/s, ETA 16s
+  [2327/2400] 70.3% accuracy, 4.6 q/s, ETA 16s
+  [2328/2400] 70.3% accuracy, 4.6 q/s, ETA 16s
+  [2329/2400] 70.3% accuracy, 4.6 q/s, ETA 15s
+  [2330/2400] 70.3% accuracy, 4.6 q/s, ETA 15s
+  [2331/2400] 70.3% accuracy, 4.6 q/s, ETA 15s
+  [2332/2400] 70.2% accuracy, 4.6 q/s, ETA 15s
+  [2333/2400] 70.3% accuracy, 4.6 q/s, ETA 14s
+  [2334/2400] 70.2% accuracy, 4.6 q/s, ETA 14s
+  [2335/2400] 70.2% accuracy, 4.6 q/s, ETA 14s
+  [2336/2400] 70.2% accuracy, 4.6 q/s, ETA 14s
+  [2337/2400] 70.3% accuracy, 4.6 q/s, ETA 14s
+  [2338/2400] 70.2% accuracy, 4.6 q/s, ETA 13s
+  [2339/2400] 70.2% accuracy, 4.6 q/s, ETA 13s
+  [2340/2400] 70.2% accuracy, 4.6 q/s, ETA 13s
+  [2341/2400] 70.1% accuracy, 4.6 q/s, ETA 13s
+  [2342/2400] 70.1% accuracy, 4.6 q/s, ETA 12s
+  [2343/2400] 70.1% accuracy, 4.6 q/s, ETA 12s
+  [2344/2400] 70.1% accuracy, 4.6 q/s, ETA 12s
+  [2345/2400] 70.1% accuracy, 4.6 q/s, ETA 12s
+  [2346/2400] 70.0% accuracy, 4.6 q/s, ETA 12s
+  [2347/2400] 70.0% accuracy, 4.6 q/s, ETA 11s
+  [2348/2400] 70.1% accuracy, 4.6 q/s, ETA 11s
+  [2349/2400] 70.1% accuracy, 4.6 q/s, ETA 11s
+  [2350/2400] 70.1% accuracy, 4.6 q/s, ETA 11s
+  [2351/2400] 70.1% accuracy, 4.6 q/s, ETA 11s
+  [2352/2400] 70.1% accuracy, 4.7 q/s, ETA 10s
+  [2353/2400] 70.1% accuracy, 4.6 q/s, ETA 10s
+  [2354/2400] 70.1% accuracy, 4.6 q/s, ETA 10s
+  [2355/2400] 70.1% accuracy, 4.7 q/s, ETA 10s
+  [2356/2400] 70.2% accuracy, 4.7 q/s, ETA 9s
+  [2357/2400] 70.2% accuracy, 4.7 q/s, ETA 9s
+  [2358/2400] 70.2% accuracy, 4.7 q/s, ETA 9s
+  [2359/2400] 70.2% accuracy, 4.7 q/s, ETA 9s
+  [2360/2400] 70.1% accuracy, 4.7 q/s, ETA 9s
+  [2361/2400] 70.1% accuracy, 4.7 q/s, ETA 8s
+  [2362/2400] 70.2% accuracy, 4.7 q/s, ETA 8s
+  [2363/2400] 70.2% accuracy, 4.7 q/s, ETA 8s
+  [2364/2400] 70.2% accuracy, 4.7 q/s, ETA 8s
+  [2365/2400] 70.2% accuracy, 4.7 q/s, ETA 8s
+  [2366/2400] 70.2% accuracy, 4.7 q/s, ETA 7s
+  [2367/2400] 70.2% accuracy, 4.7 q/s, ETA 7s
+  [2368/2400] 70.2% accuracy, 4.7 q/s, ETA 7s
+  [2369/2400] 70.2% accuracy, 4.7 q/s, ETA 7s
+  [2370/2400] 70.2% accuracy, 4.7 q/s, ETA 6s
+  [2371/2400] 70.2% accuracy, 4.7 q/s, ETA 6s
+  [2372/2400] 70.2% accuracy, 4.7 q/s, ETA 6s
+  [2373/2400] 70.2% accuracy, 4.7 q/s, ETA 6s
+  [2374/2400] 70.2% accuracy, 4.7 q/s, ETA 6s
+  [2375/2400] 70.1% accuracy, 4.7 q/s, ETA 5s
+  [2376/2400] 70.1% accuracy, 4.7 q/s, ETA 5s
+  [2377/2400] 70.1% accuracy, 4.7 q/s, ETA 5s
+  [2378/2400] 70.1% accuracy, 4.7 q/s, ETA 5s
+  [2379/2400] 70.0% accuracy, 4.7 q/s, ETA 5s
+  [2380/2400] 70.0% accuracy, 4.7 q/s, ETA 4s
+  [2381/2400] 70.0% accuracy, 4.7 q/s, ETA 4s
+  [2382/2400] 69.9% accuracy, 4.7 q/s, ETA 4s
+  [2383/2400] 69.9% accuracy, 4.7 q/s, ETA 4s
+  [2384/2400] 69.9% accuracy, 4.7 q/s, ETA 3s
+  [2385/2400] 69.9% accuracy, 4.7 q/s, ETA 3s
+  [2386/2400] 69.8% accuracy, 4.7 q/s, ETA 3s
+  [2387/2400] 69.8% accuracy, 4.7 q/s, ETA 3s
+  [2388/2400] 69.8% accuracy, 4.7 q/s, ETA 3s
+  [2389/2400] 69.8% accuracy, 4.7 q/s, ETA 2s
+  [2390/2400] 69.7% accuracy, 4.7 q/s, ETA 2s
+  [2391/2400] 69.7% accuracy, 4.7 q/s, ETA 2s
+  [2392/2400] 69.7% accuracy, 4.7 q/s, ETA 2s
+  [2393/2400] 69.7% accuracy, 4.7 q/s, ETA 1s
+  [2394/2400] 69.6% accuracy, 4.7 q/s, ETA 1s
+  [2395/2400] 69.6% accuracy, 4.7 q/s, ETA 1s
+  [2396/2400] 69.6% accuracy, 4.7 q/s, ETA 1s
+  [2397/2400] 69.5% accuracy, 4.7 q/s, ETA 1s
+  [2398/2400] 69.5% accuracy, 4.7 q/s, ETA 0s
+  [2399/2400] 69.5% accuracy, 4.7 q/s, ETA 0s
+  [2400/2400] 69.5% accuracy, 4.7 q/s, ETA 0s
+
+RESULTS — 2400 questions, 513s (4.7 q/s)
+Overall Accuracy: 69.5%
+
+Results saved to /var/home/deucebucket/ai-drive/cerebellum/cerebellum-gemma4-codex/benchmark_results/gemma4_codex_cerebellum_v7b_mmlu_redux_results.json
+Per-question detail log: /var/home/deucebucket/ai-drive/cerebellum/cerebellum-gemma4-codex/benchmark_results/gemma4_codex_cerebellum_v7b_mmlu_redux_detailed.jsonl (2400 entries)
+======================================================================

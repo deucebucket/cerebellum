@@ -1,0 +1,11 @@
+MODEL regular_gemma4_v6_1: /var/home/deucebucket/games/models/Gemma-4-26B-A4B-Cerebellum-v6/gemma-4-26B-A4B-it-cerebellum-v6.1-templatefix.gguf
+  wiki
+    PPL 9038.9341
+  code
+    PPL 79.4824
+  math
+    PPL 10.0182
+  dialogue
+    PPL 154.1396
+  agent
+    PPL 11.1748

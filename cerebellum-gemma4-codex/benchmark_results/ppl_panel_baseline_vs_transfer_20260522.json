@@ -1,0 +1,36 @@
+{
+  "timestamp": "2026-05-21 20:54",
+  "domains": [
+    "wiki",
+    "code",
+    "math",
+    "dialogue",
+    "agent"
+  ],
+  "models": {
+    "baseline_q4km": {
+      "path": "/var/home/deucebucket/games/models/gemma4-26b-codex-dwojcik/gemma-4-26B-A4B-it.Q4_K_M.gguf",
+      "size_bytes": 16796015072,
+      "ppl": {
+        "wiki": 9.8655,
+        "code": 3.2257,
+        "math": 2.6571,
+        "dialogue": 3.5457,
+        "agent": 1.9791
+      },
+      "errors": {}
+    },
+    "cerebellum_v6_transfer_requant": {
+      "path": "/var/home/deucebucket/games/cerebellum-gemma4-codex/gemma4-26b-codex-cerebellum-v6-transfer-requant.gguf",
+      "size_bytes": 13178981344,
+      "ppl": {
+        "wiki": 15.2815,
+        "code": 3.9142,
+        "math": 2.9774,
+        "dialogue": 4.2967,
+        "agent": 2.2471
+      },
+      "errors": {}
+    }
+  }
+}
