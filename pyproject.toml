@@ -5,12 +5,14 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "osmosis"
 version = "0.2.0"
-description = "Fast imatrix generation for llama.cpp quantization — compute weight sensitivity in seconds, not hours"
+description = "Cerebellum engine files for ablation-informed GGUF quantization"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 dependencies = [
     "torch>=2.1",
     "transformers>=4.40",
+    "safetensors>=0.4",
+    "huggingface_hub>=0.23",
 ]
 
 [project.optional-dependencies]

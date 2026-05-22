@@ -1,234 +1,204 @@
 #!/usr/bin/env bash
-# Tensor ablation experiment — crush one tensor at a time, measure real impact.
+# Generic Cerebellum tensor ablation helper.
 #
-# Start from Q4_K_M baseline (high quality), override ONE tensor to Q2_K,
-# run perplexity, record the delta. Proves which tensors actually matter
-# vs what the sensitivity proxy predicts.
+# This is a thin, configurable wrapper around stock llama.cpp tools. It builds
+# one temporary GGUF per tensor override, runs perplexity, records the measured
+# PPL, and deletes the temporary GGUF.
 #
-# Resumable: checks ablation_results.json for completed tests and skips them.
+# Required environment variables:
+#   SOURCE_GGUF       high precision source GGUF
+#   IMATRIX           llama.cpp imatrix file
+#   PLAN_JSON         JSON file with {"tensors": [{"name": "...", "gguf_tensor": "..."}]}
+#   RESULTS_JSON      output ablation results JSON
+#   WORK_DIR          temporary output directory
+#   WIKI_RAW          perplexity corpus file
+#
+# Optional environment variables:
+#   QUANTIZE          path to llama-quantize (default: llama-quantize)
+#   PERPLEXITY        path to llama-perplexity (default: llama-perplexity)
+#   BASE_TYPE         baseline quant type (default: Q4_K_M)
+#   ABLATE_TYPE       forced tensor quant type (default: q2_K)
+#   N_GPU_LAYERS      llama.cpp -ngl value (default: 99)
+#   CTX_SIZE          perplexity context size (default: 2048)
+#   THREADS           perplexity thread count (default: 8)
+#   MAX_TESTS         max new tensors to run in this invocation (default: all)
 #
 # Usage:
-#   ./scripts/ablation_run.sh              # run all remaining
-#   ./scripts/ablation_run.sh 5            # run next 5 only (good for overnight batches)
-#   ./scripts/ablation_run.sh --baseline   # just build and test the baseline
+#   SOURCE_GGUF=model-f16.gguf \
+#   IMATRIX=cerebellum_imatrix.dat \
+#   PLAN_JSON=ablation_plan.json \
+#   RESULTS_JSON=ablation_results.json \
+#   WORK_DIR=/tmp/cerebellum-ablation \
+#   WIKI_RAW=wiki.test.raw \
+#   ./scripts/ablation_run.sh
 
 set -euo pipefail
 
-OSMOSIS_DIR="/var/home/deucebucket/ai-drive/osmosis"
-QUANTS_DIR="/var/home/deucebucket/games/osmosis-quants"
-F16_GGUF="/var/tmp/osmosis-qwen36/qwen3.6-27b-f16.gguf"
-IMATRIX="$OSMOSIS_DIR/osmosis-qwen36-27b/osmosis_imatrix.dat"
-QUANTIZE="/tmp/llama-cpu-build/bin/llama-quantize"
-WIKI_RAW="$QUANTS_DIR/wiki.test.raw"
-PLAN="$OSMOSIS_DIR/osmosis-qwen36-27b/ablation_plan.json"
-RESULTS="$OSMOSIS_DIR/osmosis-qwen36-27b/ablation_results.json"
-LOG_DIR="$OSMOSIS_DIR/osmosis-qwen36-27b/ablation_logs"
-BASELINE_GGUF="$QUANTS_DIR/qwen3.6-27b-osmosis-imatrix-Q4_K_M.gguf"
-ABLATION_GGUF="$QUANTS_DIR/qwen3.6-27b-ablation-temp.gguf"
-TENSOR_TYPES_TMP="/var/tmp/osmosis-qwen36/ablation_tensor_type.txt"
+required_var() {
+    local name="$1"
+    if [ -z "${!name:-}" ]; then
+        echo "ERROR: required environment variable $name is not set" >&2
+        exit 2
+    fi
+}
 
-# HF sensitivity name → GGUF tensor name mapping
-declare -A HF_TO_GGUF=(
-    ["linear_attn.in_proj_qkv"]="attn_qkv"
-    ["linear_attn.in_proj_a"]="ssm_alpha"
-    ["linear_attn.in_proj_b"]="ssm_beta"
-    ["linear_attn.in_proj_z"]="attn_gate"
-    ["linear_attn.out_proj"]="ssm_out"
-    ["self_attn.q_proj"]="attn_q"
-    ["self_attn.k_proj"]="attn_k"
-    ["self_attn.v_proj"]="attn_v"
-    ["self_attn.o_proj"]="attn_output"
-    ["mlp.down_proj"]="ffn_down"
-    ["mlp.gate_proj"]="ffn_gate"
-    ["mlp.up_proj"]="ffn_up"
-)
+for name in SOURCE_GGUF IMATRIX PLAN_JSON RESULTS_JSON WORK_DIR WIKI_RAW; do
+    required_var "$name"
+done
 
+QUANTIZE="${QUANTIZE:-llama-quantize}"
+PERPLEXITY="${PERPLEXITY:-llama-perplexity}"
+BASE_TYPE="${BASE_TYPE:-Q4_K_M}"
+ABLATE_TYPE="${ABLATE_TYPE:-q2_K}"
+N_GPU_LAYERS="${N_GPU_LAYERS:-99}"
+CTX_SIZE="${CTX_SIZE:-2048}"
+THREADS="${THREADS:-8}"
+MAX_TESTS="${MAX_TESTS:-999999}"
+
+mkdir -p "$WORK_DIR"
+LOG_DIR="$WORK_DIR/logs"
 mkdir -p "$LOG_DIR"
 
-# Initialize results file if missing
-if [ ! -f "$RESULTS" ]; then
-    echo '{"baseline_ppl": null, "tests": {}}' > "$RESULTS"
+BASELINE_GGUF="$WORK_DIR/baseline-${BASE_TYPE}.gguf"
+ABLATION_GGUF="$WORK_DIR/ablation-temp.gguf"
+TENSOR_TYPES_TMP="$WORK_DIR/ablation_tensor_type.txt"
+
+if [ ! -f "$RESULTS_JSON" ]; then
+    printf '{"baseline_ppl": null, "tests": {}}\n' > "$RESULTS_JSON"
 fi
 
-hf_to_gguf_name() {
-    # Convert "layer_29.linear_attn.in_proj_b" → "blk.29.ssm_beta.weight"
-    local hf_name="$1"
-    local layer_num=$(echo "$hf_name" | grep -oP 'layer_\K\d+')
-    local component=$(echo "$hf_name" | sed 's/layer_[0-9]*\.//')
-    local gguf_comp="${HF_TO_GGUF[$component]:-}"
-    if [ -z "$gguf_comp" ]; then
-        echo "ERROR: unknown component $component" >&2
-        return 1
-    fi
-    echo "blk.${layer_num}.${gguf_comp}.weight"
+json_get_baseline() {
+    python3 - "$RESULTS_JSON" <<'PY'
+import json, sys
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+value = data.get("baseline_ppl")
+if value is not None:
+    print(value)
+PY
+}
+
+json_test_done() {
+    python3 - "$RESULTS_JSON" "$1" <<'PY'
+import json, sys
+with open(sys.argv[1]) as f:
+    data = json.load(f)
+value = data.get("tests", {}).get(sys.argv[2], {}).get("ppl")
+if value is not None:
+    print(value)
+PY
+}
+
+json_save_baseline() {
+    python3 - "$RESULTS_JSON" "$1" <<'PY'
+import json, sys
+path, ppl = sys.argv[1], float(sys.argv[2])
+with open(path) as f:
+    data = json.load(f)
+data["baseline_ppl"] = ppl
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+PY
+}
+
+json_save_test() {
+    python3 - "$RESULTS_JSON" "$1" "$2" "$3" <<'PY'
+import json, sys
+path, name, ppl, gguf_tensor = sys.argv[1], sys.argv[2], float(sys.argv[3]), sys.argv[4]
+with open(path) as f:
+    data = json.load(f)
+data.setdefault("tests", {})[name] = {
+    "ppl": ppl,
+    "gguf_tensor": gguf_tensor,
+}
+with open(path, "w") as f:
+    json.dump(data, f, indent=2)
+    f.write("\n")
+PY
 }
 
 run_perplexity() {
     local gguf="$1"
     local log="$2"
-    distrobox enter ai -- bash -c \
-        "/var/home/deucebucket/ai-drive/llama.cpp/build/bin/llama-perplexity \
-        -m $gguf -ngl 99 -c 2048 -t 8 \
-        -f $WIKI_RAW 2>&1" \
-        2>/dev/null | grep -v 'nvidia-modprobe' > "$log"
-    grep -oP 'PPL = \K[\d.]+' "$log" | tail -1
+    "$PERPLEXITY" \
+        -m "$gguf" \
+        -ngl "$N_GPU_LAYERS" \
+        -c "$CTX_SIZE" \
+        -t "$THREADS" \
+        -f "$WIKI_RAW" \
+        > "$log" 2>&1
+    grep -oE 'PPL = [0-9.]+' "$log" | awk '{print $3}' | tail -1
 }
 
-get_result() {
-    python3 -c "
-import json
-with open('$RESULTS') as f:
-    r = json.load(f)
-v = r.get('tests', {}).get('$1', {}).get('ppl')
-if v: print(v)
-"
-}
-
-save_result() {
-    local name="$1"
-    local ppl="$2"
-    local gguf_tensor="$3"
-    python3 -c "
-import json
-with open('$RESULTS') as f:
-    r = json.load(f)
-r.setdefault('tests', {})['$name'] = {'ppl': $ppl, 'gguf_tensor': '$gguf_tensor'}
-with open('$RESULTS', 'w') as f:
-    json.dump(r, f, indent=2)
-"
-}
-
-save_baseline() {
-    python3 -c "
-import json
-with open('$RESULTS') as f:
-    r = json.load(f)
-r['baseline_ppl'] = $1
-with open('$RESULTS', 'w') as f:
-    json.dump(r, f, indent=2)
-"
-}
-
-get_baseline() {
-    python3 -c "
-import json
-with open('$RESULTS') as f:
-    r = json.load(f)
-v = r.get('baseline_ppl')
-if v: print(v)
-"
-}
-
-# --- Step 1: Baseline Q4_K_M ---
-BASELINE_PPL=$(get_baseline)
+BASELINE_PPL="$(json_get_baseline)"
 if [ -z "$BASELINE_PPL" ]; then
-    echo "=== Building Q4_K_M baseline ==="
+    echo "Building baseline $BASE_TYPE..."
     if [ ! -f "$BASELINE_GGUF" ]; then
-        echo "Quantizing F16 → Q4_K_M with imatrix..."
-        "$QUANTIZE" --imatrix "$IMATRIX" "$F16_GGUF" "$BASELINE_GGUF" Q4_K_M
+        "$QUANTIZE" --imatrix "$IMATRIX" "$SOURCE_GGUF" "$BASELINE_GGUF" "$BASE_TYPE"
     fi
+
     echo "Running baseline perplexity..."
-    BASELINE_PPL=$(run_perplexity "$BASELINE_GGUF" "$LOG_DIR/baseline_q4km.log")
+    BASELINE_PPL="$(run_perplexity "$BASELINE_GGUF" "$LOG_DIR/baseline.log")"
     if [ -z "$BASELINE_PPL" ]; then
-        echo "ERROR: Failed to get baseline PPL"
+        echo "ERROR: failed to parse baseline PPL from $LOG_DIR/baseline.log" >&2
         exit 1
     fi
-    save_baseline "$BASELINE_PPL"
-    echo "Baseline PPL: $BASELINE_PPL"
-else
-    echo "Baseline PPL: $BASELINE_PPL (cached)"
+    json_save_baseline "$BASELINE_PPL"
 fi
 
-if [ "${1:-}" = "--baseline" ]; then
-    echo "Baseline only mode, exiting."
-    exit 0
-fi
+echo "Baseline PPL: $BASELINE_PPL"
 
-# --- Step 2: Run ablations ---
-MAX_TESTS="${1:-999}"
-COMPLETED=0
-
-# Read test tensors from plan
-TENSOR_NAMES=$(python3 -c "
-import json
-with open('$PLAN') as f:
+completed=0
+python3 - "$PLAN_JSON" <<'PY' | while IFS=$'\t' read -r test_name gguf_tensor; do
+import json, sys
+with open(sys.argv[1]) as f:
     plan = json.load(f)
-for t in plan['tensors']:
-    print(t['name'])
-")
-
-for HF_NAME in $TENSOR_NAMES; do
-    if [ "$COMPLETED" -ge "$MAX_TESTS" ]; then
-        echo "Reached batch limit ($MAX_TESTS). Resume later."
+for item in plan.get("tensors", []):
+    name = item.get("name") or item.get("hf_name") or item.get("gguf_tensor")
+    gguf = item.get("gguf_tensor")
+    if name and gguf:
+        print(f"{name}\t{gguf}")
+PY
+    if [ "$completed" -ge "$MAX_TESTS" ]; then
         break
     fi
 
-    # Skip if already done
-    EXISTING=$(get_result "$HF_NAME")
-    if [ -n "$EXISTING" ]; then
-        echo "SKIP $HF_NAME (PPL=$EXISTING)"
+    existing="$(json_test_done "$test_name")"
+    if [ -n "$existing" ]; then
+        echo "SKIP $test_name (PPL=$existing)"
         continue
     fi
 
-    GGUF_TENSOR=$(hf_to_gguf_name "$HF_NAME")
     echo ""
-    echo "=== Ablation: $HF_NAME → $GGUF_TENSOR =Q2_K ==="
+    echo "Ablating $test_name -> $gguf_tensor=$ABLATE_TYPE"
+    printf '%s=%s\n' "$gguf_tensor" "$ABLATE_TYPE" > "$TENSOR_TYPES_TMP"
 
-    # Write single-tensor override file
-    echo "${GGUF_TENSOR}=q2_K" > "$TENSOR_TYPES_TMP"
-
-    # Build GGUF with one tensor crushed
-    echo "Building GGUF (Q4_K_M base, $GGUF_TENSOR → Q2_K)..."
-    "$QUANTIZE" --imatrix "$IMATRIX" \
+    "$QUANTIZE" \
+        --imatrix "$IMATRIX" \
         --tensor-type-file "$TENSOR_TYPES_TMP" \
-        "$F16_GGUF" "$ABLATION_GGUF" Q4_K_M 2>&1 | tail -3
+        "$SOURCE_GGUF" \
+        "$ABLATION_GGUF" \
+        "$BASE_TYPE"
 
-    # Run perplexity
-    echo "Running perplexity..."
-    PPL=$(run_perplexity "$ABLATION_GGUF" "$LOG_DIR/ablation_${HF_NAME}.log")
-
-    if [ -z "$PPL" ]; then
-        echo "ERROR: Failed to get PPL for $HF_NAME"
+    safe_name="$(printf '%s' "$test_name" | tr '/ .' '___')"
+    ppl="$(run_perplexity "$ABLATION_GGUF" "$LOG_DIR/ablation-${safe_name}.log")"
+    if [ -z "$ppl" ]; then
+        echo "WARN: failed to parse PPL for $test_name" >&2
+        rm -f "$ABLATION_GGUF"
         continue
     fi
 
-    DELTA=$(python3 -c "print(f'{$PPL - $BASELINE_PPL:+.4f}')")
-    echo "PPL = $PPL (delta = $DELTA from baseline $BASELINE_PPL)"
+    json_save_test "$test_name" "$ppl" "$gguf_tensor"
+    python3 - "$ppl" "$BASELINE_PPL" <<'PY'
+import sys
+ppl, baseline = map(float, sys.argv[1:3])
+print(f"PPL = {ppl:.6f} (delta {ppl - baseline:+.6f})")
+PY
 
-    save_result "$HF_NAME" "$PPL" "$GGUF_TENSOR"
-    COMPLETED=$((COMPLETED + 1))
-
-    # Clean up temp GGUF to save disk
     rm -f "$ABLATION_GGUF"
+    completed=$((completed + 1))
 done
 
 echo ""
-echo "=== Ablation Summary ==="
-python3 -c "
-import json
-
-with open('$RESULTS') as f:
-    r = json.load(f)
-
-with open('$PLAN') as f:
-    plan = json.load(f)
-
-baseline = r['baseline_ppl']
-tests = r.get('tests', {})
-plan_lookup = {t['name']: t for t in plan['tensors']}
-
-print(f'Baseline Q4_K_M: {baseline}')
-print(f'Completed: {len(tests)}/{len(plan[\"tensors\"])}')
-print()
-print(f'{\"Tensor\":45s} {\"PPL\":>8s} {\"Delta\":>8s} {\"kl2_proxy\":>10s} {\"Params\":>8s}  Reason')
-print('-' * 110)
-
-for name, data in sorted(tests.items(), key=lambda x: x[1]['ppl'], reverse=True):
-    ppl = data['ppl']
-    delta = ppl - baseline
-    info = plan_lookup.get(name, {})
-    kl2 = info.get('kl2', 0)
-    pc = info.get('pc', 0)
-    reason = info.get('reason', '?')
-    print(f'{name:45s} {ppl:8.4f} {delta:+8.4f} {kl2:10.6f} {pc/1e6:7.1f}M  {reason}')
-"
+echo "Results: $RESULTS_JSON"

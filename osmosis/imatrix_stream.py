@@ -3,13 +3,14 @@
 Uses safetensors memory-mapped reads to process one tensor at a time.
 Never loads the full model into RAM. A 671B model uses ~4GB peak RAM.
 
-Produces identical output to imatrix_gen.py — same binary format, same
-sensitivity formula (L2 * maxabs * variance per column, normalized 0-1).
+Produces the same binary imatrix format as imatrix_gen.py. It is weight-only;
+imatrix_gen.py can also blend in activation calibration unless run with
+--no-calibrate.
 
 Usage:
     python -m osmosis.imatrix_stream \
         --model deepseek-ai/DeepSeek-V3 \
-        --output osmosis_imatrix.dat \
+        --output cerebellum_imatrix.dat \
         -v
 """
 import argparse
@@ -60,7 +61,7 @@ def write_legacy_imatrix(
     path: str,
     data: dict[str, list[float]],
     ncall: int = 1,
-    dataset_name: str = "osmosis-sensitivity",
+    dataset_name: str = "cerebellum-sensitivity",
 ):
     with open(path, "wb") as f:
         f.write(struct.pack("<i", len(data)))

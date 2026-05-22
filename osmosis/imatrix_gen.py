@@ -9,7 +9,7 @@ Qwen 3.6 (dense), and standard transformers.
 Usage:
     python -m osmosis.imatrix_gen \
         --model Qwen/Qwen3.6-27B \
-        --output osmosis-qwen36-27b/osmosis_imatrix.dat \
+        --output osmosis-qwen36-27b/cerebellum_imatrix.dat \
         -v
 """
 import argparse
@@ -46,7 +46,7 @@ def write_legacy_imatrix(
     path: str,
     data: dict[str, list[float]],
     ncall: int = 1,
-    dataset_name: str = "osmosis-sensitivity",
+    dataset_name: str = "cerebellum-sensitivity",
 ):
     with open(path, "wb") as f:
         f.write(struct.pack("<i", len(data)))

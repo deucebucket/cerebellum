@@ -40,7 +40,29 @@ osmosis/repair_nim.py
 osmosis/sensitivity.py
 osmosis/sensitivity_multi.py
 
+# Private working notes and dated experiment logs stay in cerebellum-dev.
+docs/*_2026*.md
+docs/*_todo.md
+docs/*_plan.md
+docs/*_findings*.md
+docs/*_checkpoint*.md
+docs/*_runway*.md
+docs/overnight_*.md
+docs/pipeline_*.md
+docs/agent_bench_*.md
+docs/qwen35_9b_*.md
+docs/multi_domain_ablation.md
+docs/cerebellum_cblm_format.md
+docs/cerebellum_success_patterns.md
+osmosis/dashboard/
+!docs/getting_started.md
+!docs/cli_reference.md
+!docs/public_release_scope.md
+!docs/benchmark_protocol.md
+!docs/mamba_hybrid_findings.md
+
 # Ablation logs (large, not in repo)
 osmosis-qwen36-27b/ablation_logs/
 osmosis-qwen36-27b/*.log
 osmosis-qwen36-27b/brain_scan*.json
+.bench-venv/

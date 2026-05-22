@@ -119,13 +119,13 @@ Qwen 3.5 9B: 32 layers, hybrid Mamba + self-attention
 For this model, standard Q4_K_M with our Osmosis imatrix is the best approach:
 
 ```bash
-# Generate Osmosis imatrix
+# Generate Cerebellum imatrix
 python -m osmosis.imatrix_stream \
     --model Qwen/Qwen3.5-9B \
-    --output osmosis_imatrix.dat -v
+    --output cerebellum_imatrix.dat -v
 
 # Quantize
-llama-quantize --imatrix osmosis_imatrix.dat \
+llama-quantize --imatrix cerebellum_imatrix.dat \
     model-f16.gguf model-Q4_K_M.gguf Q4_K_M
 ```
 
