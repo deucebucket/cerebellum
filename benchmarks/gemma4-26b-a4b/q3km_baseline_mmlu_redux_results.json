@@ -1,0 +1,9 @@
+{
+  "benchmark": "mmlu_redux",
+  "model": "q3km_baseline",
+  "accuracy": 73.66666666666667,
+  "correct": 1768,
+  "total": 2400,
+  "elapsed_seconds": 168.6936960220337,
+  "timestamp": "2026-04-30 15:41"
+}

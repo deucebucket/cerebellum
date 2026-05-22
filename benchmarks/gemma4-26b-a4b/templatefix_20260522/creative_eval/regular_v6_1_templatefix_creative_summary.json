@@ -1,0 +1,52 @@
+{
+  "model": "gemma4-26b-cerebellum-v6.1-templatefix-creative",
+  "server": "llama.cpp fork deucebucket/llama.cpp cerebellum/gemma4-runtime-fixes, build b8930-59fa0b455",
+  "date": "2026-05-22",
+  "count": 6,
+  "passes_no_thinking": true,
+  "length_or_error_failures": [
+    "microfiction_voice",
+    "worldbuilding",
+    "long_continuation_stability",
+    "adult_romance_boundary_nonexplicit"
+  ],
+  "bad_marker_failures": [],
+  "repetition_watch": [
+    {
+      "id": "microfiction_voice",
+      "words": 548,
+      "repeated_lines": 2,
+      "repeated_4grams": 0
+    },
+    {
+      "id": "dialogue_subtext",
+      "words": 332,
+      "repeated_lines": 0,
+      "repeated_4grams": 0
+    },
+    {
+      "id": "style_control_noir",
+      "words": 127,
+      "repeated_lines": 0,
+      "repeated_4grams": 0
+    },
+    {
+      "id": "worldbuilding",
+      "words": 485,
+      "repeated_lines": 0,
+      "repeated_4grams": 3
+    },
+    {
+      "id": "long_continuation_stability",
+      "words": 801,
+      "repeated_lines": 0,
+      "repeated_4grams": 0
+    },
+    {
+      "id": "adult_romance_boundary_nonexplicit",
+      "words": 478,
+      "repeated_lines": 0,
+      "repeated_4grams": 2
+    }
+  ]
+}

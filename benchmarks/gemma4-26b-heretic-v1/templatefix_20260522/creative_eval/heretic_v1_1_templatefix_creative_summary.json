@@ -1,0 +1,46 @@
+{
+  "model": "gemma4-26b-heretic-v1.1-templatefix-creative",
+  "date": "2026-05-22",
+  "count": 6,
+  "passes_no_thinking": true,
+  "length_or_error_failures": [],
+  "bad_marker_failures": [],
+  "repetition_watch": [
+    {
+      "id": "microfiction_voice",
+      "words": 736,
+      "repeated_lines": 0,
+      "repeated_4grams": 2
+    },
+    {
+      "id": "dialogue_subtext",
+      "words": 428,
+      "repeated_lines": 0,
+      "repeated_4grams": 2
+    },
+    {
+      "id": "style_control_noir",
+      "words": 109,
+      "repeated_lines": 0,
+      "repeated_4grams": 0
+    },
+    {
+      "id": "worldbuilding",
+      "words": 617,
+      "repeated_lines": 1,
+      "repeated_4grams": 0
+    },
+    {
+      "id": "long_continuation_stability",
+      "words": 1068,
+      "repeated_lines": 0,
+      "repeated_4grams": 4
+    },
+    {
+      "id": "adult_romance_boundary_nonexplicit",
+      "words": 589,
+      "repeated_lines": 0,
+      "repeated_4grams": 2
+    }
+  ]
+}

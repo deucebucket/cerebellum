@@ -1,0 +1,9 @@
+{
+  "benchmark": "hellaswag",
+  "model": "q3km_baseline",
+  "accuracy": 86.566421031667,
+  "correct": 8693,
+  "total": 10042,
+  "elapsed_seconds": 1099.3741595745087,
+  "timestamp": "2026-04-30 15:38"
+}

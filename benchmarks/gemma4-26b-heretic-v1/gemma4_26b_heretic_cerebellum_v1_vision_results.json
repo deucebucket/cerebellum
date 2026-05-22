@@ -1,0 +1,41 @@
+{
+  "benchmark": "vision_smoke_local",
+  "model": "gemma4_26b_heretic_cerebellum_v1",
+  "accuracy": 100.0,
+  "correct": 6,
+  "total": 6,
+  "by_category": {
+    "chart": {
+      "accuracy": 100.0,
+      "correct": 1,
+      "total": 1
+    },
+    "counting": {
+      "accuracy": 100.0,
+      "correct": 1,
+      "total": 1
+    },
+    "ocr": {
+      "accuracy": 100.0,
+      "correct": 1,
+      "total": 1
+    },
+    "spatial": {
+      "accuracy": 100.0,
+      "correct": 1,
+      "total": 1
+    },
+    "table": {
+      "accuracy": 100.0,
+      "correct": 1,
+      "total": 1
+    },
+    "ui": {
+      "accuracy": 100.0,
+      "correct": 1,
+      "total": 1
+    }
+  },
+  "elapsed_seconds": 2.6,
+  "timestamp": "2026-05-18 18:26"
+}

@@ -1,0 +1,8 @@
+{
+  "benchmark": "hellaswag",
+  "model": "gemma4_26b_heretic_cerebellum_v1",
+  "accuracy": 83.49,
+  "total": 10042,
+  "elapsed_seconds": 1107.2,
+  "timestamp": "2026-05-18 18:50"
+}

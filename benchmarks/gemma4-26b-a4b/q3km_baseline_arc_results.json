@@ -1,0 +1,9 @@
+{
+  "benchmark": "arc_challenge",
+  "model": "q3km_baseline",
+  "accuracy": 95.22184300341297,
+  "correct": 1116,
+  "total": 1172,
+  "elapsed_seconds": 69.50615334510803,
+  "timestamp": "2026-04-30 15:19"
+}

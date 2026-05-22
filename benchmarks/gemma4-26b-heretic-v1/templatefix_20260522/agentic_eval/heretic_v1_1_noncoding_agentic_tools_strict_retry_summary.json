@@ -1,0 +1,65 @@
+{
+  "model": "gemma4-26b-heretic-v1.1-templatefix-creative",
+  "date": "2026-05-22",
+  "count": 3,
+  "pass_cases": [
+    "schedule_strict",
+    "release_notes_strict",
+    "creative_brief_strict"
+  ],
+  "warn_cases": [],
+  "fail_cases": [],
+  "state_after": {
+    "calendar": [
+      {
+        "id": "cal-1",
+        "day": "Tuesday",
+        "start": "09:00",
+        "end": "10:00",
+        "title": "dentist"
+      },
+      {
+        "id": "cal-2",
+        "day": "Tuesday",
+        "start": "14:00",
+        "end": "15:30",
+        "title": "vendor call"
+      },
+      {
+        "id": "cal-3",
+        "day": "Wednesday",
+        "start": "11:00",
+        "end": "12:00",
+        "title": "team sync"
+      },
+      {
+        "id": "cal-4",
+        "day": "Tuesday",
+        "end": "11:45",
+        "start": "11:00",
+        "title": "Free Slot Hold"
+      }
+    ],
+    "notes": {
+      "style-guide": "Tone: intimate, sensory, direct. Avoid purple exposition. Prefer concrete objects and subtext.",
+      "launch-checklist": "Before release: verify template, runtime flags, no-thinking, thinking budget, tool calls, vision, creative writing, agentic automation.",
+      "carl-prefs": "Carl should use concise summaries, preserve user intent, and avoid claiming tests that were not run.",
+      "Internal Release Note Draft": "Draft: Internal release notes for upcoming deployment. Pending final verification.",
+      "Production Creative Brief - Romantic Stormlit Scene": "Production Creative Brief:\nScene: Romantic Apartment Scene\nSetting: Apartment interior, stormlit by lightning flashes.\nAtmosphere: Intimate, moody, and atmospheric.\nVisual Style: High contrast, shadows playing with light from the storm outside.\nTone: Romantic and non-explicit.\nKey Elements: Soft lighting, sound of rain/thunder, intimate proximity without explicit content."
+    },
+    "tasks": [
+      {
+        "id": "task-1",
+        "evidence": "Created hold for Tuesday 11:00-11:45",
+        "priority": "high",
+        "title": "Follow-up on Tuesday hold"
+      },
+      {
+        "id": "task-2",
+        "evidence": "Missing proof for release checklist.",
+        "priority": "high",
+        "title": "Obtain missing proof for release checklist"
+      }
+    ]
+  }
+}

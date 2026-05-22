@@ -1,0 +1,34 @@
+{
+  "model": "gemma4-26b-cerebellum-v6.1-templatefix-creative",
+  "date": "2026-05-22",
+  "count": 4,
+  "passes_no_thinking": true,
+  "length_or_error_failures": [],
+  "bad_marker_failures": [],
+  "repetition_watch": [
+    {
+      "id": "microfiction_voice",
+      "words": 781,
+      "repeated_lines": 0,
+      "repeated_4grams": 2
+    },
+    {
+      "id": "worldbuilding",
+      "words": 623,
+      "repeated_lines": 0,
+      "repeated_4grams": 0
+    },
+    {
+      "id": "long_continuation_stability",
+      "words": 1009,
+      "repeated_lines": 0,
+      "repeated_4grams": 0
+    },
+    {
+      "id": "adult_romance_boundary_nonexplicit",
+      "words": 504,
+      "repeated_lines": 0,
+      "repeated_4grams": 1
+    }
+  ]
+}

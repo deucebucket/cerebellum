@@ -1,0 +1,65 @@
+{
+  "model": "gemma4-26b-regular-v6.1-templatefix-agentic",
+  "date": "2026-05-22",
+  "count": 3,
+  "pass_cases": [
+    "schedule_strict",
+    "release_notes_strict",
+    "creative_brief_strict"
+  ],
+  "warn_cases": [],
+  "fail_cases": [],
+  "state_after": {
+    "calendar": [
+      {
+        "id": "cal-1",
+        "day": "Tuesday",
+        "start": "09:00",
+        "end": "10:00",
+        "title": "dentist"
+      },
+      {
+        "id": "cal-2",
+        "day": "Tuesday",
+        "start": "14:00",
+        "end": "15:30",
+        "title": "vendor call"
+      },
+      {
+        "id": "cal-3",
+        "day": "Wednesday",
+        "start": "11:00",
+        "end": "12:00",
+        "title": "team sync"
+      },
+      {
+        "id": "cal-4",
+        "day": "Tuesday",
+        "end": "11:00",
+        "start": "10:15",
+        "title": "Free Slot Hold"
+      }
+    ],
+    "notes": {
+      "style-guide": "Tone: intimate, sensory, direct. Avoid purple exposition. Prefer concrete objects and subtext.",
+      "launch-checklist": "Before release: verify template, runtime flags, no-thinking, thinking budget, tool calls, vision, creative writing, agentic automation.",
+      "carl-prefs": "Carl should use concise summaries, preserve user intent, and avoid claiming tests that were not run.",
+      "Internal Release-Note Draft": "Internal release-note draft: Review checklist and Carl's preferences for the upcoming release.",
+      "Production Creative Brief - Romantic Stormlit Apartment Scene": "Production Creative Brief: Romantic Stormlit Apartment Scene\nTone: Intimate, atmospheric, and non-explicit.\nVisual Style: Low-key lighting, heavy use of shadows, and blue/cool tones from the storm outside contrasted with warm, amber hues from indoor lamps.\nSetting: A cozy apartment during a thunderstorm. Large windows showing rain and lightning.\nKey Elements: Sound of rain against glass, soft textures (blankets, velvet), flickering candlelight, and subtle character interaction.\nGoal: Capture the tension and romance through atmosphere and subtext rather than explicit action."
+    },
+    "tasks": [
+      {
+        "id": "task-1",
+        "evidence": "Created hold for Tuesday 10:15-11:00",
+        "priority": "medium",
+        "title": "Follow up on Tuesday hold"
+      },
+      {
+        "id": "task-2",
+        "evidence": "Missing proof for release checklist.",
+        "priority": "high",
+        "title": "Obtain missing proof for release checklist"
+      }
+    ]
+  }
+}

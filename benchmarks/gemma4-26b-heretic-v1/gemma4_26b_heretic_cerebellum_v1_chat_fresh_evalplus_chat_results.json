@@ -1,0 +1,12 @@
+{
+  "benchmark": "evalplus_humaneval_plus_chat",
+  "model": "gemma4_26b_heretic_cerebellum_v1_chat_fresh",
+  "pass_at_1_base": 92.07,
+  "pass_at_1_plus": 89.63,
+  "total_problems": 164,
+  "elapsed_seconds": 226.1,
+  "enable_thinking": false,
+  "thinking_budget_tokens": 0,
+  "max_tokens": 768,
+  "timestamp": "2026-05-18 20:29"
+}

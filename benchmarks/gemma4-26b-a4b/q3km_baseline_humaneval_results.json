@@ -1,0 +1,13 @@
+{
+  "benchmark": "humaneval",
+  "model": "q3km_baseline",
+  "pass_at_1": 0.6219512195121951,
+  "pass_at_1_pct": 62.2,
+  "total_problems": 164,
+  "timestamp": "2026-04-30 15:18",
+  "settings": {
+    "temperature": 0,
+    "max_tokens": 512,
+    "enable_thinking": false
+  }
+}

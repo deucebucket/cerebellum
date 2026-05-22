@@ -1,0 +1,8 @@
+{
+  "benchmark": "mmlu_redux",
+  "model": "gemma4_26b_heretic_cerebellum_v1",
+  "accuracy": 71.42,
+  "total": 2400,
+  "elapsed_seconds": 184.0,
+  "timestamp": "2026-05-18 18:53"
+}
