@@ -98,6 +98,7 @@ cerebellum run \
   --start-type q4_K \
   --levels q3_K,q2_K,q5_K,q6_K,f16
 cerebellum watch /path/to/run
+cerebellum watch /path/to/run --tui
 cerebellum report /path/to/run
 ```
 
@@ -120,7 +121,9 @@ so results remain comparable later.
 The live dashboard shows run identity, selected PPL profile, active quant/PPL
 work, live process health, current/active GGUF sizes, timing totals, recent
 measurements, and the event stream. The dashboard stays bounded by default;
-increase visible rows with `--events-limit N` and `--measurements-limit N`.
+increase visible rows with `--events-limit N` and `--measurements-limit N`. Use
+`cerebellum watch RUN_DIR --tui` for an interactive terminal UI with independent
+scrollable panes for events, measurements, processes/GPU, and files.
 Captured dev snapshots:
 
 - [Qwen3 0.6B smoke dashboard](docs/cerebellum_cli_smoke_snapshot.png)

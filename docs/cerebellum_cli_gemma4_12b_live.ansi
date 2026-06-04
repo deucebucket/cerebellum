@@ -4,38 +4,76 @@
 [36;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
 
 [34;1m╭─ Run ────────────────────────────────────────────────────────────────────────────────────────╮[0m
-│ id       gemma4-12b-cerebellum-q4km-wiki-visible-20260604                                   │
-│ model    gemma-4/gemma-4-12b-it                                                             │
-│ status   running                                                                            │
-│ profile  wiki                                                                               │
-│ corpus                              /var/home/deucebucket/games/osmosis-quants/wiki.test.raw│
-│ ppl      2504.2787                                                                          │
-│ progress 0/616                                                                              │
+│ [90mid       [0m[37;1mgemma4-12b-cerebellum-q4km-wiki-visible-20260604                                  [0m│
+│ [90mmodel    [0m[36;1mgemma-4/gemma-4-12b-it                                                            [0m│
+│ [90mstatus   [0m[32;1mrunning                                                                           [0m│
+│ [90mprofile  [0m[35;1mwiki                                                                              [0m│
+│ [90mcorpus   [0m[90m/var/home/deucebucket/games/osmosis-quants/wiki.test.raw                          [0m│
+│ [90mppl      [0m[33;1m2504.2787                                                                         [0m│
+│ [90mprogress [0m[32;1m[----------------------------] 1/616 0.2%                                         [0m│
 [34;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
 
 [37;1m╭─ Active work ─────────────────────────────────────────────────────────────────────────────────╮[0m
-│ event    quant_start                                                                        │
-│ tensor   blk.0.ffn_down.weight                                                              │
-│ level    q3_K                                                                               │
+│ [90mevent    [0m[32;1mppl_start                                                                         [0m│
+│ [90mtensor   [0m[33;1mblk.0.ffn_up.weight                                                               [0m│
+│ [90mlevel    [0m[35;1mf16                                                                               [0m│
+│ [90mlast     [0m[33mblk.0.ffn_down.weight                                                             [0m│
 [37;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
 
+[36;1m╭─ GGUF sizes ──────────────────────────────────────────────────────────────────────────────────╮[0m
+│ [90mcurrent  [0m[36;1m8.0 GiB                                                                           [0m│
+│ [90mactive   [0m[32;1m8.1 GiB                                                                           [0m│
+│ [90mrecent   [0m[36m8.0 GiB                                                                           [0m│
+│ [90mfile     [0m[90m12b-cerebellum-q4km-wiki-visible-20260604/tmp/00002-blk.0.ffn_up.weight/04-f16.gguf[0m│
+[36;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
+
+[32;1m╭─ Activity / health ───────────────────────────────────────────────────────────────────────────╮[0m
+│ [90mhealth   [0m[32;1mactive                                                                            [0m│
+│ [90mreason   [0m[37mppl pid 803022 01:49                                                              [0m│
+│ [90mactive   [0m[36;1m1m49s                                                                             [0m│
+│ [90mlast_evt [0m[36;1m1m49s                                                                             [0m│
+│ [90mproc     [0m[32;1mppl pid=803022 etime=01:49 cpu=242% mem=5.4%                                      [0m│
+[32;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
+
+[34;1m╭─ Resources / ETA ──────────────────────────────────────────────────────────────────────────────╮[0m
+│ [90meta      [0m[36;1m222h00m                                                                           [0m│
+│ [90mbasis    [0m[90mavg 21m39s/tensor from 1 locked                                                   [0m│
+│ [90mcpu_job  [0m[90midle or waiting                                                                   [0m│
+│ [90mgpu_job  [0m[32;1mppl pid=803022 cpu=242% mem=5.4% 01:49                                            [0m│
+│ [90mgpu      [0m[36;1mcuda:0 100% vram 10810/24576 MiB power 328.53 W                                   [0m│
+│ [90mdisk     [0m[36m26.8 GiB free at run dir                                                          [0m│
+[34;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
+
 [35;1m╭─ Timing ──────────────────────────────────────────────────────────────────────────────────────╮[0m
-│ quant 1m49s   ppl 0.0s   tests 0   failures 0                                                │
+│ [36;1mquant 9m41s   ppl 10m08s   tests 5   failures 0                                             [0m │
 [35;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
 
 [32;1m╭─ Recent measurements ─────────────────────────────────────────────────────────────────────────╮[0m
 │ quant   ppl           delta         tensor                                                │
 [32m├──────────────────────────────────────────────────────────────────────────────────────────────┤[0m
+│ [35;1mq2_K    [0m[33;1m3667.5124     [0m[31;1m+1163.2337    [0m[33mblk.0.ffn_down.weight                                 [0m│
+│ [35;1mq5_K    [0m[33;1m3693.825      [0m[31;1m+1189.5463    [0m[33mblk.0.ffn_down.weight                                 [0m│
+│ [35;1mq6_K    [0m[33;1m3723.0873     [0m[31;1m+1218.8086    [0m[33mblk.0.ffn_down.weight                                 [0m│
+│ [35;1mf16     [0m[33;1m3663.9661     [0m[31;1m+1159.6874    [0m[33mblk.0.ffn_down.weight                                 [0m│
+│ [35;1mq3_K    [0m[33;1m2421.9309     [0m[32;1m-82.3478      [0m[33mblk.0.ffn_up.weight                                   [0m│
+│ [35;1mq2_K    [0m[33;1m2459.0451     [0m[32;1m-45.2336      [0m[33mblk.0.ffn_up.weight                                   [0m│
+│ [35;1mq5_K    [0m[33;1m2345.9479     [0m[32;1m-158.3308     [0m[33mblk.0.ffn_up.weight                                   [0m│
+│ [35;1mq6_K    [0m[33;1m2392.6232     [0m[32;1m-111.6555     [0m[33mblk.0.ffn_up.weight                                   [0m│
 [32;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
 
 [33;1m╭─ Event stream ────────────────────────────────────────────────────────────────────────────────╮[0m
-│ :24.867+00:00  run_start                                                                     │
-│ :24.869+00:00  baseline_quant_start                                                          │
-│ :00.361+00:00  baseline_quant_finish                                                         │
-│ :00.370+00:00  baseline_ppl_start                                                            │
-│ :49.515+00:00  baseline_ppl_finish                                                           │
-│ :49.522+00:00  tensor_start                  blk.0.ffn_down.weight                           │
-│ :49.523+00:00  quant_start            q3_K   blk.0.ffn_down.weight                           │
+│ :22.144+00:00  ppl_start              q2_K   blk.0.ffn_up.weight                             │
+│ :50.177+00:00  quant_finish           q5_K   blk.0.ffn_up.weight                             │
+│ :50.184+00:00  quant_start            q6_K   blk.0.ffn_up.weight                             │
+│ :28.958+00:00  ppl_finish             q2_K   blk.0.ffn_up.weight                             │
+│ :28.973+00:00  ppl_start              q5_K   blk.0.ffn_up.weight                             │
+│ :33.758+00:00  quant_finish           q6_K   blk.0.ffn_up.weight                             │
+│ :33.759+00:00  quant_start            f16    blk.0.ffn_up.weight                             │
+│ :36.704+00:00  ppl_finish             q5_K   blk.0.ffn_up.weight                             │
+│ :36.713+00:00  ppl_start              q6_K   blk.0.ffn_up.weight                             │
+│ :19.626+00:00  quant_finish           f16    blk.0.ffn_up.weight                             │
+│ :36.173+00:00  ppl_finish             q6_K   blk.0.ffn_up.weight                             │
+│ :36.175+00:00  ppl_start              f16    blk.0.ffn_up.weight                             │
 [33;1m╰──────────────────────────────────────────────────────────────────────────────────────────────╯[0m
 
 [90mCtrl+C exits the interface only. Use `cerebellum stop RUN_DIR` to stop a run.[0m
