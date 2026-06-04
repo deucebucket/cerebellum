@@ -119,3 +119,6 @@ Tutorials should be concise and contextual:
 - Layout redesign details are tracked in `docs/cerebellum_cli_layout_notes.md`.
 - CLI implementation history is tracked in `docs/cerebellum_cli_changelog.md`
   and dated devlogs under `docs/devlog/`.
+- Provenance metadata should use visible `cerebellum.*` GGUF keys for
+  attribution, report hashes, run identity, and stripped-metadata detection.
+  Do not implement hidden watermarks.

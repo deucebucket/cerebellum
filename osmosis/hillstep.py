@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import hashlib
 import json
 import os
 import queue
@@ -382,6 +383,16 @@ def path_size(path: Path) -> int:
         return path.stat().st_size
     except FileNotFoundError:
         return 0
+
+
+def sha256_file(path: Path) -> str | None:
+    if not path.exists() or not path.is_file():
+        return None
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def read_json(path: Path, default: Any = None) -> Any:
@@ -1361,6 +1372,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     runs.add_argument("--profile", default=None)
     runs.add_argument("--json", action="store_true")
 
+    provenance = sub.add_parser("provenance", help="inspect or generate Cerebellum GGUF provenance metadata")
+    provenance.add_argument("--gguf", default=None, help="GGUF to inspect for existing metadata")
+    provenance.add_argument("--run-dir", default=None, help="Cerebellum run directory used to generate metadata")
+    provenance.add_argument("--hash-files", action="store_true", help="compute full SHA256 hashes for large files")
+    provenance.add_argument("--format", choices=["json", "env"], default="json")
+
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
     schedule.add_argument("--file", default=None)
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
@@ -1432,7 +1449,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and len(sys.argv) > 1
         and sys.argv[1] not in {
             "run", "status", "events", "runs", "schedule", "db", "report",
-            "export", "auth", "upload", "api", "system", "doctor", "plan-space",
+            "export", "auth", "upload", "api", "system", "doctor", "provenance", "plan-space",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
         }
     ):
@@ -2173,6 +2190,58 @@ def build_report(run_dir: Path) -> dict[str, Any]:
     }
 
 
+def cerebellum_metadata_block(run_dir: Path, gguf: Path | None = None, hash_files: bool = False) -> dict[str, Any]:
+    report = build_report(run_dir)
+    manifest = read_json(run_dir / "manifest.json", {})
+    files = manifest.get("files", {})
+    final_types = first_existing(run_dir, BEST_TYPES_FILES)
+    summary = first_existing(run_dir, SUMMARY_JSON_FILES)
+    metadata = {
+        "cerebellum.tool": "Cerebellum",
+        "cerebellum.provenance_schema": "1",
+        "cerebellum.run_id": report.get("run_id"),
+        "cerebellum.model_family": report.get("model_family"),
+        "cerebellum.model_name": report.get("model_name"),
+        "cerebellum.source_name": report.get("source_name"),
+        "cerebellum.ppl_profile": report.get("ppl_profile"),
+        "cerebellum.corpus": report.get("corpus"),
+        "cerebellum.base_type": manifest.get("base_type"),
+        "cerebellum.start_type": manifest.get("start_type"),
+        "cerebellum.levels": ",".join(manifest.get("levels") or []),
+        "cerebellum.locked_count": str(report.get("locked_count")),
+        "cerebellum.candidate_count": str(report.get("candidate_count")),
+        "cerebellum.current_ppl": str(report.get("current_ppl")),
+        "cerebellum.run_dir_sha256": hashlib.sha256(str(run_dir).encode()).hexdigest(),
+        "cerebellum.tensor_types_sha256": sha256_file(final_types) if hash_files else None,
+        "cerebellum.summary_sha256": sha256_file(summary) if hash_files else None,
+        "cerebellum.source_gguf_sha256": sha256_file(Path(manifest["source_gguf"])) if hash_files and manifest.get("source_gguf") else None,
+        "cerebellum.final_gguf_sha256": sha256_file(gguf) if hash_files and gguf else None,
+    }
+    if files:
+        metadata["cerebellum.events_file"] = Path(files.get("events", "")).name
+        metadata["cerebellum.candidates_file"] = Path(files.get("candidates", "")).name
+    return {key: value for key, value in metadata.items() if value is not None}
+
+
+def inspect_gguf_metadata(gguf: Path) -> dict[str, Any]:
+    try:
+        from gguf import GGUFReader
+    except ImportError as exc:
+        raise SystemExit("gguf Python package is required to inspect GGUF metadata") from exc
+    reader = GGUFReader(str(gguf))
+    fields: dict[str, Any] = {}
+    for key, field in reader.fields.items():
+        if not key.startswith("cerebellum."):
+            continue
+        value = getattr(field, "contents", None)
+        if isinstance(value, list) and len(value) == 1:
+            value = value[0]
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", errors="replace")
+        fields[key] = str(value)
+    return fields
+
+
 def write_report_files(run_dir: Path, report: dict[str, Any], formats: list[str]) -> list[Path]:
     written: list[Path] = []
     if "json" in formats:
@@ -2275,6 +2344,24 @@ def export_cmd(args: argparse.Namespace) -> None:
         print(path)
     else:
         print(json.dumps(payload, indent=2, sort_keys=True))
+
+
+def provenance_cmd(args: argparse.Namespace) -> None:
+    payload: dict[str, Any] = {}
+    gguf = Path(args.gguf) if args.gguf else None
+    if args.run_dir:
+        payload["generated_metadata"] = cerebellum_metadata_block(Path(args.run_dir), gguf, args.hash_files)
+    if gguf:
+        payload["gguf"] = str(gguf)
+        payload["existing_cerebellum_metadata"] = inspect_gguf_metadata(gguf)
+        payload["has_cerebellum_metadata"] = bool(payload["existing_cerebellum_metadata"])
+    if not payload:
+        raise SystemExit("provenance requires --gguf, --run-dir, or both")
+    if args.format == "env":
+        for key, value in (payload.get("generated_metadata") or payload.get("existing_cerebellum_metadata") or {}).items():
+            print(f"{key}={value}")
+        return
+    print(json.dumps(payload, indent=2, sort_keys=True))
 
 
 def system_info() -> dict[str, Any]:
@@ -2830,6 +2917,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "runs":
         runs_cmd(args)
+        return
+    if args.cmd == "provenance":
+        provenance_cmd(args)
         return
     if args.cmd == "schedule":
         schedule_cmd(args)

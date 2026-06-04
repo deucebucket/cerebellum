@@ -28,6 +28,7 @@ model jobs while preserving data integrity.
 - Added portable setup doctor.
 - Added run library table and filters.
 - Added schedule template and dry-run.
+- Added provenance metadata inspection/generation.
 - Added PPL profile support.
 - Added live resource/ETA view.
 - Added GGUF size visibility.
@@ -56,6 +57,8 @@ model jobs while preserving data integrity.
 
 - Distrobox is optional. It is only used on this workstation because host
   llama.cpp binaries cannot see CUDA libraries directly.
+- Cerebellum provenance should be transparent GGUF metadata, not a hidden
+  watermark. The goal is attribution and stripped-metadata detection.
 - Compact watch should remain bounded and screenshot-friendly.
 - Scrollable research browsing belongs in `watch --tui`.
 - The next visual pass should merge progress, timing, resources, activity, and

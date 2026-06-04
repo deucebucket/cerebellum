@@ -120,6 +120,17 @@ cerebellum schedule --file cerebellum_schedule.json --dry-run
 cerebellum schedule --file cerebellum_schedule.json
 ```
 
+Transparent provenance metadata:
+
+```bash
+cerebellum provenance --run-dir /path/to/run
+cerebellum provenance --gguf model.gguf
+cerebellum provenance --run-dir /path/to/run --gguf model.gguf --hash-files
+```
+
+Cerebellum provenance uses visible `cerebellum.*` GGUF metadata keys and report
+hashes. It is intended for attribution and auditability, not hidden watermarking.
+
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,
 or `--profile custom --corpus FILE`. The chosen profile and resolved corpus are

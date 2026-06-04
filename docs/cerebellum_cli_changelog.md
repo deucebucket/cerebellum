@@ -13,6 +13,7 @@
 - `cerebellum doctor` for portable setup checks.
 - `cerebellum runs` filesystem run-library browser with filters.
 - `cerebellum schedule --template` and `--dry-run`.
+- `cerebellum provenance` for transparent GGUF metadata inspection/generation.
 - PPL profiles: `wiki`, `agentic`, `code`, `math`, `dialogue`,
   `all-around`, and `custom`.
 - Live dashboard panels for:
@@ -26,6 +27,8 @@
 - Semantic dashboard coloring for labels, PPL, quant levels, tensors, deltas,
   timers, warnings, and active processes.
 - Future-run subprocess heartbeat events for long quant/PPL jobs.
+- Transparent `cerebellum.*` metadata block generation for attribution and
+  auditability.
 - README screenshots and CLI workflow documentation.
 - Compact watch grid renderer with heavier framing and side-by-side operations,
   resources, GGUF sizes, and ETA cells.
