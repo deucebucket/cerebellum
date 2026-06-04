@@ -1331,7 +1331,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     runs.add_argument("--json", action="store_true")
 
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
-    schedule.add_argument("--file", required=True)
+    schedule.add_argument("--file", default=None)
+    schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
+    schedule.add_argument("--dry-run", action="store_true", help="validate and print jobs without running them")
 
     system = sub.add_parser("system", help="inspect local resources and tool availability")
     system.add_argument("--json", action="store_true")
@@ -2569,6 +2571,34 @@ def api_cmd(args: argparse.Namespace) -> None:
 
 
 def schedule_cmd(args: argparse.Namespace) -> None:
+    if args.template:
+        template = {
+            "jobs": [
+                {
+                    "source_gguf": "/models/model-f16.gguf",
+                    "profile": "wiki",
+                    "family": "example-family",
+                    "model_name": "example-model",
+                    "source_name": "local-f16",
+                    "data_root": str(default_data_root()),
+                    "scratch_root": "/large/scratch/cerebellum",
+                    "base_type": "Q4_K_M",
+                    "start_type": "q4_K",
+                    "levels": "q3_K,q2_K,q5_K,q6_K,f16",
+                    "quantize_bin": "llama-quantize",
+                    "perplexity_bin": "llama-perplexity",
+                    "gpu_layers": 99,
+                    "ctx_size": 2048,
+                    "chunks": 128,
+                    "min_free_gb": 40.0,
+                    "distrobox": None,
+                }
+            ]
+        }
+        print(json.dumps(template, indent=2, sort_keys=True))
+        return
+    if not args.file:
+        raise SystemExit("schedule requires --file, or use --template")
     data = json.loads(Path(args.file).read_text())
     jobs = data.get("jobs", data if isinstance(data, list) else [])
     if not isinstance(jobs, list):
@@ -2610,6 +2640,11 @@ def schedule_cmd(args: argparse.Namespace) -> None:
             token_embedding_type=job.get("token_embedding_type", "f16"),
             noise_pct=job.get("noise_pct", 0.0),
         )
+        if args.dry_run:
+            ns.run_dir = str(build_run_dir(ns))
+            ns.resolved_corpus = str(resolve_ppl_corpus(ns.profile, ns.corpus))
+            print(json.dumps(vars(ns), indent=2, sort_keys=True))
+            continue
         run_from_namespace(ns)
 
 

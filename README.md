@@ -112,6 +112,14 @@ Run `cerebellum doctor` after install. It checks llama.cpp binaries, GPU
 visibility, writable data roots, local PPL profile corpora, and explains how to
 fix missing pieces.
 
+For unattended multi-model queues:
+
+```bash
+cerebellum schedule --template > cerebellum_schedule.json
+cerebellum schedule --file cerebellum_schedule.json --dry-run
+cerebellum schedule --file cerebellum_schedule.json
+```
+
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,
 or `--profile custom --corpus FILE`. The chosen profile and resolved corpus are
