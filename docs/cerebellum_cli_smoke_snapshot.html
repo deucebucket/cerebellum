@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<!-- This file was created with the aha Ansi HTML Adapter. https://github.com/theZiz/aha -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="application/xml+xhtml; charset=UTF-8"/>
+<title>Cerebellum CLI smoke snapshot</title>
+</head>
+<body style="color:white; background-color:black">
+<pre>
+Script started on 2026-06-04 16:16:15-05:00 [COMMAND=&quot;cerebellum watch /var/home/deucebucket/games/cerebellum-runs/families/qwen3/qwen3-0.6b/sources/gaianet-f16/runs/qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604 --once&quot; &lt;not executed on terminal&gt;]
+<span style="font-weight:bold;color:aqua;">╭──────────────────────────────────────────────────────────────────────────────────────────────╮</span>
+<span style="font-weight:bold;color:aqua;">│                                          CEREBELLUM                                          │</span>
+<span style="color:aqua;">│                       resource-aware mixed-precision GGUF quantization                       │</span>
+<span style="font-weight:bold;color:aqua;">╰──────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+
+<span style="font-weight:bold;color:#3333FF;">╭─ Run ────────────────────────────────────────────────────────────────────────────────────────╮</span>
+│ id       qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604                           │
+│ model    qwen3/qwen3-0.6b                                                                   │
+│ status   stopped                                                                            │
+│ ppl      22.4056                                                                            │
+│ progress 1/3                                                                                │
+<span style="font-weight:bold;color:#3333FF;">╰──────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+
+<span style="font-weight:bold;color:white;">╭─ Active work ─────────────────────────────────────────────────────────────────────────────────╮</span>
+│ event    tensor_interrupted                                                                 │
+│ tensor   blk.9.ffn_up.weight                                                                │
+│ level    None                                                                               │
+│ last     blk.9.ffn_down.weight                                                              │
+<span style="font-weight:bold;color:white;">╰──────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+
+<span style="font-weight:bold;color:fuchsia;">╭─ Timing ──────────────────────────────────────────────────────────────────────────────────────╮</span>
+│ quant 19.3s   ppl 7.2s   tests 3   failures 0                                                │
+<span style="font-weight:bold;color:fuchsia;">╰──────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+
+<span style="font-weight:bold;color:lime;">╭─ Recent measurements ─────────────────────────────────────────────────────────────────────────╮</span>
+│ quant   ppl           delta         tensor                                                │
+<span style="color:lime;">├──────────────────────────────────────────────────────────────────────────────────────────────┤</span>
+│ q3_K    22.454        -0.0331       blk.9.ffn_down.weight                                 │
+│ q2_K    22.4056       -0.0815       blk.9.ffn_down.weight                                 │
+│ q5_K    22.4999       +0.0128       blk.9.ffn_down.weight                                 │
+│ q3_K    22.2911       -0.1145       blk.9.ffn_up.weight                                   │
+<span style="font-weight:bold;color:lime;">╰──────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+
+<span style="font-weight:bold;color:yellow;">╭─ Event stream ────────────────────────────────────────────────────────────────────────────────╮</span>
+│ :41.202+00:00  ppl_finish             q5_K   blk.9.ffn_down.weight                           │
+│ :41.345+00:00  tensor_locked                 blk.9.ffn_down.weight                           │
+│ :41.436+00:00  tensor_start                  blk.9.ffn_up.weight                             │
+│ :41.437+00:00  quant_start            q3_K   blk.9.ffn_up.weight                             │
+│ :46.943+00:00  quant_finish           q3_K   blk.9.ffn_up.weight                             │
+│ :46.945+00:00  ppl_start              q3_K   blk.9.ffn_up.weight                             │
+│ :46.946+00:00  quant_start            q2_K   blk.9.ffn_up.weight                             │
+│ :49.569+00:00  ppl_finish             q3_K   blk.9.ffn_up.weight                             │
+│ :49.581+00:00  signal_received                                                               │
+│ :49.588+00:00  run_stopped                                                                   │
+│ :49.588+00:00  quant_finish           q2_K   blk.9.ffn_up.weight                             │
+│ :49.590+00:00  tensor_interrupted            blk.9.ffn_up.weight                             │
+<span style="font-weight:bold;color:yellow;">╰──────────────────────────────────────────────────────────────────────────────────────────────╯</span>
+
+<span style="filter: contrast(70%) brightness(190%);color:dimgray;">Ctrl+C exits the interface only. Use `cerebellum stop RUN_DIR` to stop a run.</span>
+
+Script done on 2026-06-04 16:16:15-05:00 [COMMAND_EXIT_CODE=&quot;0&quot;]
+</pre>
+</body>
+</html>

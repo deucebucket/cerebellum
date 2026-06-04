@@ -18,5 +18,9 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest", "ruff"]
 
+[project.scripts]
+cerebellum = "cerebellum.cli:main"
+osmosis = "osmosis.cli:main"
+
 [tool.setuptools.packages.find]
-include = ["osmosis*"]
+include = ["osmosis*", "cerebellum*"]

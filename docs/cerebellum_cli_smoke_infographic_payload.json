@@ -1,0 +1,55 @@
+{
+  "prompt": "Create a clean technical infographic from this Cerebellum quantization run. Show model, PPL, locked tensors, candidate count, component deltas, and recent decisions.",
+  "report": {
+    "artifacts": {
+      "candidates": "/var/home/deucebucket/games/cerebellum-runs/families/qwen3/qwen3-0.6b/sources/gaianet-f16/runs/qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604/cerebellum_candidates.jsonl",
+      "current_types": "/var/home/deucebucket/games/cerebellum-runs/families/qwen3/qwen3-0.6b/sources/gaianet-f16/runs/qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604/cerebellum_current_tensor_types.txt",
+      "events": "/var/home/deucebucket/games/cerebellum-runs/families/qwen3/qwen3-0.6b/sources/gaianet-f16/runs/qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604/cerebellum_events.jsonl",
+      "final_types": "/var/home/deucebucket/games/cerebellum-runs/families/qwen3/qwen3-0.6b/sources/gaianet-f16/runs/qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604/cerebellum_best_tensor_types.txt",
+      "state": "/var/home/deucebucket/games/cerebellum-runs/families/qwen3/qwen3-0.6b/sources/gaianet-f16/runs/qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604/state.json"
+    },
+    "candidate_count": 4,
+    "component_summary": [
+      {
+        "best_delta": -0.0815000000000019,
+        "component": "ffn_down",
+        "tests": 3,
+        "worst_delta": 0.01279999999999859
+      },
+      {
+        "best_delta": -0.1144999999999996,
+        "component": "ffn_up",
+        "tests": 1,
+        "worst_delta": -0.1144999999999996
+      }
+    ],
+    "current_ppl": 22.4056,
+    "decision_count": 1,
+    "levels": [
+      "q3_K",
+      "q2_K",
+      "q5_K"
+    ],
+    "locked_count": 1,
+    "model_family": "qwen3",
+    "model_name": "qwen3-0.6b",
+    "ppl_seconds": 9.797427117001462,
+    "quant_seconds": 22.6433468310006,
+    "recent_decisions": [
+      {
+        "baseline_ppl": 22.4871,
+        "finished_at": "2026-06-04T21:15:41.204+00:00",
+        "ppl": 22.4056,
+        "reason": "lowest precision within 0.0000% noise window of best PPL 22.405600",
+        "tensor": "blk.9.ffn_down.weight",
+        "winner": "q2_K"
+      }
+    ],
+    "run_dir": "/var/home/deucebucket/games/cerebellum-runs/families/qwen3/qwen3-0.6b/sources/gaianet-f16/runs/qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604",
+    "run_id": "qwen3-0.6b-cerebellum-cli-smoke-abort-distrobox-20260604",
+    "schema_version": 1,
+    "source_name": "gaianet-f16",
+    "status": "stopped"
+  },
+  "schema": "cerebellum.infographic.v1"
+}

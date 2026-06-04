@@ -77,6 +77,42 @@ Install the local package:
 pip install -e ".[dev]"
 ```
 
+## Cerebellum CLI
+
+The current private/dev CLI is exposed as `cerebellum`. It is designed for
+visible, resumable quantization runs rather than silent one-off scripts:
+
+```bash
+cerebellum system
+cerebellum plan-space --source-gguf source-f16.gguf
+cerebellum run \
+  --source-gguf source-f16.gguf \
+  --profile wiki \
+  --family gemma-4 \
+  --model-name gemma-4-12b-it \
+  --source-name google-f16 \
+  --data-root /path/to/cerebellum-runs \
+  --scratch-root /large/scratch/drive \
+  --base-type Q4_K_M \
+  --start-type q4_K \
+  --levels q3_K,q2_K,q5_K,q6_K,f16
+cerebellum watch /path/to/run
+cerebellum report /path/to/run
+```
+
+PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
+`--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,
+or `--profile custom --corpus FILE`. The chosen profile and resolved corpus are
+written into manifest, state, reports, exports, and the live terminal dashboard
+so results remain comparable later.
+
+The live dashboard shows run identity, selected PPL profile, active quant/PPL
+work, timing totals, recent measurements, and the event stream. Captured dev
+snapshots:
+
+- [Qwen3 0.6B smoke dashboard](docs/cerebellum_cli_smoke_snapshot.png)
+- [Gemma 4 12B live dashboard](docs/cerebellum_cli_gemma4_12b_live.png)
+
 Install or build llama.cpp separately. The commands below assume
 `llama-quantize` is on `PATH`. You can also pass `--quantize-bin` to the
 allocator commands.
