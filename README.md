@@ -134,6 +134,8 @@ increase visible rows with `--events-limit N` and `--measurements-limit N`. Use
 scrollable panes for events, measurements, processes/GPU, and files.
 CLI layout redesign notes live in
 [docs/cerebellum_cli_layout_notes.md](docs/cerebellum_cli_layout_notes.md).
+Current CLI changelog:
+[docs/cerebellum_cli_changelog.md](docs/cerebellum_cli_changelog.md).
 Captured dev snapshots:
 
 - [Qwen3 0.6B smoke dashboard](docs/cerebellum_cli_smoke_snapshot.png)
