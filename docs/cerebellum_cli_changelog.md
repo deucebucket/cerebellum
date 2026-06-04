@@ -152,3 +152,9 @@
 - If `--output` is omitted, imatrix defaults to `DATA_ROOT/families/FAMILY/MODEL/sources/SOURCE/imatrix/cerebellum_imatrix.dat`.
 - Imatrix generation writes `cerebellum_project.json` with layout, imatrix path, source identity, and the next `cerebellum run --imatrix ...` command.
 - Added `project` tutorial topic documenting the model project layout.
+
+## 2026-06-04 project browser
+
+- Added `cerebellum project` to inspect Cerebellum family/model/source project trees.
+- Project discovery reads `cerebellum_project.json` and falls back to existing run manifests for older runs.
+- Added read-only `/projects` API endpoint for AI/web clients.

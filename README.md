@@ -504,3 +504,12 @@ cerebellum imatrix \
   --source-gguf /models/gemma-4-12b-it-f16.gguf \
   --data-root /data/cerebellum-runs
 ```
+
+Project browsing:
+
+```bash
+cerebellum project --data-root DATA_ROOT
+cerebellum project --data-root DATA_ROOT --family gemma-4 --json
+```
+
+The local API also exposes `/projects?family=...&model=...&source=...`.

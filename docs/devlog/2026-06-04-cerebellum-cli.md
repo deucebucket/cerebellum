@@ -133,3 +133,7 @@ Folded imatrix into the public Cerebellum CLI. Users can now run `cerebellum ima
 ## Project-aware imatrix flow
 
 Connected imatrix generation to the same Cerebellum project tree used by runs. Each model source can now own imatrix data, run directories, reports, and a `cerebellum_project.json` manifest so the workflow naturally continues from imatrix into Cerebellum quant search.
+
+## Project browser
+
+Added a project browser so the new imatrix project layout is usable from the CLI and API. Existing runs without `cerebellum_project.json` still show up via run manifest fallback.

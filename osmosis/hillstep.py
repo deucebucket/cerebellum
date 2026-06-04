@@ -583,6 +583,59 @@ def run_glob(root: Path) -> list[Path]:
     return sorted(root.glob("families/*/*/sources/*/runs/*/manifest.json"))
 
 
+def project_glob(root: Path) -> list[Path]:
+    return sorted(root.glob("families/*/*/sources/*/cerebellum_project.json"))
+
+
+def discover_projects(root: Path) -> list[dict[str, Any]]:
+    projects: dict[str, dict[str, Any]] = {}
+    for manifest_path in project_glob(root):
+        source_root = manifest_path.parent
+        data = read_json(manifest_path, {})
+        key = str(source_root)
+        projects[key] = {
+            "source_root": str(source_root),
+            "family": data.get("family") or source_root.parents[2].name,
+            "model_name": data.get("model_name") or source_root.parents[1].name,
+            "source_name": data.get("source_name") or source_root.name,
+            "project_manifest": str(manifest_path),
+            "imatrix": data.get("imatrix"),
+            "next_command": data.get("next_command"),
+            "runs": [],
+        }
+    for run_manifest in run_glob(root):
+        source_root = run_manifest.parents[2]
+        key = str(source_root)
+        run = load_run(run_manifest.parent)
+        state = run.get("state", {})
+        manifest = run.get("manifest", {})
+        item = projects.setdefault(
+            key,
+            {
+                "source_root": str(source_root),
+                "family": manifest.get("model_family") or state.get("model_family") or source_root.parents[2].name,
+                "model_name": manifest.get("model_name") or state.get("model_name") or source_root.parents[1].name,
+                "source_name": manifest.get("source_name") or state.get("source_name") or source_root.name,
+                "project_manifest": None,
+                "imatrix": manifest.get("imatrix") or state.get("imatrix"),
+                "next_command": None,
+                "runs": [],
+            },
+        )
+        item["runs"].append(
+            {
+                "run_dir": str(run_manifest.parent),
+                "run_id": manifest.get("run_id") or state.get("run_id") or run_manifest.parent.name,
+                "status": state.get("run_status"),
+                "locked": len(state.get("locked", {})),
+                "current_ppl": state.get("current_ppl"),
+                "profile": manifest.get("ppl_profile") or state.get("ppl_profile"),
+                "updated_at": state.get("updated_at"),
+            }
+        )
+    return sorted(projects.values(), key=lambda row: (str(row.get("family")), str(row.get("model_name")), str(row.get("source_name"))))
+
+
 def default_data_root() -> Path:
     if os.environ.get("CEREBELLUM_DATA_ROOT"):
         return Path(os.environ["CEREBELLUM_DATA_ROOT"])
@@ -1667,6 +1720,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     runs.add_argument("--profile", default=None)
     runs.add_argument("--json", action="store_true")
 
+    project = sub.add_parser("project", help="inspect Cerebellum model projects")
+    project.add_argument("--data-root", default=None)
+    project.add_argument("--family", default=None)
+    project.add_argument("--model", default=None)
+    project.add_argument("--source", default=None)
+    project.add_argument("--json", action="store_true")
+
     provenance = sub.add_parser("provenance", help="inspect or generate Cerebellum GGUF provenance metadata")
     provenance.add_argument("--gguf", default=None, help="GGUF to inspect for existing metadata")
     provenance.add_argument("--run-dir", default=None, help="Cerebellum run directory used to generate metadata")
@@ -1769,6 +1829,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "backup",
             "resume",
             "recover",
+            "project",
         }
     ):
         argv = ["run", *sys.argv[1:]]
@@ -2595,6 +2656,28 @@ def runs_cmd(args: argparse.Namespace) -> None:
             f"{state.get('run_status', '?'):<10} {item.get('ppl_profile', '-'):<10} "
             f"{progress_s:<16} {str(state.get('current_ppl')):<12} {model_s:<28} {item.get('run_id')}"
         )
+
+
+def project_cmd(args: argparse.Namespace) -> None:
+    root = Path(args.data_root) if args.data_root else default_data_root()
+    projects = discover_projects(root)
+    if args.family:
+        projects = [row for row in projects if args.family in str(row.get("family"))]
+    if args.model:
+        projects = [row for row in projects if args.model in str(row.get("model_name"))]
+    if args.source:
+        projects = [row for row in projects if args.source in str(row.get("source_name"))]
+    if args.json:
+        print(json.dumps({"data_root": str(root), "projects": projects}, indent=2, sort_keys=True))
+        return
+    print("Cerebellum projects")
+    print(f"data_root: {root}")
+    print(f"{'family':<18} {'model':<28} {'source':<18} {'runs':>4} {'imatrix':<7} source_root")
+    for row in projects:
+        imatrix = "yes" if row.get("imatrix") and Path(str(row.get("imatrix"))).exists() else "path" if row.get("imatrix") else "no"
+        print(f"{str(row.get('family')):<18} {str(row.get('model_name')):<28} {str(row.get('source_name')):<18} {len(row.get('runs', [])):>4} {imatrix:<7} {row.get('source_root')}")
+        if row.get("next_command"):
+            print(f"  next: {row['next_command']}")
 
 
 def db_cmd(args: argparse.Namespace) -> None:
@@ -3593,6 +3676,18 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                     continue
                 rows.append(item)
             self._json({"runs": rows})
+        elif parsed.path == "/projects":
+            rows = discover_projects(self.data_root)
+            family = qs.get("family", [None])[0]
+            model = qs.get("model", [None])[0]
+            source = qs.get("source", [None])[0]
+            if family:
+                rows = [row for row in rows if family in str(row.get("family"))]
+            if model:
+                rows = [row for row in rows if model in str(row.get("model_name"))]
+            if source:
+                rows = [row for row in rows if source in str(row.get("source_name"))]
+            self._json({"data_root": str(self.data_root), "projects": rows})
         elif parsed.path == "/run":
             run_dir = qs.get("run_dir", [None])[0]
             if not run_dir:
@@ -3721,6 +3816,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                     "endpoints": [
                         {"path": "/health", "params": [], "returns": "service health"},
                         {"path": "/runs", "params": ["family?", "model?", "status?"], "returns": "runs under data_root"},
+                        {"path": "/projects", "params": ["family?", "model?", "source?"], "returns": "Cerebellum model projects under data_root"},
                         {"path": "/run", "params": ["run_dir"], "returns": "manifest and state"},
                         {"path": "/events", "params": ["run_dir", "limit?", "type?"], "returns": "event log rows"},
                         {"path": "/measurements", "params": ["run_dir", "limit?"], "returns": "candidate measurement rows"},
@@ -3752,7 +3848,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /run /events /measurements /report /export /recover /provenance /package /system /space /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
@@ -3918,6 +4014,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "runs":
         runs_cmd(args)
+        return
+    if args.cmd == "project":
+        project_cmd(args)
         return
     if args.cmd == "provenance":
         provenance_cmd(args)

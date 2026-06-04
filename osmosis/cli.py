@@ -20,6 +20,7 @@ def main():
         print("  rollback  Roll durable state back to a clean boundary")
         print("  backup    Mirror critical run metadata/checkpoints")
         print("  runs      List known runs")
+        print("  project   Inspect Cerebellum model projects")
         print("  provenance Inspect or generate Cerebellum GGUF provenance")
         print("  finalize  Write final reports/model card and tag GGUF provenance")
         print("  package   Write portable upload/package manifest")
@@ -40,6 +41,7 @@ def main():
         "run", "watch", "status", "events", "runs", "schedule", "system",
         "doctor", "self-test", "provenance", "finalize", "package", "plan-space", "tutorial", "tips", "db", "report", "export", "auth",
         "upload", "api", "stop", "resume", "recover", "cleanup", "rollback", "backup",
+        "project",
     }
 
     if command == "imatrix":
