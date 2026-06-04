@@ -129,3 +129,7 @@ Added a built-in read-only smoke path so future validation does not require manu
 ## Cerebellum imatrix surface
 
 Folded imatrix into the public Cerebellum CLI. Users can now run `cerebellum imatrix` instead of legacy `python -m osmosis.imatrix_stream`. The old modules remain implementation compatibility while the package rename is in flight.
+
+## Project-aware imatrix flow
+
+Connected imatrix generation to the same Cerebellum project tree used by runs. Each model source can now own imatrix data, run directories, reports, and a `cerebellum_project.json` manifest so the workflow naturally continues from imatrix into Cerebellum quant search.

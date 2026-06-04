@@ -145,3 +145,10 @@
 - Default `--mode stream` wraps the streaming safetensors imatrix generator for large models.
 - Optional `--mode calibrated` wraps the activation-calibrated imatrix generator for systems that can load the model.
 - Updated tutorials, command templates, README, and internal imatrix usage text to frame imatrix as a Cerebellum feature; legacy module paths remain compatibility internals only.
+
+## 2026-06-04 project-aware imatrix flow
+
+- `cerebellum imatrix` now integrates with the Cerebellum family/model/source project layout.
+- If `--output` is omitted, imatrix defaults to `DATA_ROOT/families/FAMILY/MODEL/sources/SOURCE/imatrix/cerebellum_imatrix.dat`.
+- Imatrix generation writes `cerebellum_project.json` with layout, imatrix path, source identity, and the next `cerebellum run --imatrix ...` command.
+- Added `project` tutorial topic documenting the model project layout.

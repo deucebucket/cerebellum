@@ -474,3 +474,33 @@ cerebellum imatrix \
 ```
 
 Use the output with `cerebellum run --imatrix cerebellum_imatrix.dat`.
+
+### Cerebellum project layout
+
+Cerebellum groups each model source as a project:
+
+```text
+DATA_ROOT/
+  families/
+    FAMILY/
+      MODEL/
+        sources/
+          SOURCE/
+            cerebellum_project.json
+            imatrix/
+              cerebellum_imatrix.dat
+            runs/
+              RUN_ID/
+```
+
+If `cerebellum imatrix` is run with `--family`, `--model-name`, and `--source-name`, the imatrix is written into that project and Cerebellum prints the next `cerebellum run --imatrix ...` command.
+
+```bash
+cerebellum imatrix \
+  --model HF_OR_LOCAL_SAFETENSORS_MODEL \
+  --family gemma-4 \
+  --model-name gemma-4-12b-it \
+  --source-name google-f16 \
+  --source-gguf /models/gemma-4-12b-it-f16.gguf \
+  --data-root /data/cerebellum-runs
+```

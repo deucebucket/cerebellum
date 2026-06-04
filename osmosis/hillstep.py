@@ -3410,11 +3410,19 @@ TUTORIALS = {
     ],
     "imatrix": [
         "Imatrix generation is a Cerebellum feature exposed as `cerebellum imatrix`.",
+        "When you pass `--family`, `--model-name`, and `--source-name`, the imatrix is stored in the same Cerebellum project tree as future runs.",
         "Default mode is streaming: it reads safetensors one tensor at a time and avoids loading the whole model into RAM.",
-        "Example: `cerebellum imatrix --model Qwen/Qwen3.6-27B --output cerebellum_imatrix.dat -v`.",
+        "Example: `cerebellum imatrix --model Qwen/Qwen3.6-27B --family qwen --model-name qwen3.6-27b --source-name hf-safetensors -v`.",
         "Use `--mode calibrated` only when the system can load the model and you want activation calibration blended with weight sensitivity.",
-        "Use the output with `cerebellum run --imatrix cerebellum_imatrix.dat` or stock `llama-quantize --imatrix`.",
+        "After generation, Cerebellum writes `cerebellum_project.json` and prints the next `cerebellum run --imatrix ...` command.",
         "The legacy Python module path still exists only for compatibility during the package rename.",
+    ],
+    "project": [
+        "A Cerebellum project is grouped as `DATA_ROOT/families/FAMILY/MODEL/sources/SOURCE/`.",
+        "`imatrix/` stores imatrix files and provenance for that model source.",
+        "`runs/` stores every Cerebellum run under the same model source.",
+        "`cerebellum_project.json` records source identity, imatrix location, layout, and the next command.",
+        "This keeps model families separate while preserving queryable long-term research data.",
     ],
     "low-space": [
         "Use `--scratch-root` when metadata and large GGUF artifacts should live on different drives.",
@@ -3685,7 +3693,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "recover": "cerebellum recover RUN_DIR --json",
                         "report": "cerebellum report RUN_DIR --json",
                         "export_ai": "cerebellum export RUN_DIR --kind ai",
-                        "imatrix": "cerebellum imatrix --model HF_OR_PATH --output cerebellum_imatrix.dat",
+                        "imatrix": "cerebellum imatrix --model HF_OR_PATH --family FAMILY --model-name MODEL --source-name SOURCE",
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
                     },
                     "state_changing_cli_only": {
