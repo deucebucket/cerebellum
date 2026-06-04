@@ -296,6 +296,37 @@ def estimate_eta(state: dict[str, Any], active_age: float | None, total: int | N
     return fmt_seconds(eta), f"avg {fmt_seconds(avg)}/tensor from {completed} locked"
 
 
+def eta_grid_values(state: dict[str, Any], active_age: float | None, total: int | None) -> dict[str, str]:
+    locked = len(state.get("locked", {}))
+    tested = state.get("tested", [])
+    totals = state.get("totals", {})
+    elapsed = (totals.get("quant_seconds") or 0.0) + (totals.get("ppl_seconds") or 0.0)
+    if active_age:
+        elapsed += active_age
+    avg_tensor = (elapsed / len(tested)) if tested else None
+    remaining = max(0, (total or locked) - locked)
+    eta = (remaining * avg_tensor) if avg_tensor else None
+    by_layer: dict[str, int] = {}
+    for row in tested:
+        tensor = row.get("tensor", "")
+        layer = tensor.split(".", 2)[1] if tensor.startswith("blk.") and "." in tensor else "other"
+        by_layer[layer] = by_layer.get(layer, 0) + 1
+    completed_layers = sum(1 for count in by_layer.values() if count >= 5)
+    if len(tested) < 5:
+        confidence = "low"
+    elif completed_layers < 2:
+        confidence = "medium"
+    else:
+        confidence = "high"
+    return {
+        "current": fmt_seconds(active_age),
+        "avg_tensor": fmt_seconds(avg_tensor),
+        "avg_layer": "-" if completed_layers == 0 or avg_tensor is None else fmt_seconds(avg_tensor * 5),
+        "total": fmt_seconds(eta),
+        "confidence": confidence,
+    }
+
+
 def parse_ppl(output: str) -> tuple[float | None, float | None]:
     for line in output.splitlines():
         if "Final estimate" not in line:
@@ -1457,6 +1488,8 @@ def watch_cmd(args: argparse.Namespace) -> None:
     if args.tui:
         tui_watch_cmd(args)
         return
+    grid_watch_cmd(args)
+    return
     run_dir = Path(args.run_dir)
     enabled = not args.no_color and not args.plain
     try:
@@ -1697,6 +1730,100 @@ def stop_cmd(args: argparse.Namespace) -> None:
     marker.write_text(utc_now() + "\n", encoding="utf-8")
     append_event(events_path, "run_stopped", reason=args.reason, signaled_pids=signaled)
     print(json.dumps({"run_dir": str(run_dir), "status": "stopped", "signaled_pids": signaled}, indent=2, sort_keys=True))
+
+
+def clip(value: Any, width: int) -> str:
+    text = str(value)
+    if len(text) <= width:
+        return text.ljust(width)
+    if width <= 1:
+        return text[:width]
+    return (text[: width - 1] + "…") if width > 8 else text[:width]
+
+
+def grid_line(left: str, right: str, width: int) -> str:
+    inner = width - 4
+    left_w = max(36, inner * 2 // 3)
+    right_w = inner - left_w - 1
+    return f"║ {clip(left, left_w)}│{clip(right, right_w)} ║"
+
+
+def print_heavy_box(title: str, lines: list[str], width: int, code: str, enabled: bool) -> None:
+    top = "╔═ " + title + " " + "═" * max(0, width - len(title) - 5) + "╗"
+    print(color(top, code, enabled))
+    for line in lines:
+        if line.startswith("║"):
+            print(line)
+        else:
+            print(f"║ {clip(line, width - 4)} ║")
+    print(color("╚" + "═" * (width - 2) + "╝", code, enabled))
+
+
+def grid_watch_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    enabled = not args.no_color and not args.plain
+    try:
+        while True:
+            model = build_watch_model(run_dir)
+            state = model["state"]
+            manifest = model["manifest"]
+            active = model["active"]
+            candidates = model["candidates"]
+            events = model["events"]
+            processes = model["active_processes"]
+            gpu_info = model["gpu"]
+            terminal_w = shutil.get_terminal_size((118, 40)).columns
+            width = max(96, min(132, terminal_w))
+            os.system("clear" if os.name != "nt" else "cls")
+            run_id = manifest.get("run_id") or state.get("run_id") or run_dir.name
+            title = f" CEREBELLUM  {state.get('model_family')}/{state.get('model_name')}  {manifest.get('ppl_profile') or state.get('ppl_profile') or 'custom'}  {state.get('run_status')} "
+            print(color("╔" + "═" * (width - 2) + "╗", "36;1", enabled))
+            print(color("║" + title.center(width - 2) + "║", "36;1", enabled))
+            print(color("╚" + "═" * (width - 2) + "╝", "36;1", enabled))
+            print()
+
+            eta = eta_grid_values(state, model["active_age"], next((row.get("total") for row in reversed(events) if row.get("total")), None))
+            locked = len(state.get("locked", {}))
+            total = next((row.get("total") for row in reversed(events) if row.get("total")), None)
+            progress_left = f"{model['bar']} {model['progress']}  ppl {state.get('current_ppl')}"
+            resource_bits = []
+            if gpu_info:
+                gpu = gpu_info[0]
+                resource_bits.append(f"GPU {gpu['util']}% {gpu['mem_used']}/{gpu['mem_total']} MiB")
+            if processes:
+                jobs = ",".join(sorted({row["kind"] for row in processes}))
+                resource_bits.append(f"jobs {jobs}")
+            else:
+                resource_bits.append("jobs idle")
+            overview = [
+                grid_line(f"progress  {progress_left}", f"resources  {'  '.join(resource_bits)}", width),
+                grid_line(f"tensor    {active.get('tensor')}  {active.get('level')}", f"disk       {disk_free_gb(run_dir):.1f} GiB free", width),
+                grid_line(f"job       {active.get('event')}  age {fmt_seconds(model['active_age'])}", f"gguf       base {fmt_bytes(model['baseline_size'])} active {fmt_bytes(model['active_size'])}", width),
+                grid_line(f"eta       current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", f"confidence {eta['confidence']}", width),
+            ]
+            print_heavy_box("OPERATIONS", overview, width, "34;1", enabled)
+            print()
+
+            measure_lines = [f"{'quant':<7} {'ppl':<12} {'delta':<12} {'size':<10} tensor"]
+            measure_lines.append("─" * (width - 4))
+            for row in candidates[-max(1, args.measurements_limit) :]:
+                delta = row.get("delta")
+                delta_s = "-" if delta is None else f"{delta:+.4f}"
+                marker = "better" if isinstance(delta, (int, float)) and delta < 0 else "worse" if isinstance(delta, (int, float)) and delta > 0 else ""
+                line = f"{row.get('level', '-'):<7}{str(row.get('ppl', '-')):<12}{delta_s:<12}{fmt_bytes(row.get('size_bytes')):<10}{row.get('tensor', '')} {marker}"
+                measure_lines.append(line)
+            print_heavy_box("RECENT MEASUREMENTS", measure_lines, width, "32;1", enabled)
+            print()
+
+            event_parts = []
+            for row in events[-min(5, max(1, args.events_limit)) :]:
+                event_parts.append(f"{row.get('event')} {row.get('level', '')} {row.get('tensor', '')}".strip())
+            print_heavy_box("EVENT STRIP", [" | ".join(event_parts), f"run {run_id}", "Ctrl+C exits UI only. Use `cerebellum stop RUN_DIR` to stop."], width, "33;1", enabled)
+            if args.once:
+                return
+            time.sleep(args.interval)
+    except KeyboardInterrupt:
+        return
 
 
 def build_watch_model(run_dir: Path) -> dict[str, Any]:

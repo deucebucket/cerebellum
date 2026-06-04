@@ -27,6 +27,8 @@
   timers, warnings, and active processes.
 - Future-run subprocess heartbeat events for long quant/PPL jobs.
 - README screenshots and CLI workflow documentation.
+- Compact watch grid renderer with heavier framing and side-by-side operations,
+  resources, GGUF sizes, and ETA cells.
 
 ### Changed
 
@@ -45,7 +47,7 @@
 
 ### Known gaps
 
-- Compact dashboard still needs the planned grid redesign in
-  `docs/cerebellum_cli_layout_notes.md`.
+- Compact dashboard grid exists, but still needs ANSI-aware per-cell coloring so
+  semantic colors can be applied without breaking alignment.
 - ETA is rough early in a run and should improve with tensor/layer history.
 - Full API depth, upload UX, and eventual web UI remain roadmap work.

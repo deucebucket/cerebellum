@@ -34,6 +34,9 @@ model jobs while preserving data integrity.
 - Added semantic coloring.
 - Added subprocess heartbeat logging for future long-running jobs.
 - Added README and screenshot artifacts.
+- Implemented first compact grid renderer pass for `cerebellum watch`, merging
+  progress/resources, active job/GGUF sizes, and ETA/confidence into a denser
+  operations panel.
 
 ## Commits pushed to `dev`
 
@@ -61,7 +64,8 @@ model jobs while preserving data integrity.
 ## Next work
 
 - Implement compact dashboard grid renderer.
-- Add richer ETA with per-layer averages and confidence.
+- Add ANSI-aware cell coloring to compact grid rows.
+- Improve layer-based ETA once more layers complete.
 - Expand API endpoints for run queries, events, measurements, and reports.
 - Improve upload/auth UX for HF/GitHub.
 - Continue screenshots after layout changes.
