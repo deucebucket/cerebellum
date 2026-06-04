@@ -1266,6 +1266,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     runs = sub.add_parser("runs", help="list known runs under a data root")
     runs.add_argument("--data-root", default=None)
+    runs.add_argument("--family", default=None)
+    runs.add_argument("--model", default=None)
+    runs.add_argument("--status", default=None)
+    runs.add_argument("--profile", default=None)
     runs.add_argument("--json", action="store_true")
 
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
@@ -1800,16 +1804,42 @@ def runs_cmd(args: argparse.Namespace) -> None:
                 item["state"] = json.loads(state_path.read_text())
             except json.JSONDecodeError:
                 item["state"] = {"run_status": "corrupt"}
+        state = item.get("state", {})
+        events = read_jsonl(first_existing(manifest.parent, EVENT_FILES))
+        total = next((row.get("total") for row in reversed(events) if row.get("total")), None)
+        locked = len(state.get("locked", {}))
+        item["progress"] = {"locked": locked, "total": total, "pct": (locked / total * 100.0) if total else None}
+        item["ppl_profile"] = item.get("ppl_profile") or state.get("ppl_profile") or "custom"
+        item["run_dir"] = str(manifest.parent)
+        if args.family and args.family not in str(item.get("model_family")):
+            continue
+        if args.model and args.model not in str(item.get("model_name")):
+            continue
+        if args.status and args.status != str(state.get("run_status")):
+            continue
+        if args.profile and args.profile != str(item.get("ppl_profile")):
+            continue
         data.append(item)
     if args.json:
         print(json.dumps({"runs": data}, indent=2, sort_keys=True))
         return
+    if not data:
+        print("no runs")
+        return
+    headers = ["status", "profile", "progress", "ppl", "model", "run"]
+    print(f"{headers[0]:<10} {headers[1]:<10} {headers[2]:<16} {headers[3]:<12} {headers[4]:<28} {headers[5]}")
+    print(f"{'-'*10} {'-'*10} {'-'*16} {'-'*12} {'-'*28} {'-'*20}")
     for item in data:
         state = item.get("state", {})
+        progress = item.get("progress", {})
+        pct = progress.get("pct")
+        progress_s = f"{progress.get('locked')}/{progress.get('total') or '?'}"
+        if pct is not None:
+            progress_s += f" {pct:.1f}%"
+        model_s = f"{item.get('model_family')}/{item.get('model_name')}"
         print(
-            f"{item.get('run_id')}  {state.get('run_status', '?'):<9} "
-            f"{item.get('model_family')}/{item.get('model_name')}  "
-            f"locked={len(state.get('locked', {}))} ppl={state.get('current_ppl')}"
+            f"{state.get('run_status', '?'):<10} {item.get('ppl_profile', '-'):<10} "
+            f"{progress_s:<16} {str(state.get('current_ppl')):<12} {model_s:<28} {item.get('run_id')}"
         )
 
 
