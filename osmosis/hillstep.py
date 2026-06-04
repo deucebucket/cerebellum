@@ -142,6 +142,27 @@ def color(text: str, code: str, enabled: bool) -> str:
     return f"\033[{code}m{text}\033[0m"
 
 
+def kv_line(label: str, value: Any, width: int, enabled: bool, value_code: str = "37;1") -> str:
+    label_part = color(f"{label:<9}", "90", enabled)
+    value_text = str(value)
+    value_part = color(f"{value_text:<{width - 14}}", value_code, enabled)
+    return f"│ {label_part}{value_part}│"
+
+
+def delta_code(delta: Any) -> str:
+    if delta is None:
+        return "90"
+    try:
+        value = float(delta)
+    except (TypeError, ValueError):
+        return "90"
+    if value < 0:
+        return "32;1"
+    if value > 0:
+        return "31;1"
+    return "37;1"
+
+
 def fmt_seconds(seconds: float | None) -> str:
     if seconds is None:
         return "-"
@@ -152,6 +173,26 @@ def fmt_seconds(seconds: float | None) -> str:
         return f"{int(minutes)}m{int(sec):02d}s"
     hours, minutes = divmod(minutes, 60)
     return f"{int(hours)}h{int(minutes):02d}m"
+
+
+def fmt_bytes(size: int | None) -> str:
+    if size is None:
+        return "-"
+    value = float(size)
+    for unit in ["B", "KiB", "MiB", "GiB", "TiB"]:
+        if value < 1024 or unit == "TiB":
+            return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
+        value /= 1024
+    return f"{value:.1f} TiB"
+
+
+def progress_bar(done: int, total: int | None, width: int = 28) -> tuple[str, str]:
+    if not total:
+        return "[" + "-" * width + "]", "-"
+    ratio = max(0.0, min(1.0, done / total))
+    filled = int(round(ratio * width))
+    bar = "[" + "#" * filled + "-" * (width - filled) + "]"
+    return bar, f"{done}/{total} {ratio * 100:.1f}%"
 
 
 def event_age_seconds(row: dict[str, Any]) -> float | None:
@@ -1161,6 +1202,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     watch.add_argument("--once", action="store_true", help="render one frame and exit")
     watch.add_argument("--stall-warn-seconds", type=float, default=300.0)
     watch.add_argument("--stall-fail-seconds", type=float, default=900.0)
+    watch.add_argument("--events-limit", type=int, default=12)
+    watch.add_argument("--measurements-limit", type=int, default=8)
     watch.add_argument("--plain", action="store_true")
     watch.add_argument("--no-color", action="store_true")
 
@@ -1300,7 +1343,7 @@ def watch_cmd(args: argparse.Namespace) -> None:
             manifest = read_json(run_dir / "manifest.json", {})
             events = read_jsonl(first_existing(run_dir, EVENT_FILES))
             candidates = read_jsonl(first_existing(run_dir, CANDIDATE_FILES))
-            last_events = events[-12:]
+            last_events = events[-max(1, args.events_limit) :]
             last_tensor = state.get("last_tensor")
             status = state.get("run_status")
             terminal_events = {"run_stopped", "run_finish", "tensor_interrupted", "signal_received"}
@@ -1347,40 +1390,56 @@ def watch_cmd(args: argparse.Namespace) -> None:
             corpus = manifest.get("corpus") or state.get("corpus") or "-"
             locked = len(state.get("locked", {}))
             total_hint = next((row.get("total") for row in reversed(events) if row.get("total")), None)
-            progress = f"{locked}/{total_hint}" if total_hint else str(locked)
+            progress_visual, progress_text = progress_bar(locked, total_hint)
+            baseline_path = Path(state.get("baseline_path") or run_dir / "artifacts" / "current_baseline.gguf")
+            baseline_size = path_size(baseline_path) if baseline_path.exists() else None
+            active_path = active.get("tmp_output") or active.get("output") or active.get("model")
+            active_size = path_size(Path(active_path)) if active_path else None
+            newest_candidate_size = next((row.get("size_bytes") for row in reversed(candidates) if row.get("size_bytes")), None)
             print(color("╭" + "─" * (width - 2) + "╮", "36;1", enabled))
             print(color("│" + " CEREBELLUM ".center(width - 2) + "│", "36;1", enabled))
             print(color("│" + " resource-aware mixed-precision GGUF quantization ".center(width - 2) + "│", "36", enabled))
             print(color("╰" + "─" * (width - 2) + "╯", "36;1", enabled))
             print()
             print(color("╭─ Run ─" + "─" * (width - 9) + "╮", "34;1", enabled))
-            print(f"│ id       {run_id:<{width - 13}}│")
-            print(f"│ model    {model:<{width - 13}}│")
-            print(f"│ status   {str(status):<{width - 13}}│")
-            print(f"│ profile  {str(profile):<{width - 13}}│")
-            print(f"│ corpus   {str(corpus)[-(width - 13):]:>{width - 13}}│")
-            print(f"│ ppl      {str(ppl):<{width - 13}}│")
-            print(f"│ progress {progress:<{width - 13}}│")
+            status_code = "32;1" if status == "running" else "33;1" if status == "stopped" else "36;1"
+            print(kv_line("id", run_id, width, enabled, "37;1"))
+            print(kv_line("model", model, width, enabled, "36;1"))
+            print(kv_line("status", status, width, enabled, status_code))
+            print(kv_line("profile", profile, width, enabled, "35;1"))
+            print(kv_line("corpus", str(corpus)[-(width - 13):], width, enabled, "90"))
+            print(kv_line("ppl", ppl, width, enabled, "33;1"))
+            print(kv_line("progress", f"{progress_visual} {progress_text}", width, enabled, "32;1"))
             print(color("╰" + "─" * (width - 2) + "╯", "34;1", enabled))
             print()
             print(color("╭─ Active work ─" + "─" * (width - 16) + "╮", "37;1", enabled))
-            print(f"│ event    {str(active.get('event')):<{width - 13}}│")
-            print(f"│ tensor   {str(active.get('tensor')):<{width - 13}}│")
-            print(f"│ level    {str(active.get('level')):<{width - 13}}│")
+            event_code = "32;1" if str(active.get("event", "")).endswith("_start") else "36;1"
+            print(kv_line("event", active.get("event"), width, enabled, event_code))
+            print(kv_line("tensor", active.get("tensor"), width, enabled, "33;1"))
+            print(kv_line("level", active.get("level"), width, enabled, "35;1"))
             if last_tensor:
-                print(f"│ last     {str(last_tensor):<{width - 13}}│")
+                print(kv_line("last", last_tensor, width, enabled, "33"))
             print(color("╰" + "─" * (width - 2) + "╯", "37;1", enabled))
             print()
+            print(color("╭─ GGUF sizes ─" + "─" * (width - 15) + "╮", "36;1", enabled))
+            print(kv_line("current", fmt_bytes(baseline_size), width, enabled, "36;1"))
+            print(kv_line("active", fmt_bytes(active_size), width, enabled, "32;1" if active_size else "90"))
+            print(kv_line("recent", fmt_bytes(newest_candidate_size), width, enabled, "36"))
+            if active_path:
+                print(kv_line("file", str(active_path)[-(width - 13):], width, enabled, "90"))
+            print(color("╰" + "─" * (width - 2) + "╯", "36;1", enabled))
+            print()
             print(color("╭─ Activity / health ─" + "─" * (width - 22) + "╮", health_code, enabled))
-            print(f"│ health   {health:<{width - 13}}│")
-            print(f"│ reason   {health_reason[:width - 13]:<{width - 13}}│")
-            print(f"│ active   {fmt_seconds(active_age):<{width - 13}}│")
-            print(f"│ last_evt {fmt_seconds(last_event_age):<{width - 13}}│")
+            print(kv_line("health", health, width, enabled, health_code))
+            print(kv_line("reason", health_reason[:width - 13], width, enabled, "37"))
+            print(kv_line("active", fmt_seconds(active_age), width, enabled, "36;1"))
+            print(kv_line("last_evt", fmt_seconds(last_event_age), width, enabled, "36;1"))
             for row in active_processes[:3]:
                 line = f"{row['kind']} pid={row['pid']} etime={row['etime']} cpu={row['pcpu']}% mem={row['pmem']}%"
-                print(f"│ proc     {line[:width - 13]:<{width - 13}}│")
+                proc_code = "32;1" if row["kind"] in {"quantize", "ppl"} else "37"
+                print(kv_line("proc", line[:width - 13], width, enabled, proc_code))
             if status == "running" and not active_processes:
-                print(f"│ warning  {'no active llama child process detected':<{width - 13}}│")
+                print(kv_line("warning", "no active llama child process detected", width, enabled, "31;1"))
             print(color("╰" + "─" * (width - 2) + "╯", health_code, enabled))
             totals = state.get("totals", {})
             print()
@@ -1390,16 +1449,20 @@ def watch_cmd(args: argparse.Namespace) -> None:
                 f"ppl {fmt_seconds(totals.get('ppl_seconds'))}   "
                 f"tests {totals.get('candidates', 0)}   failures {totals.get('failures', 0)}"
             )
-            print(f"│ {timing_line:<{width - 4}} │")
+            print(f"│ {color(f'{timing_line:<{width - 4}}', '36;1', enabled)} │")
             print(color("╰" + "─" * (width - 2) + "╯", "35;1", enabled))
             print()
             print(color("╭─ Recent measurements ─" + "─" * (width - 24) + "╮", "32;1", enabled))
             print(f"│ {'quant':<8}{'ppl':<14}{'delta':<14}{'tensor':<{width - 42}}│")
             print(color("├" + "─" * (width - 2) + "┤", "32", enabled))
-            for row in candidates[-8:]:
+            for row in candidates[-max(1, args.measurements_limit) :]:
                 delta = row.get("delta")
                 delta_s = "-" if delta is None else f"{delta:+.4f}"
-                print(f"│ {row.get('level', '-'):<8}{str(row.get('ppl', '-')):<14}{delta_s:<14}{row.get('tensor', ''):<{width - 42}}│")
+                level_s = color(f"{row.get('level', '-'):<8}", "35;1", enabled)
+                ppl_s = color(f"{str(row.get('ppl', '-')):<14}", "33;1", enabled)
+                delta_s_colored = color(f"{delta_s:<14}", delta_code(delta), enabled)
+                tensor_s = color(f"{row.get('tensor', ''):<{width - 42}}", "33", enabled)
+                print(f"│ {level_s}{ppl_s}{delta_s_colored}{tensor_s}│")
             print(color("╰" + "─" * (width - 2) + "╯", "32;1", enabled))
             print()
             print(color("╭─ Event stream ─" + "─" * (width - 17) + "╮", "33;1", enabled))

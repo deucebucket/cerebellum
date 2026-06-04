@@ -100,6 +100,12 @@ cerebellum watch /path/to/run
 cerebellum report /path/to/run
 ```
 
+`--distrobox NAME` is optional. It is only needed on machines where the
+llama.cpp binaries must run inside a container/toolbox to see CUDA or ROCm
+libraries. On a normal install, put `llama-quantize` and `llama-perplexity` on
+`PATH` or pass `--quantize-bin` / `--perplexity-bin`; Cerebellum itself is not
+tied to distrobox or to this workstation.
+
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,
 or `--profile custom --corpus FILE`. The chosen profile and resolved corpus are
@@ -107,8 +113,10 @@ written into manifest, state, reports, exports, and the live terminal dashboard
 so results remain comparable later.
 
 The live dashboard shows run identity, selected PPL profile, active quant/PPL
-work, timing totals, recent measurements, and the event stream. Captured dev
-snapshots:
+work, live process health, current/active GGUF sizes, timing totals, recent
+measurements, and the event stream. The dashboard stays bounded by default;
+increase visible rows with `--events-limit N` and `--measurements-limit N`.
+Captured dev snapshots:
 
 - [Qwen3 0.6B smoke dashboard](docs/cerebellum_cli_smoke_snapshot.png)
 - [Gemma 4 12B live dashboard](docs/cerebellum_cli_gemma4_12b_live.png)

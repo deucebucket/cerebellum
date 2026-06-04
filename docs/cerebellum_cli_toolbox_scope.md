@@ -95,3 +95,21 @@ Tutorials should be concise and contextual:
 - Do not make SQLite the only source of truth.
 - Do not assume a full model can be duplicated several times.
 - Do not require signing in for local quantization, reports, or API use.
+
+## Portability and Live Dashboard Notes
+
+- Cerebellum must run on normal host installs without distrobox. `--distrobox NAME`
+  is only an optional adapter when a user keeps llama.cpp/CUDA/ROCm inside a
+  container or toolbox.
+- The CLI should auto-explain binary setup: use `llama-quantize` and
+  `llama-perplexity` on `PATH`, or pass `--quantize-bin` and `--perplexity-bin`.
+- The live dashboard should show current baseline GGUF size, active candidate or
+  temp GGUF size, and most recent measured candidate size.
+- Progress should always include a bar, raw tensor counts, and percent.
+- Live panes should stay bounded for readability. Default to short windows and
+  expose limits such as `--events-limit N` and `--measurements-limit N`.
+- True scrollable panes require a curses/Textual-style TUI mode. The bounded
+  dashboard remains the portable default; a future full TUI can add independent
+  scroll focus for events, measurements, and files.
+- Failure detection should combine state, event age, process existence, child
+  process age, and disk/free-space waits so a running state never looks dead.
