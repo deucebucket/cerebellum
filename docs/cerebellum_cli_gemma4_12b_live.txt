@@ -3,18 +3,17 @@
 ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
 ╔═ OPERATIONS ═══════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║ progress  [----------------------] 7/616 1.1%  ppl 2174.4121                │resources  GPU 97% 1276/24576 MiB     ║
-║ cpu/gpu   idle                                                              │jobs       jobs idle                  ║
-║ tensor    blk.0.attn_k_norm.weight  f16                                     │disk       73.1 GiB free              ║
-║ job       ppl_start  age 2m00s                                              │gguf       base 7.997 GiB active 7.9… ║
-║ storage   tmp 40.0 GiB artifacts 8.0 GiB                                    │floor      10.0 GiB hard floor        ║
-║ eta       current 2m00s avg/tensor 18m51s total 191h29m                     │confidence medium                     ║
+║ progress  [----------------------] 8/616 1.3%  ppl 2174.4121                │resources  GPU 100% 11051/24576 MiB   ║
+║ cpu/gpu   quantize | ppl                                                    │jobs       jobs ppl,quantize          ║
+║ tensor    blk.0.attn_norm.weight  q2_K                                      │disk       101.4 GiB free             ║
+║ job       quant_start  age 49.1s                                            │gguf       base 7.997 GiB active 4.2… ║
+║ storage   tmp 12.2 GiB artifacts 8.0 GiB                                    │floor      10.0 GiB hard floor        ║
+║ eta       current 49.1s avg/tensor 18m45s total 190h05m                     │confidence medium                     ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
 ╔═ RECENT MEASUREMENTS ══════════════════════════════════════════════════════════════════════════════════════════════╗
 ║ quant   ppl          delta        size         tensor                                                              ║
 ║ ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── ║
-║ q2_K   2336.166    +117.7727   7.991 GiB   blk.0.ffn_gate.weight worse                                             ║
 ║ q5_K   2191.9538   -26.4395    8.011 GiB   blk.0.ffn_gate.weight better                                            ║
 ║ q6_K   2179.4208   -38.9725    8.018 GiB   blk.0.ffn_gate.weight better                                            ║
 ║ f16    2203.6072   -14.7861    8.083 GiB   blk.0.ffn_gate.weight better                                            ║
@@ -22,11 +21,12 @@
 ║ q2_K   2174.4121   +0.0000     7.997 GiB   blk.0.attn_k_norm.weight =                                              ║
 ║ q5_K   2174.4121   +0.0000     7.997 GiB   blk.0.attn_k_norm.weight =                                              ║
 ║ q6_K   2175.7791   +1.3670     7.997 GiB   blk.0.attn_k_norm.weight worse                                          ║
+║ f16    2174.4121   +0.0000     7.997 GiB   blk.0.attn_k_norm.weight =                                              ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝
 
 ╔═ EVENT STRIP ══════════════════════════════════════════════════════════════════════════════════════════════════════╗
-║ ppl_start q6_K blk.0.attn_k_norm.weight | metadata_backup | quant_finish f16 blk.0.attn_k_norm.weight | ppl_finish ║
-║ q6_K blk.0.attn_k_norm.weight | ppl_start f16 blk.0.attn_k_norm.weight                                             ║
+║ tensor_start  blk.0.attn_norm.weight | quant_start q3_K blk.0.attn_norm.weight | quant_finish q3_K                 ║
+║ blk.0.attn_norm.weight | ppl_start q3_K blk.0.attn_norm.weight | quant_start q2_K blk.0.attn_norm.weight           ║
 ║ run gemma4-12b-cerebellum-q4km-wiki-visible-20260604                                                               ║
 ║ Ctrl+C exits UI only. Use `cerebellum stop RUN_DIR` to stop.                                                       ║
 ╚════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝

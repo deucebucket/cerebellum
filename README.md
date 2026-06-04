@@ -444,3 +444,12 @@ Measurement table colors:
 PPL delta: green = better, red = worse, cyan `=` = unchanged.
 GGUF size: blue = smaller than current baseline, orange = larger than current baseline, cyan = equal/neutral.
 ```
+
+Read-only smoke check:
+
+```bash
+cerebellum self-test
+cerebellum self-test --run-dir RUN_DIR
+```
+
+The API also exposes `/self-test?run_dir=RUN_DIR` for automation agents.

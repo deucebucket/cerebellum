@@ -1699,6 +1699,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     doctor = sub.add_parser("doctor", help="check portable Cerebellum setup and explain fixes")
     doctor.add_argument("--json", action="store_true")
 
+    self_test = sub.add_parser("self-test", help="run read-only Cerebellum CLI/API smoke checks")
+    self_test.add_argument("--run-dir", default=None, help="Optional run directory for run-aware checks")
+    self_test.add_argument("--json", action="store_true")
+
     plan_space = sub.add_parser("plan-space", help="recommend low-space quant scratch strategy")
     plan_space.add_argument("--source-gguf", required=True)
     plan_space.add_argument("--data-root")
@@ -1759,7 +1763,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and len(sys.argv) > 1
         and sys.argv[1] not in {
             "run", "status", "events", "runs", "schedule", "db", "report",
-            "export", "auth", "upload", "api", "system", "doctor", "provenance", "finalize", "package", "plan-space",
+            "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "finalize", "package", "plan-space",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
             "cleanup", "rollback",
             "backup",
@@ -3275,6 +3279,57 @@ def doctor_cmd(args: argparse.Namespace) -> None:
             print(f"   fix: {row['fix']}")
 
 
+def self_test_payload(run_dir: Path | None = None) -> dict[str, Any]:
+    checks: list[dict[str, Any]] = []
+
+    def add(name: str, ok: bool, detail: Any = None) -> None:
+        checks.append({"name": name, "ok": ok, "detail": detail})
+
+    add("python", sys.version_info >= (3, 10), sys.version.split()[0])
+    add("tutorials", all(topic in TUTORIALS for topic in ["overview", "recovery", "low-space", "targeting", "api"]), sorted(TUTORIALS))
+    info = system_info()
+    add("system_info", bool(info.get("schema_version")), {"hostname": info.get("hostname"), "python": info.get("python")})
+    add("llama_quantize", Path(str(info["binaries"].get("llama_quantize", ""))).exists(), info["binaries"].get("llama_quantize"))
+    add("llama_perplexity", Path(str(info["binaries"].get("llama_perplexity", ""))).exists(), info["binaries"].get("llama_perplexity"))
+    add("api_catalog", True, ["/health", "/schema", "/tutorial", "/recover", "/export", "/commands"])
+    if run_dir:
+        state = read_json(run_dir / "state.json", {})
+        manifest = read_json(run_dir / "manifest.json", {})
+        add("run_state", bool(state), str(run_dir / "state.json"))
+        add("run_manifest", bool(manifest), str(run_dir / "manifest.json"))
+        if state or manifest:
+            recovery = build_recovery_plan(run_dir)
+            add("recover_payload", bool(recovery.get("run_dir")), {"runner_active": recovery.get("runner_active"), "locked_count": recovery.get("locked_count")})
+            try:
+                report = build_report(run_dir)
+                add("report_payload", bool(report.get("run_id")), {"run_id": report.get("run_id"), "status": report.get("status")})
+            except Exception as exc:
+                add("report_payload", False, str(exc))
+            try:
+                package = package_manifest(run_dir)
+                add("package_payload", bool(package.get("schema")), {"files": len(package.get("files", []))})
+            except Exception as exc:
+                add("package_payload", False, str(exc))
+    return {
+        "schema": "cerebellum.self_test.v1",
+        "ok": all(row["ok"] for row in checks),
+        "checks": checks,
+    }
+
+
+def self_test_cmd(args: argparse.Namespace) -> None:
+    payload = self_test_payload(Path(args.run_dir) if args.run_dir else None)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+    print("Cerebellum self-test")
+    for row in payload["checks"]:
+        mark = "OK" if row["ok"] else "!!"
+        print(f"{mark} {row['name']}: {row.get('detail')}")
+    if not payload["ok"]:
+        raise SystemExit(1)
+
+
 def space_plan(source: Path, candidates: list[Path], margin_gb: float) -> dict[str, Any]:
     source_size = path_size(source)
     required_single = int(source_size * 1.7 + margin_gb * 1e9)
@@ -3381,6 +3436,7 @@ TUTORIALS = {
         "Use `/report?run_dir=RUN_DIR` and `/export?run_dir=RUN_DIR&kind=ai` for AI-readable summaries.",
         "Use `/recover?run_dir=RUN_DIR` for AI-safe recovery planning without deleting or changing files.",
         "Use `/commands` to discover CLI command templates and `/tutorial?topic=TOPIC` to expose these tutorials to agents.",
+        "Use `cerebellum self-test --run-dir RUN_DIR` or `/self-test?run_dir=RUN_DIR` for read-only smoke checks.",
         "Destructive operations like cleanup, rollback, upload, and stop remain CLI actions unless explicitly wired as authenticated POST later.",
     ],
     "provenance": [
@@ -3658,6 +3714,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/system", "params": [], "returns": "host resources and tool availability"},
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
                         {"path": "/tutorial", "params": ["topic"], "returns": "tutorial lines"},
+                        {"path": "/self-test", "params": ["run_dir?"], "returns": "read-only CLI/API smoke-check payload"},
                         {"path": "/commands", "params": [], "returns": "CLI command templates"},
                         {"path": "/schema", "params": [], "returns": "this API catalog"},
                         {"path": "/db/families", "params": [], "returns": "indexed model families"},
@@ -3665,6 +3722,9 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                     "tutorial_topics": sorted(TUTORIALS),
                 }
             )
+        elif parsed.path == "/self-test":
+            run_dir = qs.get("run_dir", [None])[0]
+            self._json(self_test_payload(Path(run_dir) if run_dir else None))
         else:
             self._json({"error": "not found"}, 404)
 
@@ -3674,7 +3734,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /run /events /measurements /report /export /recover /provenance /package /system /space /tutorial /commands /schema /db/families")
+    print("Endpoints: /health /runs /run /events /measurements /report /export /recover /provenance /package /system /space /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
@@ -3858,6 +3918,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "doctor":
         doctor_cmd(args)
+        return
+    if args.cmd == "self-test":
+        self_test_cmd(args)
         return
     if args.cmd == "plan-space":
         plan_space_cmd(args)

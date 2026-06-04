@@ -121,3 +121,7 @@ Live Gemma 4 showed normalization tensor tests with identical PPL at current pre
 ## Size delta coloring
 
 Added baseline-relative candidate size coloring to the compact dashboard so users can visually track whether candidate GGUFs are shrinking or growing versus the current baseline.
+
+## Self-test command
+
+Added a built-in read-only smoke path so future validation does not require manually chaining help, tutorial, recover, report, package, and API calls. This supports big-run smoke without starting a separate tiny model.

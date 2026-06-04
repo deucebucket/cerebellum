@@ -132,3 +132,9 @@
 ## 2026-06-04 size delta coloring
 
 - Compact watch measurement sizes are now colored against the current baseline GGUF size: blue for smaller candidates, orange for larger candidates, cyan for equal size.
+
+## 2026-06-04 read-only self-test command
+
+- Added `cerebellum self-test` for non-mutating CLI/API smoke checks.
+- `self-test --run-dir RUN_DIR` checks run state, manifest, recovery payload, report payload, and package payload without launching quantization or changing run data.
+- Added `/self-test?run_dir=RUN_DIR` to the read-only API surface.

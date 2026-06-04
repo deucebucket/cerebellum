@@ -25,6 +25,7 @@ def main():
         print("  package   Write portable upload/package manifest")
         print("  system    Inspect local resources and tool availability")
         print("  doctor    Check portable setup and explain fixes")
+        print("  self-test Run read-only CLI/API smoke checks")
         print("  plan-space Recommend scratch/offload strategy")
         print("  report    Write clean reports")
         print("  export    Export data for AI/infographics")
@@ -36,7 +37,7 @@ def main():
 
     cerebellum_commands = {
         "run", "watch", "status", "events", "runs", "schedule", "system",
-        "doctor", "provenance", "finalize", "package", "plan-space", "tutorial", "tips", "db", "report", "export", "auth",
+        "doctor", "self-test", "provenance", "finalize", "package", "plan-space", "tutorial", "tips", "db", "report", "export", "auth",
         "upload", "api", "stop", "resume", "recover", "cleanup", "rollback", "backup",
     }
 
