@@ -132,6 +132,8 @@ measurements, and the event stream. The dashboard stays bounded by default;
 increase visible rows with `--events-limit N` and `--measurements-limit N`. Use
 `cerebellum watch RUN_DIR --tui` for an interactive terminal UI with independent
 scrollable panes for events, measurements, processes/GPU, and files.
+CLI layout redesign notes live in
+[docs/cerebellum_cli_layout_notes.md](docs/cerebellum_cli_layout_notes.md).
 Captured dev snapshots:
 
 - [Qwen3 0.6B smoke dashboard](docs/cerebellum_cli_smoke_snapshot.png)

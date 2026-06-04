@@ -116,3 +116,4 @@ Tutorials should be concise and contextual:
   scroll focus for events, measurements, and files.
 - Failure detection should combine state, event age, process existence, child
   process age, and disk/free-space waits so a running state never looks dead.
+- Layout redesign details are tracked in `docs/cerebellum_cli_layout_notes.md`.
