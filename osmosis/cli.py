@@ -16,6 +16,7 @@ def main():
         print("  events    Show run event stream")
         print("  runs      List known runs")
         print("  system    Inspect local resources and tool availability")
+        print("  doctor    Check portable setup and explain fixes")
         print("  plan-space Recommend scratch/offload strategy")
         print("  report    Write clean reports")
         print("  export    Export data for AI/infographics")
@@ -27,7 +28,7 @@ def main():
 
     cerebellum_commands = {
         "run", "watch", "status", "events", "runs", "schedule", "system",
-        "plan-space", "tutorial", "tips", "db", "report", "export", "auth",
+        "doctor", "plan-space", "tutorial", "tips", "db", "report", "export", "auth",
         "upload", "api", "stop",
     }
 

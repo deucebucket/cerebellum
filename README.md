@@ -84,6 +84,7 @@ visible, resumable quantization runs rather than silent one-off scripts:
 
 ```bash
 cerebellum system
+cerebellum doctor
 cerebellum plan-space --source-gguf source-f16.gguf
 cerebellum run \
   --source-gguf source-f16.gguf \
@@ -105,6 +106,10 @@ llama.cpp binaries must run inside a container/toolbox to see CUDA or ROCm
 libraries. On a normal install, put `llama-quantize` and `llama-perplexity` on
 `PATH` or pass `--quantize-bin` / `--perplexity-bin`; Cerebellum itself is not
 tied to distrobox or to this workstation.
+
+Run `cerebellum doctor` after install. It checks llama.cpp binaries, GPU
+visibility, writable data roots, local PPL profile corpora, and explains how to
+fix missing pieces.
 
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,

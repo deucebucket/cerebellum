@@ -1274,6 +1274,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     system = sub.add_parser("system", help="inspect local resources and tool availability")
     system.add_argument("--json", action="store_true")
 
+    doctor = sub.add_parser("doctor", help="check portable Cerebellum setup and explain fixes")
+    doctor.add_argument("--json", action="store_true")
+
     plan_space = sub.add_parser("plan-space", help="recommend low-space quant scratch strategy")
     plan_space.add_argument("--source-gguf", required=True)
     plan_space.add_argument("--data-root")
@@ -1334,7 +1337,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and len(sys.argv) > 1
         and sys.argv[1] not in {
             "run", "status", "events", "runs", "schedule", "db", "report",
-            "export", "auth", "upload", "api", "system", "plan-space",
+            "export", "auth", "upload", "api", "system", "doctor", "plan-space",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
         }
     ):
@@ -2185,6 +2188,68 @@ def system_cmd(args: argparse.Namespace) -> None:
         print(f"  {key:16s} {value}")
 
 
+def doctor_cmd(args: argparse.Namespace) -> None:
+    info = system_info()
+    checks: list[dict[str, Any]] = []
+
+    def add(name: str, ok: bool, detail: str, fix: str = "") -> None:
+        checks.append({"name": name, "ok": ok, "detail": detail, "fix": fix})
+
+    quant = info["binaries"].get("llama_quantize")
+    ppl = info["binaries"].get("llama_perplexity")
+    add(
+        "llama-quantize",
+        bool(quant and Path(str(quant)).exists()),
+        str(quant),
+        "Install/build llama.cpp and put llama-quantize on PATH, or pass --quantize-bin.",
+    )
+    add(
+        "llama-perplexity",
+        bool(ppl and Path(str(ppl)).exists()),
+        str(ppl),
+        "Install/build llama.cpp and put llama-perplexity on PATH, or pass --perplexity-bin.",
+    )
+    distrobox = info["binaries"].get("distrobox")
+    add(
+        "distrobox optional",
+        True,
+        f"{distrobox or 'not installed'}; only needed if llama.cpp must run inside a container/toolbox",
+        "Do not use --distrobox on normal host installs. Use it only when CUDA/ROCm libs live in that environment.",
+    )
+    add(
+        "gpu",
+        bool(info.get("gpus")),
+        ", ".join(f"{gpu['name']} {gpu['vram_free_mib']}/{gpu['vram_total_mib']} MiB free" for gpu in info.get("gpus", [])) or "no NVIDIA GPU detected",
+        "CPU runs are possible but slow. For NVIDIA, ensure nvidia-smi works and llama.cpp was built with CUDA.",
+    )
+    root = default_data_root()
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        free = disk_free_gb(root)
+        add("data root", os.access(root, os.W_OK), f"{root} free={free:.1f} GiB", "Set CEREBELLUM_DATA_ROOT to a writable drive.")
+    except OSError as exc:
+        add("data root", False, f"{root}: {exc}", "Set CEREBELLUM_DATA_ROOT to a writable drive.")
+    for profile, candidates in PPL_PROFILES.items():
+        found = next((path for path in candidates if Path(path).exists()), None)
+        add(
+            f"profile:{profile}",
+            bool(found),
+            found or "not found locally",
+            f"Pass --profile custom --corpus FILE, or place a corpus at one of: {', '.join(candidates)}",
+        )
+    payload = {"ok": all(row["ok"] for row in checks if not row["name"].startswith("profile:")), "checks": checks}
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+    print("Cerebellum doctor")
+    print("Portable default: host binaries. `--distrobox NAME` is optional, not required.")
+    for row in checks:
+        mark = "OK" if row["ok"] else "!!"
+        print(f"{mark} {row['name']}: {row['detail']}")
+        if not row["ok"] and row.get("fix"):
+            print(f"   fix: {row['fix']}")
+
+
 def plan_space_cmd(args: argparse.Namespace) -> None:
     source = Path(args.source_gguf)
     source_size = path_size(source)
@@ -2521,6 +2586,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "system":
         system_cmd(args)
+        return
+    if args.cmd == "doctor":
+        doctor_cmd(args)
         return
     if args.cmd == "plan-space":
         plan_space_cmd(args)

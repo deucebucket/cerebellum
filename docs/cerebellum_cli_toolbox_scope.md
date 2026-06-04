@@ -103,6 +103,9 @@ Tutorials should be concise and contextual:
   container or toolbox.
 - The CLI should auto-explain binary setup: use `llama-quantize` and
   `llama-perplexity` on `PATH`, or pass `--quantize-bin` and `--perplexity-bin`.
+- `cerebellum doctor` should be the first-run setup checker for portable
+  installs. It must explain missing binaries, GPU visibility, data-root
+  writability, profile corpora, and the optional nature of distrobox.
 - The live dashboard should show current baseline GGUF size, active candidate or
   temp GGUF size, and most recent measured candidate size.
 - Progress should always include a bar, raw tensor counts, and percent.
