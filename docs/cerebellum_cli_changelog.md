@@ -16,6 +16,7 @@
 - `cerebellum provenance` for transparent GGUF metadata inspection/generation.
 - `cerebellum finalize` for final reports, model-card text, provenance
   sidecars, and optional GGUF metadata injection.
+- `cerebellum package` for a portable upload manifest.
 - Expanded local API endpoints for runs, run detail, events, measurements,
   reports, and provenance.
 - PPL profiles: `wiki`, `agentic`, `code`, `math`, `dialogue`,
@@ -49,6 +50,7 @@
 - PPL profile lookup now prefers portable locations:
   `CEREBELLUM_CORPUS_ROOT`, `./corpora`, and
   `~/.cache/cerebellum/corpora`.
+- Upload dry-runs now include finalize/provenance sidecars when present.
 
 ### Validated
 

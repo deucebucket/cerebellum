@@ -1430,6 +1430,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     finalize.add_argument("--metadata-tool", default=None, help="Path to gguf-set-metadata compatible tool")
     finalize.add_argument("--json", action="store_true")
 
+    package = sub.add_parser("package", help="write portable upload/package manifest for a run")
+    package.add_argument("run_dir")
+    package.add_argument("--output", default=None)
+    package.add_argument("--json", action="store_true")
+
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
     schedule.add_argument("--file", default=None)
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
@@ -1501,7 +1506,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and len(sys.argv) > 1
         and sys.argv[1] not in {
             "run", "status", "events", "runs", "schedule", "db", "report",
-            "export", "auth", "upload", "api", "system", "doctor", "provenance", "finalize", "plan-space",
+            "export", "auth", "upload", "api", "system", "doctor", "provenance", "finalize", "package", "plan-space",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
         }
     ):
@@ -2530,6 +2535,63 @@ def finalize_cmd(args: argparse.Namespace) -> None:
         print("  metadata not injected; rerun with --inject to tag the GGUF")
 
 
+def package_files(run_dir: Path) -> list[Path]:
+    finalize_dir = run_dir / "finalize"
+    candidates = [
+        run_dir / "manifest.json",
+        run_dir / "state.json",
+        first_existing(run_dir, EVENT_FILES),
+        first_existing(run_dir, CANDIDATE_FILES),
+        first_existing(run_dir, SUMMARY_JSON_FILES),
+        first_existing(run_dir, SUMMARY_MD_FILES),
+        first_existing(run_dir, DECISION_CSV_FILES),
+        first_existing(run_dir, INFOGRAPHIC_FILES),
+        first_existing(run_dir, BEST_TYPES_FILES),
+        finalize_dir / "cerebellum_gguf_metadata.json",
+        finalize_dir / "cerebellum_gguf_metadata.env",
+        finalize_dir / "MODEL_CARD_CEREBELLUM.md",
+    ]
+    return [path for path in candidates if path.exists()]
+
+
+def package_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    report = build_report(run_dir)
+    files = []
+    for path in package_files(run_dir):
+        size = path_size(path)
+        files.append(
+            {
+                "path": str(path),
+                "name": path.name,
+                "size_bytes": size,
+                "sha256": sha256_file(path) if size < 128 * 1024 * 1024 else None,
+                "hf_path": f"cerebellum_runs/{report['run_id']}/{path.name}",
+            }
+        )
+    payload = {
+        "schema": "cerebellum.package.v1",
+        "run_id": report["run_id"],
+        "run_dir": str(run_dir),
+        "model": f"{report.get('model_family')}/{report.get('model_name')}",
+        "status": report.get("status"),
+        "ppl_profile": report.get("ppl_profile"),
+        "files": files,
+        "notes": [
+            "Upload these sidecars with the GGUF so Cerebellum provenance remains auditable.",
+            "If GGUF metadata is stripped, compare sidecar provenance and model-card text.",
+        ],
+    }
+    output = Path(args.output) if args.output else run_dir / "cerebellum_package_manifest.json"
+    atomic_write_json(output, payload)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+    print(f"package manifest: {output}")
+    for item in files:
+        print(f"  {item['name']:<36} {fmt_bytes(item['size_bytes']):>10} -> {item['hf_path']}")
+
+
 def system_info() -> dict[str, Any]:
     import platform
 
@@ -2863,16 +2925,7 @@ def auth_cmd(args: argparse.Namespace) -> None:
 def upload_cmd(args: argparse.Namespace) -> None:
     run_dir = Path(args.run_dir)
     report = build_report(run_dir)
-    files = [
-        run_dir / "manifest.json",
-        run_dir / "state.json",
-        first_existing(run_dir, EVENT_FILES),
-        first_existing(run_dir, CANDIDATE_FILES),
-        first_existing(run_dir, SUMMARY_JSON_FILES),
-        first_existing(run_dir, SUMMARY_MD_FILES),
-        first_existing(run_dir, BEST_TYPES_FILES),
-    ]
-    files = [path for path in files if path.exists()]
+    files = package_files(run_dir)
     if args.dry_run:
         print(json.dumps({"target": args.target, "repo": args.repo, "files": [str(p) for p in files], "report": report}, indent=2))
         return
@@ -3138,6 +3191,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "finalize":
         finalize_cmd(args)
+        return
+    if args.cmd == "package":
+        package_cmd(args)
         return
     if args.cmd == "schedule":
         schedule_cmd(args)

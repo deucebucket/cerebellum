@@ -136,12 +136,15 @@ cerebellum provenance --run-dir /path/to/run
 cerebellum provenance --gguf model.gguf
 cerebellum provenance --run-dir /path/to/run --gguf model.gguf --hash-files
 cerebellum finalize --run-dir /path/to/run --gguf model.gguf
+cerebellum package /path/to/run
 ```
 
 Cerebellum provenance uses visible `cerebellum.*` GGUF metadata keys and report
 hashes. It is intended for attribution and auditability, not hidden watermarking.
 `finalize` writes metadata sidecars and a model-card block everywhere; if a
 compatible `gguf-set-metadata` tool is installed, `--inject` can tag the GGUF.
+`package` writes a portable upload manifest with the sidecars Cerebellum expects
+to travel with a published GGUF.
 
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,

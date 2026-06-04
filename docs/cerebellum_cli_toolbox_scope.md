@@ -126,3 +126,5 @@ Tutorials should be concise and contextual:
   `./corpora`, `~/.cache/cerebellum/corpora`, or explicit `--corpus`.
 - API should expose local-first automation endpoints for runs, run detail,
   event streams, measurements, reports, provenance, and database summaries.
+- Packaging should produce a portable upload manifest and include provenance
+  sidecars/model-card text alongside any published GGUF.

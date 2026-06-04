@@ -31,6 +31,7 @@ model jobs while preserving data integrity.
 - Added provenance metadata inspection/generation.
 - Added finalize command for sidecar/model-card generation and optional GGUF
   metadata injection.
+- Added package manifest command and expanded upload sidecar list.
 - Expanded local API server for future automation/web UI.
 - Added PPL profile support.
 - Added live resource/ETA view.
