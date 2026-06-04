@@ -124,3 +124,5 @@ Tutorials should be concise and contextual:
   Do not implement hidden watermarks.
 - Profile corpora must resolve portably through `CEREBELLUM_CORPUS_ROOT`,
   `./corpora`, `~/.cache/cerebellum/corpora`, or explicit `--corpus`.
+- API should expose local-first automation endpoints for runs, run detail,
+  event streams, measurements, reports, provenance, and database summaries.

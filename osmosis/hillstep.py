@@ -2927,8 +2927,42 @@ class CerebellumAPI(BaseHTTPRequestHandler):
         elif parsed.path == "/runs":
             rows = []
             for manifest in run_glob(self.data_root):
-                rows.append(load_run(manifest.parent))
+                item = load_run(manifest.parent)
+                state = item.get("state", {})
+                manifest_data = item.get("manifest", {})
+                if qs.get("family") and qs["family"][0] not in str(manifest_data.get("model_family") or state.get("model_family")):
+                    continue
+                if qs.get("model") and qs["model"][0] not in str(manifest_data.get("model_name") or state.get("model_name")):
+                    continue
+                if qs.get("status") and qs["status"][0] != str(state.get("run_status")):
+                    continue
+                rows.append(item)
             self._json({"runs": rows})
+        elif parsed.path == "/run":
+            run_dir = qs.get("run_dir", [None])[0]
+            if not run_dir:
+                self._json({"error": "run_dir query param required"}, 400)
+            else:
+                self._json(load_run(Path(run_dir)))
+        elif parsed.path == "/events":
+            run_dir = qs.get("run_dir", [None])[0]
+            if not run_dir:
+                self._json({"error": "run_dir query param required"}, 400)
+            else:
+                limit = int(qs.get("limit", ["100"])[0])
+                event_type = qs.get("type", [None])[0]
+                rows = read_jsonl(first_existing(Path(run_dir), EVENT_FILES))
+                if event_type:
+                    rows = [row for row in rows if row.get("event") == event_type]
+                self._json({"events": rows[-limit:]})
+        elif parsed.path == "/measurements":
+            run_dir = qs.get("run_dir", [None])[0]
+            if not run_dir:
+                self._json({"error": "run_dir query param required"}, 400)
+            else:
+                limit = int(qs.get("limit", ["100"])[0])
+                rows = read_jsonl(first_existing(Path(run_dir), CANDIDATE_FILES))
+                self._json({"measurements": rows[-limit:]})
         elif parsed.path == "/db/families":
             rows = sqlite_rows(self.db_path, "SELECT * FROM model_families ORDER BY name")
             self._json({"rows": rows})
@@ -2938,6 +2972,20 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 self._json({"error": "run_dir query param required"}, 400)
             else:
                 self._json(build_report(Path(run_dir)))
+        elif parsed.path == "/provenance":
+            run_dir = qs.get("run_dir", [None])[0]
+            gguf = qs.get("gguf", [None])[0]
+            if not run_dir and not gguf:
+                self._json({"error": "run_dir or gguf query param required"}, 400)
+            else:
+                payload: dict[str, Any] = {}
+                gguf_path = Path(gguf) if gguf else None
+                if run_dir:
+                    payload["generated_metadata"] = cerebellum_metadata_block(Path(run_dir), gguf_path, False)
+                if gguf_path:
+                    payload["existing_cerebellum_metadata"] = inspect_gguf_metadata(gguf_path)
+                    payload["has_cerebellum_metadata"] = bool(payload["existing_cerebellum_metadata"])
+                self._json(payload)
         else:
             self._json({"error": "not found"}, 404)
 
@@ -2947,7 +2995,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /db/families /report?run_dir=...")
+    print("Endpoints: /health /runs /run /events /measurements /report /provenance /db/families")
     server.serve_forever()
 
 

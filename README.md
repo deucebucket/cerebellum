@@ -120,6 +120,15 @@ cerebellum schedule --file cerebellum_schedule.json --dry-run
 cerebellum schedule --file cerebellum_schedule.json
 ```
 
+Local automation/API server:
+
+```bash
+cerebellum api --host 127.0.0.1 --port 8931 --data-root /path/to/cerebellum-runs
+```
+
+Initial endpoints include `/health`, `/runs`, `/run`, `/events`,
+`/measurements`, `/report`, `/provenance`, and `/db/families`.
+
 Transparent provenance metadata:
 
 ```bash

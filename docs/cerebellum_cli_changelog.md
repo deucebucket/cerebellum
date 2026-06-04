@@ -16,6 +16,8 @@
 - `cerebellum provenance` for transparent GGUF metadata inspection/generation.
 - `cerebellum finalize` for final reports, model-card text, provenance
   sidecars, and optional GGUF metadata injection.
+- Expanded local API endpoints for runs, run detail, events, measurements,
+  reports, and provenance.
 - PPL profiles: `wiki`, `agentic`, `code`, `math`, `dialogue`,
   `all-around`, and `custom`.
 - Live dashboard panels for:

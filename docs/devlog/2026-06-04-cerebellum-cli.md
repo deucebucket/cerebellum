@@ -31,6 +31,7 @@ model jobs while preserving data integrity.
 - Added provenance metadata inspection/generation.
 - Added finalize command for sidecar/model-card generation and optional GGUF
   metadata injection.
+- Expanded local API server for future automation/web UI.
 - Added PPL profile support.
 - Added live resource/ETA view.
 - Added GGUF size visibility.
@@ -72,5 +73,6 @@ model jobs while preserving data integrity.
 - Implement compact dashboard grid renderer.
 - Improve layer-based ETA once more layers complete.
 - Expand API endpoints for run queries, events, measurements, and reports.
+- API now has first-pass run/event/measurement/report/provenance endpoints.
 - Improve upload/auth UX for HF/GitHub.
 - Continue screenshots after layout changes.
