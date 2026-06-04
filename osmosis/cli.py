@@ -11,9 +11,14 @@ def main():
         print("Usage: cerebellum <command> [args]")
         print("Commands:")
         print("  run       Start/resume a Cerebellum quant search")
+        print("  resume    Resume an existing run from manifest/state")
         print("  watch     Open the live Cerebellum terminal interface")
         print("  status    Show a run status snapshot")
         print("  events    Show run event stream")
+        print("  recover   Print a crash-recovery plan")
+        print("  cleanup   Clean safe temp/artifact files")
+        print("  rollback  Roll durable state back to a clean boundary")
+        print("  backup    Mirror critical run metadata/checkpoints")
         print("  runs      List known runs")
         print("  provenance Inspect or generate Cerebellum GGUF provenance")
         print("  finalize  Write final reports/model card and tag GGUF provenance")
@@ -32,7 +37,7 @@ def main():
     cerebellum_commands = {
         "run", "watch", "status", "events", "runs", "schedule", "system",
         "doctor", "provenance", "finalize", "package", "plan-space", "tutorial", "tips", "db", "report", "export", "auth",
-        "upload", "api", "stop",
+        "upload", "api", "stop", "resume", "recover", "cleanup", "rollback", "backup",
     }
 
     if command in cerebellum_commands:

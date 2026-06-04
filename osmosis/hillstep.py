@@ -22,6 +22,7 @@ import subprocess
 import sys
 import threading
 import time
+import textwrap
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -163,6 +164,16 @@ def ansi_pad(text: str, width: int) -> str:
     return text + " " * (width - length)
 
 
+def ansi_wrap(text: str, width: int) -> list[str]:
+    if visible_len(str(text)) <= width:
+        return [str(text)]
+    plain = ANSI_RE.sub("", str(text))
+    if width <= 1:
+        return [plain[:width]]
+    wrapped = textwrap.wrap(plain, width=width, break_long_words=True, break_on_hyphens=False)
+    return wrapped or [""]
+
+
 def kv_line(label: str, value: Any, width: int, enabled: bool, value_code: str = "37;1") -> str:
     label_part = color(f"{label:<9}", "90", enabled)
     value_text = str(value)
@@ -181,7 +192,36 @@ def delta_code(delta: Any) -> str:
         return "32;1"
     if value > 0:
         return "31;1"
-    return "37;1"
+    return "36;1"
+
+
+def delta_marker(delta: Any) -> tuple[str, str]:
+    if delta is None:
+        return "", "90"
+    try:
+        value = float(delta)
+    except (TypeError, ValueError):
+        return "", "90"
+    if value < 0:
+        return "better", "32;1"
+    if value > 0:
+        return "worse", "31;1"
+    return "=", "36;1"
+
+
+def size_code(size: Any, baseline_size: Any) -> str:
+    if size is None or baseline_size is None:
+        return "90"
+    try:
+        value = int(size)
+        baseline = int(baseline_size)
+    except (TypeError, ValueError):
+        return "90"
+    if value < baseline:
+        return "34;1"
+    if value > baseline:
+        return "33;1"
+    return "36;1"
 
 
 def fmt_seconds(seconds: float | None) -> str:
@@ -205,6 +245,16 @@ def fmt_bytes(size: int | None) -> str:
             return f"{value:.1f} {unit}" if unit != "B" else f"{int(value)} B"
         value /= 1024
     return f"{value:.1f} TiB"
+
+
+def fmt_bytes_dense(size: int | None) -> str:
+    if size is None:
+        return "-"
+    if size >= 1024**3:
+        return f"{size / 1024**3:.3f} GiB"
+    if size >= 1024**2:
+        return f"{size / 1024**2:.1f} MiB"
+    return fmt_bytes(size)
 
 
 def progress_bar(done: int, total: int | None, width: int = 28) -> tuple[str, str]:
@@ -398,11 +448,27 @@ def disk_free_gb(path: Path) -> float:
     return stat.f_bavail * stat.f_frsize / (1024**3)
 
 
+def bytes_to_gb(size: int | None) -> float:
+    return (size or 0) / (1024**3)
+
+
 def path_size(path: Path) -> int:
     try:
         return path.stat().st_size
     except FileNotFoundError:
         return 0
+
+
+def dir_size(path: Path) -> int:
+    if not path.exists():
+        return 0
+    if path.is_file():
+        return path_size(path)
+    total = 0
+    for file in path.rglob("*"):
+        if file.is_file():
+            total += path_size(file)
+    return total
 
 
 def sha256_file(path: Path) -> str | None:
@@ -432,6 +498,59 @@ def read_jsonl(path: Path) -> list[dict[str, Any]]:
     except FileNotFoundError:
         pass
     return rows
+
+
+def copy_if_exists(src: Path, dst: Path) -> bool:
+    if not src.exists():
+        return False
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src, dst)
+    return True
+
+
+def backup_run_metadata(run_dir: Path, backup_root: Path) -> dict[str, Any]:
+    backup_dir = backup_root / slug(run_dir.name)
+    files = [
+        "state.json",
+        "manifest.json",
+        CURRENT_TYPES_FILE,
+        EVENT_FILES[0],
+        CANDIDATE_FILES[0],
+        "timing.json",
+    ]
+    copied: list[str] = []
+    for name in files:
+        if copy_if_exists(run_dir / name, backup_dir / name):
+            copied.append(name)
+    checkpoints = run_dir / "checkpoints"
+    if checkpoints.exists():
+        for file in checkpoints.glob("*.json"):
+            rel = Path("checkpoints") / file.name
+            if copy_if_exists(file, backup_dir / rel):
+                copied.append(str(rel))
+    return {"backup_dir": str(backup_dir), "copied": copied}
+
+
+def write_tensor_types_map(source_gguf: Path | None, locked: dict[str, str], start_type: str, path: Path) -> None:
+    names: list[str] = []
+    if source_gguf:
+        try:
+            from gguf import GGUFReader
+
+            reader = GGUFReader(str(source_gguf))
+            names = [t.name for t in reader.tensors]
+        except Exception:
+            names = []
+    if not names:
+        names = sorted(locked)
+    lines = [f"{name}={locked.get(name, start_type)}" for name in names]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".tmp")
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, path)
 
 
 def first_existing(run_dir: Path, names: tuple[str, ...]) -> Path:
@@ -493,6 +612,16 @@ def find_executable(name: str, env_var: str, common: list[Path] | None = None) -
         if path.exists() and os.access(path, os.X_OK):
             return str(path)
     return name
+
+
+def common_llama_bins(binary: str) -> list[Path]:
+    roots = [
+        Path.cwd() / "llama.cpp" / "build" / "bin",
+        Path.cwd().parent / "llama.cpp" / "build" / "bin",
+        Path.home() / "llama.cpp" / "build" / "bin",
+        Path("/var/home/deucebucket/ai-drive/llama.cpp/build/bin"),
+    ]
+    return [root / binary for root in roots]
 
 
 def resolve_ppl_corpus(profile: str, corpus: str | None) -> Path:
@@ -668,6 +797,29 @@ def parse_tensor_name(tensor: str) -> tuple[int | None, str | None]:
     return None, None
 
 
+def parse_layer_spec(spec: str | None) -> set[int] | None:
+    if not spec:
+        return None
+    layers: set[int] = set()
+    for part in spec.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        if "-" in part:
+            start_s, end_s = part.split("-", 1)
+            start = int(start_s)
+            end = int(end_s)
+            layers.update(range(min(start, end), max(start, end) + 1))
+        else:
+            layers.add(int(part))
+    return layers
+
+
+def tensor_layer(tensor: str) -> int | None:
+    layer, _component = parse_tensor_name(tensor)
+    return layer
+
+
 @dataclass
 class Candidate:
     tensor: str
@@ -712,10 +864,15 @@ class Config:
     imatrix: Path | None = None
     tensor_file: Path | None = None
     scratch_root: Path | None = None
+    backup_root: Path | None = None
     max_temp_gb: float = 80.0
     min_free_gb: float = 40.0
+    hard_free_floor_gb: float = 10.0
     keep_winners: bool = True
     keep_losers: bool = False
+    low_space: bool = False
+    serial_candidates: bool = False
+    prune_measured_candidates: bool = True
     distrobox: str | None = None
     quant_timeout: int = 1800
     ppl_timeout: int = 900
@@ -724,6 +881,8 @@ class Config:
     backup_every: int = 1
     token_embedding_type: str | None = "f16"
     noise_pct: float = 0.0
+    layers: set[int] | None = None
+    tensor_regex: str | None = None
 
 
 @dataclass
@@ -810,6 +969,11 @@ class HillStepper:
             done = len(state.get("locked", {}))
             cp = self.paths.checkpoints / f"state-{done:05d}-{local_stamp()}.json"
             atomic_write_json(cp, state)
+        if self.cfg.backup_root:
+            backup = backup_run_metadata(self.cfg.run_dir, self.cfg.backup_root)
+            state["last_metadata_backup"] = backup
+            atomic_write_json(self.paths.state, state)
+            copy_if_exists(self.paths.state, Path(backup["backup_dir"]) / "state.json")
 
     def write_manifest(self) -> None:
         data = {
@@ -827,6 +991,12 @@ class HillStepper:
             "base_type": self.cfg.base_type,
             "start_type": self.cfg.start_type,
             "levels": self.cfg.levels,
+            "layers": sorted(self.cfg.layers) if self.cfg.layers else None,
+            "tensor_regex": self.cfg.tensor_regex,
+            "low_space": self.cfg.low_space,
+            "serial_candidates": self.cfg.serial_candidates,
+            "prune_measured_candidates": self.cfg.prune_measured_candidates,
+            "hard_free_floor_gb": self.cfg.hard_free_floor_gb,
             "quantize_bin": self.cfg.quantize_bin,
             "perplexity_bin": self.cfg.perplexity_bin,
             "gpu_layers": self.cfg.gpu_layers,
@@ -834,7 +1004,15 @@ class HillStepper:
             "chunks": self.cfg.chunks,
             "imatrix": str(self.cfg.imatrix) if self.cfg.imatrix else None,
             "scratch_root": str(self.cfg.scratch_root) if self.cfg.scratch_root else None,
+            "backup_root": str(self.cfg.backup_root) if self.cfg.backup_root else None,
+            "max_temp_gb": self.cfg.max_temp_gb,
+            "min_free_gb": self.cfg.min_free_gb,
+            "hard_free_floor_gb": self.cfg.hard_free_floor_gb,
             "distrobox": self.cfg.distrobox,
+            "quant_timeout": self.cfg.quant_timeout,
+            "ppl_timeout": self.cfg.ppl_timeout,
+            "token_embedding_type": self.cfg.token_embedding_type,
+            "noise_pct": self.cfg.noise_pct,
             "acceptance_rule": f"lowest precision within {self.cfg.noise_pct:.4f}% of best PPL",
             "tie_break_rule": "lower precision on equal/near-equal PPL",
             "files": {
@@ -849,7 +1027,8 @@ class HillStepper:
 
     def discover_tensors(self) -> list[str]:
         if self.cfg.tensor_file:
-            return [line.strip() for line in self.cfg.tensor_file.read_text().splitlines() if line.strip()]
+            names = [line.strip() for line in self.cfg.tensor_file.read_text().splitlines() if line.strip()]
+            return self.filter_tensors(names)
         try:
             from gguf import GGUFReader
         except ImportError as exc:
@@ -876,7 +1055,16 @@ class HillStepper:
             ttype = match.group(2) if match else name.replace(".weight", "")
             tensors.append((layer, priority.get(ttype, 99), name))
         tensors.sort()
-        return [name for _, _, name in tensors]
+        return self.filter_tensors([name for _, _, name in tensors])
+
+    def filter_tensors(self, names: list[str]) -> list[str]:
+        filtered = names
+        if self.cfg.layers is not None:
+            filtered = [name for name in filtered if tensor_layer(name) in self.cfg.layers]
+        if self.cfg.tensor_regex:
+            pattern = re.compile(self.cfg.tensor_regex)
+            filtered = [name for name in filtered if pattern.search(name)]
+        return filtered
 
     def render_banner(self, tensors: int, locked: int) -> None:
         if self.cfg.plain:
@@ -1009,7 +1197,7 @@ class HillStepper:
 
     def build_baseline_if_needed(self, state: dict[str, Any]) -> None:
         self.paths.artifacts.mkdir(parents=True, exist_ok=True)
-        if self.paths.baseline.exists() and state.get("current_ppl") is not None:
+        if self.paths.baseline.exists() and state.get("current_ppl") is not None and not state.get("baseline_invalid_after_rollback"):
             return
         self.events.write("baseline_quant_start", path=str(self.paths.baseline))
         self.write_types(state["locked"], self.paths.current_types)
@@ -1059,6 +1247,7 @@ class HillStepper:
         if rc != 0 or ppl is None:
             raise SystemExit("baseline PPL failed; see events.jsonl")
         state["current_ppl"] = ppl
+        state.pop("baseline_invalid_after_rollback", None)
         state["totals"]["quant_seconds"] += seconds
         self.save_state(state, checkpoint=True)
 
@@ -1104,7 +1293,7 @@ class HillStepper:
         self.events.write("tensor_start", tensor=tensor, index=idx, total=total, baseline_ppl=baseline_ppl)
         self.render_tensor_table(tensor, idx, total, baseline_ppl, candidates)
 
-        ready: queue.Queue[Candidate | None] = queue.Queue(maxsize=2)
+        ready: queue.Queue[Candidate | None] = queue.Queue(maxsize=1 if (self.cfg.low_space or self.cfg.serial_candidates) else 2)
         results: list[Candidate] = []
         quant_done = threading.Event()
 
@@ -1112,8 +1301,16 @@ class HillStepper:
             for c in candidates:
                 if self.stop_requested:
                     break
-                while disk_free_gb(self.paths.tmp) < self.cfg.min_free_gb and not self.stop_requested:
-                    self.events.write("disk_wait", free_gb=disk_free_gb(self.paths.tmp), min_free_gb=self.cfg.min_free_gb)
+                estimated_candidate_gb = max(bytes_to_gb(path_size(self.paths.baseline)), 1.0)
+                required_free = max(self.cfg.min_free_gb, self.cfg.hard_free_floor_gb + estimated_candidate_gb)
+                while disk_free_gb(self.paths.tmp) < required_free and not self.stop_requested:
+                    self.events.write(
+                        "disk_wait",
+                        free_gb=disk_free_gb(self.paths.tmp),
+                        min_free_gb=required_free,
+                        hard_floor_gb=self.cfg.hard_free_floor_gb,
+                        estimated_candidate_gb=estimated_candidate_gb,
+                    )
                     time.sleep(15)
                 c.status = "quantizing"
                 c.quant_started_at = utc_now()
@@ -1161,6 +1358,9 @@ class HillStepper:
                 )
                 if c.quant_ok:
                     ready.put(c)
+                    if self.cfg.low_space or self.cfg.serial_candidates:
+                        while c not in results and not self.stop_requested:
+                            time.sleep(0.25)
                 else:
                     results.append(c)
             quant_done.set()
@@ -1225,6 +1425,19 @@ class HillStepper:
                     status=c.status,
                 )
                 results.append(c)
+                if (self.cfg.low_space or self.cfg.prune_measured_candidates) and not self.cfg.keep_losers:
+                    _level, _ppl, current_best, _reason = self.choose_winner(self.cfg.start_type, baseline_ppl, results)
+                    survivor = tensor_tmp / "best-so-far.gguf"
+                    for done in results:
+                        if done is current_best and done.gguf_path.exists():
+                            if done.gguf_path != survivor:
+                                if survivor.exists():
+                                    survivor.unlink()
+                                os.replace(done.gguf_path, survivor)
+                                done.gguf_path = survivor
+                            continue
+                        if done.gguf_path.exists() and not self.cfg.keep_losers:
+                            done.gguf_path.unlink()
                 self.render_tensor_table(tensor, idx, total, baseline_ppl, candidates)
 
         tq = threading.Thread(target=quant_worker, name="cerebellum-quant", daemon=True)
@@ -1355,7 +1568,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     run.add_argument("--run-name", default=None)
     run.add_argument("--run-dir", default=None)
     run.add_argument("--tensor-file", default=None)
+    run.add_argument("--layers", default=None, help="Target only layer numbers, e.g. 0,1,8-12")
+    run.add_argument("--tensor-regex", default=None, help="Target only tensors matching this regex")
     run.add_argument("--scratch-root", default=None, help="Large GGUF artifact/temp root, separate from metadata run dir")
+    run.add_argument("--backup-root", default=None, help="Mirror critical run metadata/checkpoints to this separate root")
     run.add_argument("--base-type", default="Q4_K_M")
     run.add_argument("--start-type", default="q4_K")
     run.add_argument("--levels", default=",".join(DEFAULT_LEVELS))
@@ -1365,13 +1581,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     run.add_argument("--gpu-layers", type=int, default=99)
     run.add_argument("--ctx-size", type=int, default=2048)
     run.add_argument("--chunks", type=int, default=None)
-    run.add_argument("--max-temp-gb", type=float, default=80.0, help="Minimum free GB required before launching next quant")
+    run.add_argument("--max-temp-gb", type=float, default=80.0, help="Legacy temp budget marker recorded for compatibility")
     run.add_argument("--min-free-gb", type=float, default=40.0, help="Minimum free GB required before launching next quant")
+    run.add_argument("--hard-free-floor-gb", type=float, default=10.0, help="Never launch another quant job below this free-space floor")
     run.add_argument("--distrobox", default=None, help="Run llama.cpp commands inside this distrobox")
     run.add_argument("--quant-timeout", type=int, default=1800)
     run.add_argument("--ppl-timeout", type=int, default=900)
     run.add_argument("--keep-losers", action="store_true")
     run.add_argument("--no-keep-winners", action="store_true")
+    run.add_argument("--low-space", action="store_true", help="Serialize candidate testing and prune measured GGUFs immediately")
+    run.add_argument("--serial-candidates", action="store_true", help="Do not let CPU quantization run ahead of GPU PPL")
+    run.add_argument("--prune-measured-candidates", action="store_true", default=True, help="Delete measured non-winning candidate GGUFs during each tensor")
+    run.add_argument("--keep-measured-candidates", dest="prune_measured_candidates", action="store_false", help="Keep measured candidate GGUFs until tensor end")
     run.add_argument("--plain", action="store_true")
     run.add_argument("--no-color", action="store_true")
     run.add_argument("--backup-every", type=int, default=1)
@@ -1405,6 +1626,38 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     stop.add_argument("run_dir")
     stop.add_argument("--reason", default="user")
     stop.add_argument("--no-kill", action="store_true", help="only mark state stopped; do not signal a process")
+
+    resume = sub.add_parser("resume", help="resume an existing run from its manifest/state")
+    resume.add_argument("run_dir")
+    resume.add_argument("--low-space", action="store_true", help="resume with serialized/pruned low-space candidate flow")
+    resume.add_argument("--min-free-gb", type=float, default=None)
+    resume.add_argument("--hard-free-floor-gb", type=float, default=None)
+    resume.add_argument("--backup-root", default=None)
+    resume.add_argument("--distrobox", default=None)
+    resume.add_argument("--plain", action="store_true")
+    resume.add_argument("--no-color", action="store_true")
+
+    cleanup = sub.add_parser("cleanup", help="clean safe temp/artifact files without deleting durable progress")
+    cleanup.add_argument("run_dir")
+    cleanup.add_argument("--yes", action="store_true", help="execute deletion; default is dry-run")
+    cleanup.add_argument("--old-artifacts", action="store_true", help="also delete artifacts from stopped/aborted sibling runs")
+    cleanup.add_argument("--partials", action="store_true", help="delete partial temp dirs for tensors that are not locked")
+    cleanup.add_argument("--force", action="store_true", help="allow partial cleanup even if the run appears active")
+
+    rollback = sub.add_parser("rollback", help="rollback durable state to a clean tensor/layer boundary")
+    rollback.add_argument("run_dir")
+    rollback.add_argument("--to-locked", type=int, default=None, help="Keep only the first N locked/tested tensors")
+    rollback.add_argument("--before-layer", type=int, default=None, help="Remove all locked/tested tensors at this layer and above")
+    rollback.add_argument("--last-completed-layer", action="store_true", help="Remove the newest partial layer from state")
+    rollback.add_argument("--yes", action="store_true", help="write the rollback; default is dry-run")
+
+    backup = sub.add_parser("backup", help="copy critical run metadata/checkpoints to a backup root")
+    backup.add_argument("run_dir")
+    backup.add_argument("--to", required=True)
+
+    recover = sub.add_parser("recover", help="print a crash-recovery plan for a run")
+    recover.add_argument("run_dir")
+    recover.add_argument("--json", action="store_true")
 
     runs = sub.add_parser("runs", help="list known runs under a data root")
     runs.add_argument("--data-root", default=None)
@@ -1508,6 +1761,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "run", "status", "events", "runs", "schedule", "db", "report",
             "export", "auth", "upload", "api", "system", "doctor", "provenance", "finalize", "package", "plan-space",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
+            "cleanup", "rollback",
+            "backup",
+            "resume",
+            "recover",
         }
     ):
         argv = ["run", *sys.argv[1:]]
@@ -1806,6 +2063,225 @@ def stop_cmd(args: argparse.Namespace) -> None:
     print(json.dumps({"run_dir": str(run_dir), "status": "stopped", "signaled_pids": signaled}, indent=2, sort_keys=True))
 
 
+def cleanup_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    state = read_json(run_dir / "state.json", {})
+    locked = set(state.get("locked", {}))
+    events_path = first_existing(run_dir, EVENT_FILES)
+    tmp_root = run_dir / "tmp"
+    candidates: list[Path] = []
+    runner_active = any(row["kind"] == "runner" for row in process_rows_for_run(run_dir))
+    if tmp_root.exists():
+        for child in tmp_root.iterdir():
+            if not child.is_dir():
+                continue
+            tensor_slug = child.name.split("-", 1)[1] if "-" in child.name else child.name
+            active = any(slug(tensor) == tensor_slug for tensor in locked)
+            if active:
+                candidates.append(child)
+            elif args.partials:
+                if runner_active and not args.force:
+                    raise SystemExit("refusing to delete partial temp while runner is active; stop run first or pass --force")
+                candidates.append(child)
+    if args.old_artifacts:
+        parent = run_dir.parent
+        for sibling in parent.iterdir() if parent.exists() else []:
+            if sibling == run_dir or not sibling.is_dir():
+                continue
+            sibling_state = read_json(sibling / "state.json", {})
+            if sibling_state.get("run_status") in {"stopped", "aborted", "failed"}:
+                artifacts = sibling / "artifacts"
+                if artifacts.exists():
+                    candidates.append(artifacts)
+    total = sum(path_size(path) if path.is_file() else sum(path_size(file) for file in path.rglob("*") if file.is_file()) for path in candidates)
+    if args.yes:
+        deleted: list[str] = []
+        for path in candidates:
+            if path.is_dir():
+                shutil.rmtree(path, ignore_errors=True)
+            elif path.exists():
+                path.unlink()
+            deleted.append(str(path))
+        append_event(events_path, "cleanup_finish", deleted=deleted, bytes_reclaimed_estimate=total)
+        print(json.dumps({"mode": "deleted", "bytes_reclaimed_estimate": total, "paths": deleted}, indent=2, sort_keys=True))
+        return
+    print(json.dumps({"mode": "dry-run", "bytes_reclaimable_estimate": total, "paths": [str(path) for path in candidates]}, indent=2, sort_keys=True))
+
+
+def rollback_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    state_path = run_dir / "state.json"
+    state = read_json(state_path, {})
+    if not state:
+        raise SystemExit(f"no state.json found in {run_dir}")
+    tested = list(state.get("tested", []))
+    keep_count = len(tested)
+    if args.to_locked is not None:
+        keep_count = max(0, min(len(tested), args.to_locked))
+    elif args.before_layer is not None:
+        keep_count = 0
+        for i, row in enumerate(tested):
+            layer = tensor_layer(row.get("tensor", ""))
+            if layer is not None and layer >= args.before_layer:
+                break
+            keep_count = i + 1
+    elif args.last_completed_layer:
+        layers = [tensor_layer(row.get("tensor", "")) for row in tested]
+        numeric = [layer for layer in layers if layer is not None]
+        if numeric:
+            newest = max(numeric)
+            keep_count = 0
+            for i, row in enumerate(tested):
+                layer = tensor_layer(row.get("tensor", ""))
+                if layer is not None and layer >= newest:
+                    break
+                keep_count = i + 1
+    else:
+        raise SystemExit("choose --to-locked, --before-layer, or --last-completed-layer")
+    kept = tested[:keep_count]
+    removed = tested[keep_count:]
+    if not args.yes:
+        print(json.dumps({"mode": "dry-run", "keep": keep_count, "remove": len(removed), "removed_tensors": [row.get("tensor") for row in removed]}, indent=2, sort_keys=True))
+        return
+    checkpoint = run_dir / "checkpoints" / f"rollback-before-{local_stamp()}.json"
+    atomic_write_json(checkpoint, state)
+    state["tested"] = kept
+    state["locked"] = {row["tensor"]: row["winner"] for row in kept if row.get("tensor") and row.get("winner")}
+    state["last_tensor"] = kept[-1].get("tensor") if kept else None
+    state["current_ppl"] = kept[-1].get("ppl") if kept else (tested[0].get("baseline_ppl") if tested else state.get("current_ppl"))
+    state["run_status"] = "stopped"
+    state["rollback_at"] = utc_now()
+    state["rollback_removed"] = [row.get("tensor") for row in removed]
+    state["baseline_invalid_after_rollback"] = True
+    state["rollback_note"] = "state rolled back; next resume will rebuild current_baseline.gguf from the rolled-back tensor type map"
+    manifest = read_json(run_dir / "manifest.json", {})
+    source = manifest.get("source_gguf") or state.get("source_gguf")
+    start_type = manifest.get("start_type") or state.get("start_type") or "q4_K"
+    write_tensor_types_map(Path(source) if source else None, state["locked"], start_type, run_dir / CURRENT_TYPES_FILE)
+    atomic_write_json(state_path, state)
+    append_event(first_existing(run_dir, EVENT_FILES), "rollback_finish", keep=keep_count, removed=len(removed), checkpoint=str(checkpoint))
+    print(json.dumps({"mode": "written", "checkpoint": str(checkpoint), "keep": keep_count, "removed": len(removed), "artifact_note": state["rollback_note"]}, indent=2, sort_keys=True))
+
+
+def backup_cmd(args: argparse.Namespace) -> None:
+    result = backup_run_metadata(Path(args.run_dir), Path(args.to))
+    append_event(first_existing(Path(args.run_dir), EVENT_FILES), "metadata_backup", **result)
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
+def build_recovery_plan(run_dir: Path) -> dict[str, Any]:
+    state = read_json(run_dir / "state.json", {})
+    manifest = read_json(run_dir / "manifest.json", {})
+    locked = state.get("locked", {})
+    tmp_root = run_dir / "tmp"
+    partials = [str(path) for path in tmp_root.iterdir() if path.is_dir()] if tmp_root.exists() else []
+    runner_active = any(row["kind"] == "runner" for row in process_rows_for_run(run_dir))
+    plan = {
+        "run_dir": str(run_dir),
+        "status": state.get("run_status"),
+        "runner_active": runner_active,
+        "locked_count": len(locked),
+        "last_tensor": state.get("last_tensor"),
+        "current_ppl": state.get("current_ppl"),
+        "baseline_invalid_after_rollback": bool(state.get("baseline_invalid_after_rollback")),
+        "partials": partials,
+        "disk_free_gb": round(disk_free_gb(run_dir), 3),
+        "tmp_size_bytes": dir_size(tmp_root),
+        "artifact_size_bytes": dir_size(run_dir / "artifacts"),
+        "resume_command": f"cerebellum resume {run_dir}",
+        "safe_partial_cleanup_command": f"cerebellum cleanup {run_dir} --partials --yes",
+        "backup_command": f"cerebellum backup {run_dir} --to BACKUP_ROOT",
+        "notes": [],
+    }
+    if runner_active:
+        plan["notes"].append("runner is active; do not cleanup partial temp unless intentionally stopping/forcing")
+    if partials and not runner_active:
+        plan["notes"].append("partial temp exists and can be deleted before resume; current tensor will be retested")
+    if state.get("baseline_invalid_after_rollback"):
+        plan["notes"].append("next resume will rebuild baseline GGUF from rolled-back tensor types")
+    if manifest.get("scratch_root"):
+        plan["notes"].append(f"heavy temp/artifacts may be under scratch_root {manifest.get('scratch_root')}")
+    return plan
+
+
+def resume_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    manifest = read_json(run_dir / "manifest.json", {})
+    state = read_json(run_dir / "state.json", {})
+    if not manifest and not state:
+        raise SystemExit(f"no Cerebellum manifest/state found in {run_dir}")
+    source = manifest.get("source_gguf") or state.get("source_gguf")
+    corpus = manifest.get("corpus") or state.get("corpus")
+    if not source:
+        raise SystemExit("cannot resume: source_gguf missing from manifest/state")
+    if not corpus:
+        raise SystemExit("cannot resume: corpus missing from manifest/state")
+    ns = argparse.Namespace(
+        source_gguf=source,
+        corpus=corpus,
+        profile=manifest.get("ppl_profile") or state.get("ppl_profile") or "custom",
+        family=manifest.get("model_family") or state.get("model_family"),
+        model_name=manifest.get("model_name") or state.get("model_name"),
+        source_name=manifest.get("source_name") or state.get("source_name"),
+        data_root=None,
+        run_name=manifest.get("run_id") or state.get("run_id") or run_dir.name,
+        run_dir=str(run_dir),
+        tensor_file=manifest.get("tensor_file"),
+        layers=",".join(str(layer) for layer in manifest.get("layers") or []) if manifest.get("layers") else None,
+        tensor_regex=manifest.get("tensor_regex"),
+        scratch_root=manifest.get("scratch_root"),
+        backup_root=args.backup_root or manifest.get("backup_root"),
+        base_type=manifest.get("base_type") or state.get("base_type") or "Q4_K_M",
+        start_type=manifest.get("start_type") or state.get("start_type") or "q4_K",
+        levels=",".join(manifest.get("levels") or state.get("levels") or DEFAULT_LEVELS),
+        imatrix=manifest.get("imatrix"),
+        quantize_bin=manifest.get("quantize_bin") or DEFAULT_QUANTIZE,
+        perplexity_bin=manifest.get("perplexity_bin") or DEFAULT_PERPLEXITY,
+        gpu_layers=manifest.get("gpu_layers", 99),
+        ctx_size=manifest.get("ctx_size", 2048),
+        chunks=manifest.get("chunks"),
+        max_temp_gb=manifest.get("max_temp_gb", 80.0),
+        min_free_gb=args.min_free_gb if args.min_free_gb is not None else manifest.get("min_free_gb", 40.0),
+        hard_free_floor_gb=args.hard_free_floor_gb if args.hard_free_floor_gb is not None else manifest.get("hard_free_floor_gb", 10.0),
+        distrobox=args.distrobox if args.distrobox is not None else manifest.get("distrobox"),
+        quant_timeout=manifest.get("quant_timeout", 1800),
+        ppl_timeout=manifest.get("ppl_timeout", 900),
+        keep_losers=False,
+        no_keep_winners=False,
+        low_space=args.low_space or bool(manifest.get("low_space")),
+        serial_candidates=bool(manifest.get("serial_candidates")) or args.low_space,
+        prune_measured_candidates=True,
+        plain=args.plain,
+        no_color=args.no_color,
+        backup_every=1,
+        token_embedding_type=manifest.get("token_embedding_type", "f16"),
+        noise_pct=manifest.get("noise_pct", 0.0),
+    )
+    run_from_namespace(ns)
+
+
+def recover_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    plan = build_recovery_plan(run_dir)
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+        return
+    print(color("Cerebellum recovery plan", "36;1", True))
+    print(f"run_dir      : {plan['run_dir']}")
+    print(f"status       : {plan['status']} runner_active={plan['runner_active']}")
+    print(f"locked       : {plan['locked_count']} last={plan['last_tensor']}")
+    print(f"ppl          : {plan['current_ppl']}")
+    print(f"disk         : {plan['disk_free_gb']} GiB free")
+    print(f"storage      : tmp={fmt_bytes(plan['tmp_size_bytes'])} artifacts={fmt_bytes(plan['artifact_size_bytes'])}")
+    print(f"partials     : {len(plan['partials'])}")
+    for note in plan["notes"]:
+        print(f"note         : {note}")
+    print("\nCommands:")
+    print(f"  {plan['resume_command']}")
+    print(f"  {plan['safe_partial_cleanup_command']}")
+    print(f"  {plan['backup_command']}")
+
+
 def clip(value: Any, width: int) -> str:
     text = str(value)
     if len(text) <= width:
@@ -1829,7 +2305,8 @@ def print_heavy_box(title: str, lines: list[str], width: int, code: str, enabled
         if line.startswith("║"):
             print(line)
         else:
-            print(f"║ {ansi_pad(line, width - 4)} ║")
+            for wrapped in ansi_wrap(line, width - 4):
+                print(f"║ {ansi_pad(wrapped, width - 4)} ║")
     print(color("╚" + "═" * (width - 2) + "╝", code, enabled))
 
 
@@ -1870,26 +2347,29 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
             else:
                 resource_bits.append("jobs idle")
             overview = [
-                grid_line(color("progress  ", "90", enabled) + color(progress_left, "32;1", enabled), color("resources  ", "90", enabled) + color("  ".join(resource_bits), "36;1", enabled), width),
+                grid_line(color("progress  ", "90", enabled) + color(progress_left, "32;1", enabled), color("resources  ", "90", enabled) + color(resource_bits[0], "36;1", enabled), width),
+                grid_line(color("cpu/gpu   ", "90", enabled) + color((" | ".join(row["kind"] for row in processes[:3]) if processes else "idle"), "36;1", enabled), color("jobs       ", "90", enabled) + color(("  ".join(resource_bits[1:]) if len(resource_bits) > 1 else "idle"), "36;1", enabled), width),
                 grid_line(color("tensor    ", "90", enabled) + color(f"{active.get('tensor')}  {active.get('level')}", "33;1", enabled), color("disk       ", "90", enabled) + color(f"{disk_free_gb(run_dir):.1f} GiB free", "36", enabled), width),
-                grid_line(color("job       ", "90", enabled) + color(f"{active.get('event')}  age {fmt_seconds(model['active_age'])}", "32;1", enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes(model['baseline_size'])} active {fmt_bytes(model['active_size'])}", "36;1", enabled), width),
+                grid_line(color("job       ", "90", enabled) + color(f"{active.get('event')}  age {fmt_seconds(model['active_age'])}", "32;1", enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes_dense(model['baseline_size'])} active {fmt_bytes_dense(model['active_size'])}", "36;1", enabled), width),
+                grid_line(color("storage   ", "90", enabled) + color(f"tmp {fmt_bytes(model['tmp_size'])} artifacts {fmt_bytes(model['artifacts_size'])}", "36;1", enabled), color("floor      ", "90", enabled) + color(f"{manifest.get('hard_free_floor_gb', 10.0)} GiB hard floor", "31;1" if disk_free_gb(run_dir) < 20 else "36", enabled), width),
                 grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", "36;1", enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
             ]
             print_heavy_box("OPERATIONS", overview, width, "34;1", enabled)
             print()
 
-            measure_lines = [f"{'quant':<7} {'ppl':<12} {'delta':<12} {'size':<10} tensor"]
+            measure_lines = [f"{'quant':<7} {'ppl':<12} {'delta':<12} {'size':<12} tensor"]
             measure_lines.append("─" * (width - 4))
             for row in candidates[-max(1, args.measurements_limit) :]:
                 delta = row.get("delta")
                 delta_s = "-" if delta is None else f"{delta:+.4f}"
-                marker = "better" if isinstance(delta, (int, float)) and delta < 0 else "worse" if isinstance(delta, (int, float)) and delta > 0 else ""
+                marker, marker_code = delta_marker(delta)
                 line = (
                     color(f"{row.get('level', '-'):<7}", "35;1", enabled)
                     + color(f"{str(row.get('ppl', '-')):<12}", "33;1", enabled)
                     + color(f"{delta_s:<12}", delta_code(delta), enabled)
-                    + color(f"{fmt_bytes(row.get('size_bytes')):<10}", "36", enabled)
-                    + color(f"{row.get('tensor', '')} {marker}", "33", enabled)
+                    + color(f"{fmt_bytes_dense(row.get('size_bytes')):<12}", size_code(row.get("size_bytes"), model["baseline_size"]), enabled)
+                    + color(f"{row.get('tensor', '')}", "33", enabled)
+                    + (" " + color(marker, marker_code, enabled) if marker else "")
                 )
                 measure_lines.append(line)
             print_heavy_box("RECENT MEASUREMENTS", measure_lines, width, "32;1", enabled)
@@ -1946,6 +2426,8 @@ def build_watch_model(run_dir: Path) -> dict[str, Any]:
         "baseline_size": path_size(baseline_path) if baseline_path.exists() else None,
         "active_path": active_path,
         "active_size": path_size(Path(active_path)) if active_path else None,
+        "tmp_size": dir_size(run_dir / "tmp"),
+        "artifacts_size": dir_size(run_dir / "artifacts"),
     }
 
 
@@ -1981,7 +2463,7 @@ def tui_watch_cmd(args: argparse.Namespace) -> None:
                 f"model {state.get('model_family')}/{state.get('model_name')}  status {state.get('run_status')}  profile {manifest.get('ppl_profile') or state.get('ppl_profile') or 'custom'}",
                 f"progress {model['bar']} {model['progress']}  ppl {state.get('current_ppl')}  eta {model['eta']} ({model['eta_basis']})",
                 f"active {active.get('event')} {active.get('level')} {active.get('tensor')}  age {fmt_seconds(model['active_age'])}  last event {fmt_seconds(model['last_age'])}",
-                f"sizes current {fmt_bytes(model['baseline_size'])}  active {fmt_bytes(model['active_size'])}  disk {disk_free_gb(run_dir):.1f} GiB free",
+                f"sizes current {fmt_bytes_dense(model['baseline_size'])}  active {fmt_bytes_dense(model['active_size'])}  tmp {fmt_bytes_dense(model['tmp_size'])}  artifacts {fmt_bytes_dense(model['artifacts_size'])}  disk {disk_free_gb(run_dir):.1f} GiB free",
             ]
             for y, line in enumerate(summary, 2):
                 if y < h:
@@ -2004,7 +2486,8 @@ def tui_watch_cmd(args: argparse.Namespace) -> None:
                 for row in reversed(model["candidates"]):
                     delta = row.get("delta")
                     delta_s = "-" if delta is None else f"{delta:+.4f}"
-                    lines.append(f"{row.get('level', '-'):<6} ppl={row.get('ppl', '-')} delta={delta_s:<12} q={fmt_bytes(row.get('size_bytes')):<10} {row.get('tensor', '')}")
+                    marker, _marker_code = delta_marker(delta)
+                    lines.append(f"{row.get('level', '-'):<6} ppl={row.get('ppl', '-')} delta={delta_s:<12} q={fmt_bytes_dense(row.get('size_bytes')):<12} {row.get('tensor', '')} {marker}")
             elif pane == "processes":
                 for row in model["processes"]:
                     lines.append(f"{row['kind']:<9} pid={row['pid']:<7} etime={row['etime']:<9} cpu={row['pcpu']:>6}% mem={row['pmem']:>5}% {row['cmd'][:90]}")
@@ -2381,11 +2864,10 @@ def report_cmd(args: argparse.Namespace) -> None:
         print(f"  wrote {path}")
 
 
-def export_cmd(args: argparse.Namespace) -> None:
-    run_dir = Path(args.run_dir)
+def export_payload(run_dir: Path, kind: str) -> dict[str, Any]:
     report = build_report(run_dir)
-    if args.kind == "infographic":
-        payload = {
+    if kind == "infographic":
+        return {
             "schema": "cerebellum.infographic.v1",
             "report": report,
             "prompt": (
@@ -2393,14 +2875,18 @@ def export_cmd(args: argparse.Namespace) -> None:
                 "Show model, PPL, locked tensors, candidate count, component deltas, and recent decisions."
             ),
         }
-    elif args.kind == "ai":
-        payload = {
+    if kind == "ai":
+        return {
             "schema": "cerebellum.ai_context.v1",
             "instruction": "Use this run data to compare quantization decisions, summarize findings, or draft model-card evidence.",
             "report": report,
         }
-    else:
-        payload = report
+    return report
+
+
+def export_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    payload = export_payload(run_dir, args.kind)
     if args.output:
         path = Path(args.output)
         atomic_write_json(path, payload)
@@ -2554,8 +3040,7 @@ def package_files(run_dir: Path) -> list[Path]:
     return [path for path in candidates if path.exists()]
 
 
-def package_cmd(args: argparse.Namespace) -> None:
-    run_dir = Path(args.run_dir)
+def package_manifest(run_dir: Path) -> dict[str, Any]:
     report = build_report(run_dir)
     files = []
     for path in package_files(run_dir):
@@ -2569,7 +3054,7 @@ def package_cmd(args: argparse.Namespace) -> None:
                 "hf_path": f"cerebellum_runs/{report['run_id']}/{path.name}",
             }
         )
-    payload = {
+    return {
         "schema": "cerebellum.package.v1",
         "run_id": report["run_id"],
         "run_dir": str(run_dir),
@@ -2582,6 +3067,12 @@ def package_cmd(args: argparse.Namespace) -> None:
             "If GGUF metadata is stripped, compare sidecar provenance and model-card text.",
         ],
     }
+
+
+def package_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    payload = package_manifest(run_dir)
+    files = payload["files"]
     output = Path(args.output) if args.output else run_dir / "cerebellum_package_manifest.json"
     atomic_write_json(output, payload)
     if args.json:
@@ -2624,7 +3115,8 @@ def system_info() -> dict[str, Any]:
         ("git", "git", "GIT"),
         ("gh", "gh", "GH"),
     ]:
-        info["binaries"][label] = find_executable(name, env_var)
+        common = common_llama_bins(name) if name.startswith("llama-") else None
+        info["binaries"][label] = find_executable(name, env_var, common)
     try:
         with open("/proc/meminfo", encoding="utf-8") as f:
             meminfo = {}
@@ -2783,15 +3275,10 @@ def doctor_cmd(args: argparse.Namespace) -> None:
             print(f"   fix: {row['fix']}")
 
 
-def plan_space_cmd(args: argparse.Namespace) -> None:
-    source = Path(args.source_gguf)
+def space_plan(source: Path, candidates: list[Path], margin_gb: float) -> dict[str, Any]:
     source_size = path_size(source)
-    candidates = [Path(p) for p in args.scratch_candidates.split(",") if p]
-    if args.data_root:
-        candidates.append(Path(args.data_root))
-    candidates.extend([default_data_root(), Path.cwd(), Path("/tmp")])
-    required_single = int(source_size * 1.7 + args.margin_gb * 1e9)
-    required_two_slot = int(source_size * 2.4 + args.margin_gb * 1e9)
+    required_single = int(source_size * 1.7 + margin_gb * 1e9)
+    required_two_slot = int(source_size * 2.4 + margin_gb * 1e9)
     rows = []
     seen: set[str] = set()
     for path in candidates:
@@ -2827,7 +3314,17 @@ def plan_space_cmd(args: argparse.Namespace) -> None:
             }
         )
     rows.sort(key=lambda row: row.get("free_bytes", -1), reverse=True)
-    payload = {"source_gguf": str(source), "rows": rows}
+    return {"source_gguf": str(source), "rows": rows}
+
+
+def plan_space_cmd(args: argparse.Namespace) -> None:
+    source = Path(args.source_gguf)
+    candidates = [Path(p) for p in args.scratch_candidates.split(",") if p]
+    if args.data_root:
+        candidates.append(Path(args.data_root))
+    candidates.extend([default_data_root(), Path.cwd(), Path("/tmp")])
+    source_size = path_size(source)
+    payload = space_plan(source, candidates, args.margin_gb)
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
         return
@@ -2857,9 +3354,41 @@ TUTORIALS = {
     ],
     "low-space": [
         "Use `--scratch-root` when metadata and large GGUF artifacts should live on different drives.",
-        "Use `single-candidate` behavior when disk is tight: keep source, current baseline, and one candidate.",
-        "Use `two-slot-pipeline` when space allows: CPU quantizes the next candidate while GPU measures the previous one.",
-        "Never delete source GGUF, manifest, state, event logs, candidate logs, or final tensor-type files.",
+        "Default mode keeps CPU/GPU overlap for speed, but deletes measured non-winning candidate GGUFs immediately.",
+        "Use `--hard-free-floor-gb 10` to prevent starting another quant job unless one estimated candidate plus 10 GiB remains.",
+        "Use `--low-space` or `cerebellum resume RUN_DIR --low-space` when disk pressure matters more than CPU/GPU overlap.",
+        "Use `cerebellum cleanup RUN_DIR --partials --yes` only after a stopped/crashed run; active runs are guarded.",
+        "Never delete source GGUF, manifest, state, event logs, candidate logs, checkpoints, or tensor-type files.",
+    ],
+    "recovery": [
+        "`state.json` advances only after a tensor is locked, so partial tensor data is not trusted after a crash.",
+        "Run `cerebellum recover RUN_DIR` to see runner status, partial temp, disk footprint, and exact next commands.",
+        "Run `cerebellum resume RUN_DIR` to restart from manifest/state without reconstructing the original run command.",
+        "Run `cerebellum backup RUN_DIR --to BACKUP_ROOT` or start with `--backup-root BACKUP_ROOT` for off-drive metadata copies.",
+        "Run `cerebellum rollback RUN_DIR --last-completed-layer --yes` to trim state to a clean layer boundary.",
+        "After rollback, the next resume rebuilds the baseline GGUF from the rolled-back tensor map.",
+    ],
+    "targeting": [
+        "Cerebellum is not all-or-nothing; target exact work with `--layers`, `--tensor-regex`, or `--tensor-file`.",
+        "Example: `cerebellum run ... --layers 0,1,8-12` tests only those layers.",
+        "Example: `cerebellum run ... --tensor-regex 'blk\\.12\\.(attn_q|attn_k)\\.weight'` tests precise tensors.",
+        "Use rollback before rerunning targeted layers if you need to discard prior decisions.",
+        "Use reports and candidate logs to compare targeted tests against previous full runs.",
+    ],
+    "api": [
+        "Start automation API with `cerebellum api --host 127.0.0.1 --port 8931 --data-root DATA_ROOT`.",
+        "Read run state with `/run?run_dir=RUN_DIR`, events with `/events?run_dir=RUN_DIR`, and measurements with `/measurements?run_dir=RUN_DIR`.",
+        "Use `/report?run_dir=RUN_DIR` and `/export?run_dir=RUN_DIR&kind=ai` for AI-readable summaries.",
+        "Use `/recover?run_dir=RUN_DIR` for AI-safe recovery planning without deleting or changing files.",
+        "Use `/commands` to discover CLI command templates and `/tutorial?topic=TOPIC` to expose these tutorials to agents.",
+        "Destructive operations like cleanup, rollback, upload, and stop remain CLI actions unless explicitly wired as authenticated POST later.",
+    ],
+    "provenance": [
+        "Cerebellum uses visible `cerebellum.*` GGUF metadata for attribution and auditability.",
+        "Run `cerebellum provenance --run-dir RUN_DIR` to generate expected metadata.",
+        "Run `cerebellum provenance --gguf MODEL.gguf` to inspect whether a downloaded GGUF still carries Cerebellum tags.",
+        "Run `cerebellum finalize --run-dir RUN_DIR --gguf MODEL.gguf --inject` when a compatible metadata tool is installed.",
+        "This is transparent provenance, not a hidden watermark; stripped keys indicate stripped attribution.",
     ],
     "outputs": [
         "`manifest.json`: immutable run identity and config.",
@@ -3039,6 +3568,103 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                     payload["existing_cerebellum_metadata"] = inspect_gguf_metadata(gguf_path)
                     payload["has_cerebellum_metadata"] = bool(payload["existing_cerebellum_metadata"])
                 self._json(payload)
+        elif parsed.path == "/recover":
+            run_dir = qs.get("run_dir", [None])[0]
+            if not run_dir:
+                self._json({"error": "run_dir query param required"}, 400)
+            else:
+                self._json(build_recovery_plan(Path(run_dir)))
+        elif parsed.path == "/export":
+            run_dir = qs.get("run_dir", [None])[0]
+            kind = qs.get("kind", ["ai"])[0]
+            if not run_dir:
+                self._json({"error": "run_dir query param required"}, 400)
+            elif kind == "infographic":
+                self._json(export_payload(Path(run_dir), "infographic"))
+            elif kind == "raw":
+                self._json(load_run(Path(run_dir)) | {"events": read_jsonl(first_existing(Path(run_dir), EVENT_FILES)), "measurements": read_jsonl(first_existing(Path(run_dir), CANDIDATE_FILES))})
+            else:
+                self._json(export_payload(Path(run_dir), "ai"))
+        elif parsed.path == "/package":
+            run_dir = qs.get("run_dir", [None])[0]
+            if not run_dir:
+                self._json({"error": "run_dir query param required"}, 400)
+            else:
+                self._json(package_manifest(Path(run_dir)))
+        elif parsed.path == "/system":
+            self._json(system_info())
+        elif parsed.path == "/space":
+            source = qs.get("source_gguf", [None])[0]
+            if not source:
+                self._json({"error": "source_gguf query param required"}, 400)
+            else:
+                roots = [Path(p) for p in qs.get("scratch", [])]
+                if not roots:
+                    roots = [self.data_root, Path.cwd(), Path.home()]
+                self._json(space_plan(Path(source), roots, float(qs.get("margin_gb", ["20"])[0])))
+        elif parsed.path == "/tutorial":
+            topic = qs.get("topic", ["overview"])[0]
+            if topic == "list":
+                self._json({"topics": sorted(TUTORIALS)})
+            elif topic not in TUTORIALS:
+                self._json({"error": f"unknown topic {topic}", "topics": sorted(TUTORIALS)}, 404)
+            else:
+                self._json({"topic": topic, "lines": TUTORIALS[topic]})
+        elif parsed.path == "/commands":
+            self._json(
+                {
+                    "safe_read_only": {
+                        "watch": "cerebellum watch RUN_DIR",
+                        "status": "cerebellum status RUN_DIR",
+                        "events": "cerebellum events RUN_DIR --limit 50",
+                        "recover": "cerebellum recover RUN_DIR --json",
+                        "report": "cerebellum report RUN_DIR --json",
+                        "export_ai": "cerebellum export RUN_DIR --kind ai",
+                        "provenance": "cerebellum provenance --run-dir RUN_DIR",
+                    },
+                    "state_changing_cli_only": {
+                        "run": "cerebellum run --source-gguf MODEL.gguf --profile wiki --family FAMILY --model-name MODEL",
+                        "resume": "cerebellum resume RUN_DIR --low-space",
+                        "cleanup_partials": "cerebellum cleanup RUN_DIR --partials --yes",
+                        "rollback_layer": "cerebellum rollback RUN_DIR --last-completed-layer --yes",
+                        "backup": "cerebellum backup RUN_DIR --to BACKUP_ROOT",
+                        "finalize": "cerebellum finalize --run-dir RUN_DIR --gguf MODEL.gguf",
+                    },
+                    "api": {
+                        "health": "/health",
+                        "runs": "/runs",
+                        "run": "/run?run_dir=RUN_DIR",
+                        "recover": "/recover?run_dir=RUN_DIR",
+                        "tutorial": "/tutorial?topic=overview",
+                    },
+                }
+            )
+        elif parsed.path == "/schema":
+            self._json(
+                {
+                    "schema": "cerebellum.api.v1",
+                    "safety": "GET endpoints are read-only; state-changing actions are exposed as CLI command templates only.",
+                    "endpoints": [
+                        {"path": "/health", "params": [], "returns": "service health"},
+                        {"path": "/runs", "params": ["family?", "model?", "status?"], "returns": "runs under data_root"},
+                        {"path": "/run", "params": ["run_dir"], "returns": "manifest and state"},
+                        {"path": "/events", "params": ["run_dir", "limit?", "type?"], "returns": "event log rows"},
+                        {"path": "/measurements", "params": ["run_dir", "limit?"], "returns": "candidate measurement rows"},
+                        {"path": "/report", "params": ["run_dir"], "returns": "summary report"},
+                        {"path": "/export", "params": ["run_dir", "kind=ai|infographic|raw"], "returns": "AI/infographic/raw payload"},
+                        {"path": "/recover", "params": ["run_dir"], "returns": "crash recovery plan and safe commands"},
+                        {"path": "/provenance", "params": ["run_dir?", "gguf?"], "returns": "generated/existing cerebellum metadata"},
+                        {"path": "/package", "params": ["run_dir"], "returns": "package/upload manifest"},
+                        {"path": "/system", "params": [], "returns": "host resources and tool availability"},
+                        {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
+                        {"path": "/tutorial", "params": ["topic"], "returns": "tutorial lines"},
+                        {"path": "/commands", "params": [], "returns": "CLI command templates"},
+                        {"path": "/schema", "params": [], "returns": "this API catalog"},
+                        {"path": "/db/families", "params": [], "returns": "indexed model families"},
+                    ],
+                    "tutorial_topics": sorted(TUTORIALS),
+                }
+            )
         else:
             self._json({"error": "not found"}, 404)
 
@@ -3048,7 +3674,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /run /events /measurements /report /provenance /db/families")
+    print("Endpoints: /health /runs /run /events /measurements /report /export /recover /provenance /package /system /space /tutorial /commands /schema /db/families")
     server.serve_forever()
 
 
@@ -3099,7 +3725,10 @@ def schedule_cmd(args: argparse.Namespace) -> None:
             run_name=job.get("run_name"),
             run_dir=job.get("run_dir"),
             tensor_file=job.get("tensor_file"),
+            layers=job.get("layers"),
+            tensor_regex=job.get("tensor_regex"),
             scratch_root=job.get("scratch_root"),
+            backup_root=job.get("backup_root"),
             base_type=job.get("base_type", "Q4_K_M"),
             start_type=job.get("start_type", "q4_K"),
             levels=job.get("levels", ",".join(DEFAULT_LEVELS)),
@@ -3111,11 +3740,15 @@ def schedule_cmd(args: argparse.Namespace) -> None:
             chunks=job.get("chunks"),
             max_temp_gb=job.get("max_temp_gb", 80.0),
             min_free_gb=job.get("min_free_gb", 40.0),
+            hard_free_floor_gb=job.get("hard_free_floor_gb", 10.0),
             distrobox=job.get("distrobox"),
             quant_timeout=job.get("quant_timeout", 1800),
             ppl_timeout=job.get("ppl_timeout", 900),
             keep_losers=job.get("keep_losers", False),
             no_keep_winners=job.get("no_keep_winners", False),
+            low_space=job.get("low_space", False),
+            serial_candidates=job.get("serial_candidates", False),
+            prune_measured_candidates=job.get("prune_measured_candidates", True),
             plain=job.get("plain", False),
             no_color=job.get("no_color", False),
             backup_every=job.get("backup_every", 1),
@@ -3147,7 +3780,10 @@ def run_from_namespace(args: argparse.Namespace) -> None:
         levels=[level.strip() for level in args.levels.split(",") if level.strip()],
         imatrix=Path(args.imatrix) if args.imatrix else None,
         tensor_file=Path(args.tensor_file) if args.tensor_file else None,
+        layers=parse_layer_spec(args.layers),
+        tensor_regex=args.tensor_regex,
         scratch_root=Path(args.scratch_root) if args.scratch_root else None,
+        backup_root=Path(args.backup_root) if args.backup_root else None,
         quantize_bin=args.quantize_bin,
         perplexity_bin=args.perplexity_bin,
         gpu_layers=args.gpu_layers,
@@ -3155,8 +3791,12 @@ def run_from_namespace(args: argparse.Namespace) -> None:
         chunks=args.chunks,
         max_temp_gb=args.max_temp_gb,
         min_free_gb=args.min_free_gb,
+        hard_free_floor_gb=args.hard_free_floor_gb,
         keep_winners=not args.no_keep_winners,
         keep_losers=args.keep_losers,
+        low_space=args.low_space,
+        serial_candidates=args.serial_candidates,
+        prune_measured_candidates=args.prune_measured_candidates,
         distrobox=args.distrobox,
         quant_timeout=args.quant_timeout,
         ppl_timeout=args.ppl_timeout,
@@ -3182,6 +3822,21 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "stop":
         stop_cmd(args)
+        return
+    if args.cmd == "resume":
+        resume_cmd(args)
+        return
+    if args.cmd == "cleanup":
+        cleanup_cmd(args)
+        return
+    if args.cmd == "rollback":
+        rollback_cmd(args)
+        return
+    if args.cmd == "backup":
+        backup_cmd(args)
+        return
+    if args.cmd == "recover":
+        recover_cmd(args)
         return
     if args.cmd == "runs":
         runs_cmd(args)

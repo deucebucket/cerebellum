@@ -77,3 +77,47 @@ model jobs while preserving data integrity.
 - API now has first-pass run/event/measurement/report/provenance endpoints.
 - Improve upload/auth UX for HF/GitHub.
 - Continue screenshots after layout changes.
+
+## Low-space recovery pass
+
+Disk pressure on the Gemma 4 12B run exposed that per-tensor candidate fanout can hold five ~8.6 GiB GGUFs at once. Added low-space run controls to serialize candidate testing and prune measured candidate GGUFs immediately. Added cleanup and rollback commands so logs/progress remain durable while partial tensor temp can be discarded and resumed from the last locked tensor/layer boundary.
+
+## Candidate pruning refinement
+
+Adjusted low-space handling after live Gemma 4 observation: normal mode remains overlapped for speed, but measured losers are now pruned immediately by default. Disk gating now estimates one candidate GGUF from the current baseline size and requires that plus a 10 GiB hard floor before starting the next quant job.
+
+## Backup and partial cleanup pass
+
+Added metadata backup plumbing for catastrophic recovery. `--backup-root` mirrors small critical files outside the heavy temp/artifact directory, and `cerebellum backup` can be run manually. Partial cleanup is explicit and guarded so active PPL/quant files are not removed by mistake. Rollback now warns that artifact state and JSON state can diverge if rolling back after the baseline GGUF has already been promoted.
+
+## Rollback artifact correction
+
+Rollback is now operational rather than state-only. It rewrites the tensor type map and sets `baseline_invalid_after_rollback`, causing the next resume to rebuild and remeasure the baseline before continuing from the rolled-back boundary.
+
+## Storage visibility in watch UI
+
+Added run storage footprint to the live dashboards. The user can now see candidate temp growth, artifact size, active GGUF size, disk free space, and the hard floor from inside Cerebellum instead of checking `du`/`df` separately.
+
+## Resume and recovery planner
+
+Added first-class resume/recover commands. This removes the need to preserve or reconstruct the original run command after a lockup. `recover` reports whether partial temp cleanup is safe, shows disk pressure, and emits the exact commands for resume, metadata backup, and partial cleanup.
+
+## Tutorial and AI API pass
+
+Added tutorial coverage for the new operational controls and expanded the local API so an AI agent can inspect runs, plan recovery, read tutorials, get command templates, export reports, inspect system/space, and package metadata without shell scraping. Destructive actions remain CLI-only for now.
+
+## API schema endpoint
+
+Added `/schema` so AI clients can discover available read-only endpoints and state-changing CLI templates without prompt-guessing. This is the bridge toward future tool calling and web UI integration.
+
+## Big-run smoke pass
+
+Ran smoke checks against the live Gemma 4 12B run instead of launching a tiny model. Found and fixed the top-level command wrapper missing new commands. Confirmed `recover`, `watch --once`, `status`, API read-only endpoints, backup, cleanup guard, rollback dry-run, report/export/package, system, doctor, and plan-space paths. Doctor initially missed llama.cpp binaries because they were outside PATH; added portable common build-path discovery.
+
+## Neutral deltas and size precision
+
+Live Gemma 4 showed normalization tensor tests with identical PPL at current precision. Added an explicit `=` marker for neutral deltas and denser GGUF size formatting so small per-tensor file-size differences are visible in the dashboard.
+
+## Size delta coloring
+
+Added baseline-relative candidate size coloring to the compact dashboard so users can visually track whether candidate GGUFs are shrinking or growing versus the current baseline.

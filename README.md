@@ -350,3 +350,97 @@ When unsure, keep it out of `origin`.
 ## License
 
 Apache-2.0
+
+### Recovery, low-space runs, and targeted testing
+
+Cerebellum keeps durable run state in the run directory: `state.json`, `cerebellum_events.jsonl`, `cerebellum_candidates.jsonl`, `cerebellum_current_tensor_types.txt`, and `checkpoints/`. Heavy candidate GGUFs live under `tmp/` and can be discarded after a stopped run.
+
+Useful controls:
+
+```bash
+# Never launch another quant job unless one estimated candidate plus 10 GiB remains.
+cerebellum run ... --hard-free-floor-gb 10
+
+# Mirror small critical metadata/checkpoints to another drive during a long run.
+cerebellum run ... --backup-root /path/to/backup-root
+
+# Manual metadata backup.
+cerebellum backup RUN_DIR --to /path/to/backup-root
+
+# Dry-run safe cleanup; add --yes to execute.
+cerebellum cleanup RUN_DIR --partials
+
+# Target only specific layers or tensor names.
+cerebellum run ... --layers 0,1,8-12
+cerebellum run ... --tensor-regex 'blk\\.12\\.(attn_q|attn_k)\\.weight'
+
+# Roll state back to a clean boundary.
+cerebellum rollback RUN_DIR --last-completed-layer --yes
+```
+
+Measured non-winning candidate GGUFs are pruned immediately by default, while the CPU/GPU overlap remains enabled for speed. Use `--keep-measured-candidates` only for diagnostic runs where retaining every candidate file is worth the disk cost.
+
+After rollback, Cerebellum marks the current baseline GGUF invalid. The next resume rebuilds `artifacts/current_baseline.gguf` from the rolled-back `cerebellum_current_tensor_types.txt` before continuing.
+
+Resume and recovery helpers:
+
+```bash
+# Resume from the existing manifest/state.
+cerebellum resume RUN_DIR
+
+# Resume in safer low-space mode after disk pressure.
+cerebellum resume RUN_DIR --low-space --hard-free-floor-gb 10
+
+# Ask Cerebellum what to do after a crash/lockup.
+cerebellum recover RUN_DIR
+```
+
+### Tutorials and AI automation API
+
+Cerebellum ships built-in tutorials so users and agents can discover the flow without reading source code:
+
+```bash
+cerebellum tutorial list
+cerebellum tutorial overview
+cerebellum tutorial recovery
+cerebellum tutorial low-space
+cerebellum tutorial targeting
+cerebellum tutorial api
+cerebellum tutorial provenance
+```
+
+The local API exposes read-only automation data for AI agents and future web UI work:
+
+```bash
+cerebellum api --host 127.0.0.1 --port 8931 --data-root DATA_ROOT
+```
+
+Read-only endpoints include:
+
+```text
+/health
+/runs
+/run?run_dir=RUN_DIR
+/events?run_dir=RUN_DIR&limit=100
+/measurements?run_dir=RUN_DIR&limit=100
+/report?run_dir=RUN_DIR
+/export?run_dir=RUN_DIR&kind=ai
+/export?run_dir=RUN_DIR&kind=infographic
+/recover?run_dir=RUN_DIR
+/provenance?run_dir=RUN_DIR&gguf=MODEL.gguf
+/package?run_dir=RUN_DIR
+/system
+/space?source_gguf=MODEL.gguf&margin_gb=20
+/tutorial?topic=recovery
+/commands
+/db/families
+```
+
+State-changing operations remain CLI-only for now: `run`, `resume`, `stop`, `cleanup`, `rollback`, `backup`, `finalize`, and `upload`.
+
+Measurement table colors:
+
+```text
+PPL delta: green = better, red = worse, cyan `=` = unchanged.
+GGUF size: blue = smaller than current baseline, orange = larger than current baseline, cyan = equal/neutral.
+```
