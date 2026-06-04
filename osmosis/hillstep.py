@@ -308,16 +308,36 @@ def parse_ppl(output: str) -> tuple[float | None, float | None]:
     return None, None
 
 
-def run_external(cmd: list[str], timeout: int, distrobox: str | None = None) -> tuple[int, str, float]:
+def run_external(
+    cmd: list[str],
+    timeout: int,
+    distrobox: str | None = None,
+    heartbeat: Any | None = None,
+    heartbeat_interval: float = 15.0,
+) -> tuple[int, str, float]:
     if distrobox:
         import shlex
 
         shell_cmd = shlex.join(cmd)
         cmd = ["distrobox", "enter", distrobox, "--", "bash", "-lc", shell_cmd]
     started = time.monotonic()
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-    elapsed = time.monotonic() - started
-    return proc.returncode, (proc.stdout or "") + (proc.stderr or ""), elapsed
+    if heartbeat is None:
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        elapsed = time.monotonic() - started
+        return proc.returncode, (proc.stdout or "") + (proc.stderr or ""), elapsed
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+    while True:
+        elapsed = time.monotonic() - started
+        if elapsed > timeout:
+            proc.kill()
+            output, _ = proc.communicate()
+            raise subprocess.TimeoutExpired(cmd, timeout, output=output)
+        try:
+            output, _ = proc.communicate(timeout=heartbeat_interval)
+            elapsed = time.monotonic() - started
+            return proc.returncode or 0, output or "", elapsed
+        except subprocess.TimeoutExpired:
+            heartbeat(round(time.monotonic() - started, 3), proc.pid)
 
 
 def disk_free_gb(path: Path) -> float:
@@ -913,6 +933,13 @@ class HillStepper:
             self.quantize_cmd(self.paths.current_types, self.paths.baseline),
             self.cfg.quant_timeout,
             self.cfg.distrobox,
+            heartbeat=lambda elapsed, pid: self.events.write(
+                "baseline_quant_heartbeat",
+                path=str(self.paths.baseline),
+                elapsed_seconds=elapsed,
+                child_pid=pid,
+                size_bytes=path_size(self.paths.baseline),
+            ),
         )
         self.events.write(
             "baseline_quant_finish",
@@ -924,7 +951,17 @@ class HillStepper:
         if rc != 0:
             raise SystemExit("baseline quantization failed; see events.jsonl")
         self.events.write("baseline_ppl_start", path=str(self.paths.baseline))
-        rc, output, seconds = run_external(self.ppl_cmd(self.paths.baseline), self.cfg.ppl_timeout, self.cfg.distrobox)
+        rc, output, seconds = run_external(
+            self.ppl_cmd(self.paths.baseline),
+            self.cfg.ppl_timeout,
+            self.cfg.distrobox,
+            heartbeat=lambda elapsed, pid: self.events.write(
+                "baseline_ppl_heartbeat",
+                path=str(self.paths.baseline),
+                elapsed_seconds=elapsed,
+                child_pid=pid,
+            ),
+        )
         ppl, err = parse_ppl(output)
         self.events.write(
             "baseline_ppl_finish",
@@ -1006,6 +1043,15 @@ class HillStepper:
                         self.quantize_cmd(c.type_file, tmp_gguf),
                         self.cfg.quant_timeout,
                         self.cfg.distrobox,
+                        heartbeat=lambda elapsed, pid, c=c, tmp_gguf=tmp_gguf: self.events.write(
+                            "quant_heartbeat",
+                            tensor=tensor,
+                            level=c.level,
+                            elapsed_seconds=elapsed,
+                            child_pid=pid,
+                            tmp_output=str(tmp_gguf),
+                            size_bytes=path_size(tmp_gguf),
+                        ),
                     )
                 except subprocess.TimeoutExpired as exc:
                     rc, output, seconds = 124, str(exc), float(self.cfg.quant_timeout)
@@ -1047,7 +1093,19 @@ class HillStepper:
                 c.ppl_started_at = utc_now()
                 self.events.write("ppl_start", tensor=tensor, level=c.level, model=str(c.gguf_path))
                 try:
-                    rc, output, seconds = run_external(self.ppl_cmd(c.gguf_path), self.cfg.ppl_timeout, self.cfg.distrobox)
+                    rc, output, seconds = run_external(
+                        self.ppl_cmd(c.gguf_path),
+                        self.cfg.ppl_timeout,
+                        self.cfg.distrobox,
+                        heartbeat=lambda elapsed, pid, c=c: self.events.write(
+                            "ppl_heartbeat",
+                            tensor=tensor,
+                            level=c.level,
+                            elapsed_seconds=elapsed,
+                            child_pid=pid,
+                            model=str(c.gguf_path),
+                        ),
+                    )
                 except subprocess.TimeoutExpired as exc:
                     rc, output, seconds = 124, str(exc), float(self.cfg.ppl_timeout)
                 ppl, err = parse_ppl(output)
