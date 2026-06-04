@@ -35,20 +35,18 @@ DEFAULT_QUANTIZE = os.environ.get("LLAMA_QUANTIZE_BIN", "llama-quantize")
 DEFAULT_PERPLEXITY = os.environ.get("LLAMA_PERPLEXITY_BIN", "llama-perplexity")
 DEFAULT_DB = os.environ.get("CEREBELLUM_DB", str(Path.cwd() / "db" / "cerebellum.db"))
 PPL_PROFILES = {
-    "wiki": [
-        "/var/home/deucebucket/games/osmosis-quants/wiki.test.raw",
-        "/var/home/deucebucket/games/wikitext-2-raw-test.txt",
-        "wikitext-test.txt",
-    ],
-    "agentic": [
-        "/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_agent.txt",
-        "/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_agent_strict.txt",
-    ],
-    "code": ["/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_code.txt"],
-    "math": ["/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_math.txt"],
-    "dialogue": ["/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_dialogue.txt"],
-    "all-around": ["/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_combined.txt"],
+    "wiki": ["wiki.test.raw", "wikitext-2-raw-test.txt", "wikitext-test.txt"],
+    "agentic": ["cerebellum_calibration_agent.txt", "cerebellum_calibration_agent_strict.txt"],
+    "code": ["cerebellum_calibration_code.txt"],
+    "math": ["cerebellum_calibration_math.txt"],
+    "dialogue": ["cerebellum_calibration_dialogue.txt"],
+    "all-around": ["cerebellum_calibration_combined.txt"],
 }
+LEGACY_PROFILE_ROOTS = [
+    Path("/var/home/deucebucket/games/osmosis-quants"),
+    Path("/var/home/deucebucket/games"),
+    Path("/var/home/deucebucket/games/cerebellum-calibration"),
+]
 PRECISION_RANK = {
     "q2_K": 2,
     "q3_K": 3,
@@ -141,6 +139,28 @@ def color(text: str, code: str, enabled: bool) -> str:
     if not enabled:
         return text
     return f"\033[{code}m{text}\033[0m"
+
+
+ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def visible_len(text: str) -> int:
+    return len(ANSI_RE.sub("", text))
+
+
+def ansi_clip(text: str, width: int) -> str:
+    plain = ANSI_RE.sub("", text)
+    if len(plain) <= width:
+        return text + " " * (width - len(plain))
+    clipped = plain[: max(0, width - 1)] + ("…" if width > 0 else "")
+    return clipped
+
+
+def ansi_pad(text: str, width: int) -> str:
+    length = visible_len(text)
+    if length > width:
+        return ansi_clip(text, width)
+    return text + " " * (width - length)
 
 
 def kv_line(label: str, value: Any, width: int, enabled: bool, value_code: str = "37;1") -> str:
@@ -480,11 +500,33 @@ def resolve_ppl_corpus(profile: str, corpus: str | None) -> Path:
         return Path(corpus)
     if profile == "custom":
         raise SystemExit("--corpus is required when --profile custom")
-    for candidate in PPL_PROFILES.get(profile, []):
-        path = Path(candidate)
+    for path in profile_candidate_paths(profile):
         if path.exists():
             return path
     raise SystemExit(f"no local corpus found for --profile {profile}; pass --corpus explicitly")
+
+
+def profile_candidate_paths(profile: str) -> list[Path]:
+    names = PPL_PROFILES.get(profile, [])
+    roots: list[Path] = []
+    if os.environ.get("CEREBELLUM_CORPUS_ROOT"):
+        roots.append(Path(os.environ["CEREBELLUM_CORPUS_ROOT"]))
+    roots.extend(
+        [
+            Path.cwd() / "corpora",
+            Path.cwd(),
+            Path.home() / ".cache" / "cerebellum" / "corpora",
+        ]
+    )
+    roots.extend(LEGACY_PROFILE_ROOTS)
+    paths: list[Path] = []
+    for name in names:
+        path = Path(name)
+        if path.is_absolute():
+            paths.append(path)
+            continue
+        paths.extend(root / name for root in roots)
+    return paths
 
 
 def load_run(run_dir: Path) -> dict[str, Any]:
@@ -1378,6 +1420,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     provenance.add_argument("--hash-files", action="store_true", help="compute full SHA256 hashes for large files")
     provenance.add_argument("--format", choices=["json", "env"], default="json")
 
+    finalize = sub.add_parser("finalize", help="write final reports/model card and tag GGUF provenance")
+    finalize.add_argument("--run-dir", required=True)
+    finalize.add_argument("--gguf", default=None, help="Final GGUF to tag/inspect")
+    finalize.add_argument("--repo-name", default=None, help="Optional HF/GitHub repo name for model-card text")
+    finalize.add_argument("--output-dir", default=None, help="Defaults to RUN_DIR/finalize")
+    finalize.add_argument("--hash-files", action="store_true")
+    finalize.add_argument("--inject", action="store_true", help="Inject visible cerebellum.* metadata into --gguf when supported")
+    finalize.add_argument("--metadata-tool", default=None, help="Path to gguf-set-metadata compatible tool")
+    finalize.add_argument("--json", action="store_true")
+
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
     schedule.add_argument("--file", default=None)
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
@@ -1449,7 +1501,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and len(sys.argv) > 1
         and sys.argv[1] not in {
             "run", "status", "events", "runs", "schedule", "db", "report",
-            "export", "auth", "upload", "api", "system", "doctor", "provenance", "plan-space",
+            "export", "auth", "upload", "api", "system", "doctor", "provenance", "finalize", "plan-space",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
         }
     ):
@@ -1762,7 +1814,7 @@ def grid_line(left: str, right: str, width: int) -> str:
     inner = width - 4
     left_w = max(36, inner * 2 // 3)
     right_w = inner - left_w - 1
-    return f"║ {clip(left, left_w)}│{clip(right, right_w)} ║"
+    return f"║ {ansi_pad(left, left_w)}│{ansi_pad(right, right_w)} ║"
 
 
 def print_heavy_box(title: str, lines: list[str], width: int, code: str, enabled: bool) -> None:
@@ -1772,7 +1824,7 @@ def print_heavy_box(title: str, lines: list[str], width: int, code: str, enabled
         if line.startswith("║"):
             print(line)
         else:
-            print(f"║ {clip(line, width - 4)} ║")
+            print(f"║ {ansi_pad(line, width - 4)} ║")
     print(color("╚" + "═" * (width - 2) + "╝", code, enabled))
 
 
@@ -1813,10 +1865,10 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
             else:
                 resource_bits.append("jobs idle")
             overview = [
-                grid_line(f"progress  {progress_left}", f"resources  {'  '.join(resource_bits)}", width),
-                grid_line(f"tensor    {active.get('tensor')}  {active.get('level')}", f"disk       {disk_free_gb(run_dir):.1f} GiB free", width),
-                grid_line(f"job       {active.get('event')}  age {fmt_seconds(model['active_age'])}", f"gguf       base {fmt_bytes(model['baseline_size'])} active {fmt_bytes(model['active_size'])}", width),
-                grid_line(f"eta       current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", f"confidence {eta['confidence']}", width),
+                grid_line(color("progress  ", "90", enabled) + color(progress_left, "32;1", enabled), color("resources  ", "90", enabled) + color("  ".join(resource_bits), "36;1", enabled), width),
+                grid_line(color("tensor    ", "90", enabled) + color(f"{active.get('tensor')}  {active.get('level')}", "33;1", enabled), color("disk       ", "90", enabled) + color(f"{disk_free_gb(run_dir):.1f} GiB free", "36", enabled), width),
+                grid_line(color("job       ", "90", enabled) + color(f"{active.get('event')}  age {fmt_seconds(model['active_age'])}", "32;1", enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes(model['baseline_size'])} active {fmt_bytes(model['active_size'])}", "36;1", enabled), width),
+                grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", "36;1", enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
             ]
             print_heavy_box("OPERATIONS", overview, width, "34;1", enabled)
             print()
@@ -1827,7 +1879,13 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
                 delta = row.get("delta")
                 delta_s = "-" if delta is None else f"{delta:+.4f}"
                 marker = "better" if isinstance(delta, (int, float)) and delta < 0 else "worse" if isinstance(delta, (int, float)) and delta > 0 else ""
-                line = f"{row.get('level', '-'):<7}{str(row.get('ppl', '-')):<12}{delta_s:<12}{fmt_bytes(row.get('size_bytes')):<10}{row.get('tensor', '')} {marker}"
+                line = (
+                    color(f"{row.get('level', '-'):<7}", "35;1", enabled)
+                    + color(f"{str(row.get('ppl', '-')):<12}", "33;1", enabled)
+                    + color(f"{delta_s:<12}", delta_code(delta), enabled)
+                    + color(f"{fmt_bytes(row.get('size_bytes')):<10}", "36", enabled)
+                    + color(f"{row.get('tensor', '')} {marker}", "33", enabled)
+                )
                 measure_lines.append(line)
             print_heavy_box("RECENT MEASUREMENTS", measure_lines, width, "32;1", enabled)
             print()
@@ -2364,6 +2422,114 @@ def provenance_cmd(args: argparse.Namespace) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
+def write_model_card(run_dir: Path, output_dir: Path, metadata: dict[str, Any], repo_name: str | None = None) -> Path:
+    report = build_report(run_dir)
+    title = repo_name or f"{report.get('model_name')} Cerebellum GGUF"
+    lines = [
+        f"# {title}",
+        "",
+        "This GGUF was produced with **Cerebellum**, a resource-aware mixed-precision quantization workflow.",
+        "",
+        "## Cerebellum provenance",
+        "",
+        f"- Run ID: `{metadata.get('cerebellum.run_id')}`",
+        f"- Model: `{metadata.get('cerebellum.model_family')}/{metadata.get('cerebellum.model_name')}`",
+        f"- Source: `{metadata.get('cerebellum.source_name')}`",
+        f"- PPL profile: `{metadata.get('cerebellum.ppl_profile')}`",
+        f"- Current PPL: `{metadata.get('cerebellum.current_ppl')}`",
+        f"- Locked tensors: `{metadata.get('cerebellum.locked_count')}`",
+        f"- Candidate tests: `{metadata.get('cerebellum.candidate_count')}`",
+        "",
+        "## Metadata keys",
+        "",
+        "The final GGUF should include visible `cerebellum.*` metadata keys for attribution and auditability.",
+        "",
+        "```json",
+        json.dumps(metadata, indent=2, sort_keys=True),
+        "```",
+        "",
+        "## Notes",
+        "",
+        "- This metadata is transparent provenance, not a hidden watermark.",
+        "- If these keys are missing from redistributed copies, the provenance was stripped.",
+    ]
+    output_dir.mkdir(parents=True, exist_ok=True)
+    path = output_dir / "MODEL_CARD_CEREBELLUM.md"
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def metadata_tool_path(explicit: str | None) -> str | None:
+    if explicit:
+        return explicit
+    return shutil.which("gguf-set-metadata") or shutil.which("llama-gguf-set-metadata")
+
+
+def inject_metadata(tool: str, gguf: Path, metadata: dict[str, Any]) -> list[dict[str, Any]]:
+    results: list[dict[str, Any]] = []
+    for key, value in metadata.items():
+        cmd = [tool, str(gguf), key, str(value)]
+        proc = subprocess.run(cmd, capture_output=True, text=True)
+        results.append(
+            {
+                "key": key,
+                "returncode": proc.returncode,
+                "output": ((proc.stdout or "") + (proc.stderr or ""))[-1000:],
+            }
+        )
+        if proc.returncode != 0:
+            break
+    return results
+
+
+def finalize_cmd(args: argparse.Namespace) -> None:
+    run_dir = Path(args.run_dir)
+    gguf = Path(args.gguf) if args.gguf else None
+    output_dir = Path(args.output_dir) if args.output_dir else run_dir / "finalize"
+    report = build_report(run_dir)
+    write_report_files(run_dir, report, ["json", "md", "csv", "infographic"])
+    metadata = cerebellum_metadata_block(run_dir, gguf, args.hash_files)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    metadata_path = output_dir / "cerebellum_gguf_metadata.json"
+    atomic_write_json(metadata_path, metadata)
+    env_path = output_dir / "cerebellum_gguf_metadata.env"
+    env_path.write_text("\n".join(f"{key}={value}" for key, value in metadata.items()) + "\n", encoding="utf-8")
+    card_path = write_model_card(run_dir, output_dir, metadata, args.repo_name)
+    existing = inspect_gguf_metadata(gguf) if gguf else {}
+    injection: list[dict[str, Any]] = []
+    tool = metadata_tool_path(args.metadata_tool)
+    if args.inject:
+        if not gguf:
+            raise SystemExit("--inject requires --gguf")
+        if not tool:
+            raise SystemExit("--inject requires gguf-set-metadata on PATH or --metadata-tool")
+        injection = inject_metadata(tool, gguf, metadata)
+    payload = {
+        "run_dir": str(run_dir),
+        "gguf": str(gguf) if gguf else None,
+        "metadata": metadata,
+        "existing_cerebellum_metadata": existing,
+        "written": [str(metadata_path), str(env_path), str(card_path)],
+        "metadata_tool": tool,
+        "injection": injection,
+    }
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+    print("Cerebellum finalize")
+    for path in payload["written"]:
+        print(f"  wrote {path}")
+    if gguf:
+        print(f"  existing metadata keys: {len(existing)}")
+    if args.inject:
+        failed = [row for row in injection if row["returncode"] != 0]
+        print(f"  injected keys: {len(injection) - len(failed)}/{len(metadata)}")
+        if failed:
+            print(f"  failed at {failed[0]['key']}: {failed[0]['output']}")
+    elif gguf:
+        print("  metadata not injected; rerun with --inject to tag the GGUF")
+
+
 def system_info() -> dict[str, Any]:
     import platform
 
@@ -2534,12 +2700,13 @@ def doctor_cmd(args: argparse.Namespace) -> None:
     except OSError as exc:
         add("data root", False, f"{root}: {exc}", "Set CEREBELLUM_DATA_ROOT to a writable drive.")
     for profile, candidates in PPL_PROFILES.items():
-        found = next((path for path in candidates if Path(path).exists()), None)
+        paths = profile_candidate_paths(profile)
+        found = next((str(path) for path in paths if path.exists()), None)
         add(
             f"profile:{profile}",
             bool(found),
             found or "not found locally",
-            f"Pass --profile custom --corpus FILE, or place a corpus at one of: {', '.join(candidates)}",
+            f"Pass --profile custom --corpus FILE, set CEREBELLUM_CORPUS_ROOT, or place a corpus under ./corpora or ~/.cache/cerebellum/corpora. Expected names: {', '.join(candidates)}",
         )
     payload = {"ok": all(row["ok"] for row in checks if not row["name"].startswith("profile:")), "checks": checks}
     if args.json:
@@ -2920,6 +3087,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "provenance":
         provenance_cmd(args)
+        return
+    if args.cmd == "finalize":
+        finalize_cmd(args)
         return
     if args.cmd == "schedule":
         schedule_cmd(args)

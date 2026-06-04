@@ -14,6 +14,8 @@
 - `cerebellum runs` filesystem run-library browser with filters.
 - `cerebellum schedule --template` and `--dry-run`.
 - `cerebellum provenance` for transparent GGUF metadata inspection/generation.
+- `cerebellum finalize` for final reports, model-card text, provenance
+  sidecars, and optional GGUF metadata injection.
 - PPL profiles: `wiki`, `agentic`, `code`, `math`, `dialogue`,
   `all-around`, and `custom`.
 - Live dashboard panels for:
@@ -29,6 +31,8 @@
 - Future-run subprocess heartbeat events for long quant/PPL jobs.
 - Transparent `cerebellum.*` metadata block generation for attribution and
   auditability.
+- ANSI-aware compact grid padding so semantic colors work without corrupting
+  table alignment.
 - README screenshots and CLI workflow documentation.
 - Compact watch grid renderer with heavier framing and side-by-side operations,
   resources, GGUF sizes, and ETA cells.
@@ -40,6 +44,9 @@
 - User-facing docs and help now use Cerebellum terminology.
 - Distrobox is documented as an optional execution adapter, not a requirement.
 - Run library browsing no longer requires manual SQLite import for basic status.
+- PPL profile lookup now prefers portable locations:
+  `CEREBELLUM_CORPUS_ROOT`, `./corpora`, and
+  `~/.cache/cerebellum/corpora`.
 
 ### Validated
 

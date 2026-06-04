@@ -29,6 +29,8 @@ model jobs while preserving data integrity.
 - Added run library table and filters.
 - Added schedule template and dry-run.
 - Added provenance metadata inspection/generation.
+- Added finalize command for sidecar/model-card generation and optional GGUF
+  metadata injection.
 - Added PPL profile support.
 - Added live resource/ETA view.
 - Added GGUF size visibility.
@@ -38,6 +40,7 @@ model jobs while preserving data integrity.
 - Implemented first compact grid renderer pass for `cerebellum watch`, merging
   progress/resources, active job/GGUF sizes, and ETA/confidence into a denser
   operations panel.
+- Restored semantic colors in compact grid using ANSI-aware padding/clipping.
 
 ## Commits pushed to `dev`
 
@@ -67,7 +70,6 @@ model jobs while preserving data integrity.
 ## Next work
 
 - Implement compact dashboard grid renderer.
-- Add ANSI-aware cell coloring to compact grid rows.
 - Improve layer-based ETA once more layers complete.
 - Expand API endpoints for run queries, events, measurements, and reports.
 - Improve upload/auth UX for HF/GitHub.

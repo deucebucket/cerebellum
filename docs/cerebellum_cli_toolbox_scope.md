@@ -122,3 +122,5 @@ Tutorials should be concise and contextual:
 - Provenance metadata should use visible `cerebellum.*` GGUF keys for
   attribution, report hashes, run identity, and stripped-metadata detection.
   Do not implement hidden watermarks.
+- Profile corpora must resolve portably through `CEREBELLUM_CORPUS_ROOT`,
+  `./corpora`, `~/.cache/cerebellum/corpora`, or explicit `--corpus`.
