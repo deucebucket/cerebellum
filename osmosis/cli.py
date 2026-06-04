@@ -29,6 +29,7 @@ def main():
         print("  plan-space Recommend scratch/offload strategy")
         print("  report    Write clean reports")
         print("  export    Export data for AI/infographics")
+        print("  imatrix   Generate Cerebellum imatrix files")
         print("  api       Serve JSON API for automation/web UI")
         sys.exit(0 if len(sys.argv) >= 2 else 1)
 
@@ -41,7 +42,10 @@ def main():
         "upload", "api", "stop", "resume", "recover", "cleanup", "rollback", "backup",
     }
 
-    if command in cerebellum_commands:
+    if command == "imatrix":
+        from cerebellum.imatrix import main as imatrix_main
+        imatrix_main(sys.argv[1:])
+    elif command in cerebellum_commands:
         from osmosis.hillstep import main as hillstep_main
         hillstep_main([command] + sys.argv[1:])
     elif command == "analyze":

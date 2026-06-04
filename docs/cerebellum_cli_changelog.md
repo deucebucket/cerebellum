@@ -138,3 +138,10 @@
 - Added `cerebellum self-test` for non-mutating CLI/API smoke checks.
 - `self-test --run-dir RUN_DIR` checks run state, manifest, recovery payload, report payload, and package payload without launching quantization or changing run data.
 - Added `/self-test?run_dir=RUN_DIR` to the read-only API surface.
+
+## 2026-06-04 Cerebellum imatrix command
+
+- Added public `cerebellum imatrix` command as the user-facing imatrix generator.
+- Default `--mode stream` wraps the streaming safetensors imatrix generator for large models.
+- Optional `--mode calibrated` wraps the activation-calibrated imatrix generator for systems that can load the model.
+- Updated tutorials, command templates, README, and internal imatrix usage text to frame imatrix as a Cerebellum feature; legacy module paths remain compatibility internals only.

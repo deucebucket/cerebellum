@@ -3402,10 +3402,19 @@ TUTORIALS = {
     "flow": [
         "1. Run `cerebellum system` to see GPU, RAM, disks, auth, and llama.cpp binaries.",
         "2. Run `cerebellum plan-space --source-gguf model.gguf` to choose scratch strategy.",
-        "3. Run `cerebellum run --source-gguf ... --profile wiki --family ... --model-name ...`.",
-        "4. Watch with `cerebellum watch RUN_DIR`, `cerebellum status RUN_DIR`, and `cerebellum events RUN_DIR`.",
-        "5. Generate reports with `cerebellum report RUN_DIR`.",
-        "6. Import query data with `cerebellum db import-run RUN_DIR`.",
+        "3. Generate imatrix when needed with `cerebellum imatrix --model HF_OR_PATH --output cerebellum_imatrix.dat`.",
+        "4. Run `cerebellum run --source-gguf ... --imatrix cerebellum_imatrix.dat --profile wiki --family ... --model-name ...`.",
+        "5. Watch with `cerebellum watch RUN_DIR`, `cerebellum status RUN_DIR`, and `cerebellum events RUN_DIR`.",
+        "6. Generate reports with `cerebellum report RUN_DIR`.",
+        "7. Import query data with `cerebellum db import-run RUN_DIR`.",
+    ],
+    "imatrix": [
+        "Imatrix generation is a Cerebellum feature exposed as `cerebellum imatrix`.",
+        "Default mode is streaming: it reads safetensors one tensor at a time and avoids loading the whole model into RAM.",
+        "Example: `cerebellum imatrix --model Qwen/Qwen3.6-27B --output cerebellum_imatrix.dat -v`.",
+        "Use `--mode calibrated` only when the system can load the model and you want activation calibration blended with weight sensitivity.",
+        "Use the output with `cerebellum run --imatrix cerebellum_imatrix.dat` or stock `llama-quantize --imatrix`.",
+        "The legacy Python module path still exists only for compatibility during the package rename.",
     ],
     "low-space": [
         "Use `--scratch-root` when metadata and large GGUF artifacts should live on different drives.",
@@ -3676,6 +3685,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "recover": "cerebellum recover RUN_DIR --json",
                         "report": "cerebellum report RUN_DIR --json",
                         "export_ai": "cerebellum export RUN_DIR --kind ai",
+                        "imatrix": "cerebellum imatrix --model HF_OR_PATH --output cerebellum_imatrix.dat",
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
                     },
                     "state_changing_cli_only": {

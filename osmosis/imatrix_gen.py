@@ -1,4 +1,4 @@
-"""Generate a llama.cpp imatrix file from sensitivity analysis.
+"""Generate a Cerebellum/llama.cpp imatrix file from sensitivity analysis.
 
 Runs channel sensitivity computation on each weight tensor and writes
 importance scores in the legacy imatrix binary format for llama-quantize --imatrix.
@@ -7,9 +7,9 @@ Auto-detects model architecture: works with Qwen 3.5 (hybrid linear+self attn),
 Qwen 3.6 (dense), and standard transformers.
 
 Usage:
-    python -m osmosis.imatrix_gen \
+    cerebellum imatrix --mode calibrated \
         --model Qwen/Qwen3.6-27B \
-        --output osmosis-qwen36-27b/cerebellum_imatrix.dat \
+        --output cerebellum_imatrix.dat \
         -v
 """
 import argparse
@@ -155,7 +155,7 @@ def generate_imatrix(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate imatrix from sensitivity analysis")
+    parser = argparse.ArgumentParser(description="Generate Cerebellum imatrix from sensitivity analysis")
     parser.add_argument("--model", required=True, help="Path to HuggingFace model")
     parser.add_argument("--output", required=True, help="Output imatrix file path")
     parser.add_argument("--no-calibrate", action="store_true", help="Skip activation calibration")

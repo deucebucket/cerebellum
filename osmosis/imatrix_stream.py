@@ -1,4 +1,4 @@
-"""Streaming imatrix generator — works on models of any size.
+"""Cerebellum streaming imatrix generator — works on models of any size.
 
 Uses safetensors memory-mapped reads to process one tensor at a time.
 Never loads the full model into RAM. A 671B model uses ~4GB peak RAM.
@@ -8,7 +8,7 @@ imatrix_gen.py can also blend in activation calibration unless run with
 --no-calibrate.
 
 Usage:
-    python -m osmosis.imatrix_stream \
+    cerebellum imatrix \
         --model deepseek-ai/DeepSeek-V3 \
         --output cerebellum_imatrix.dat \
         -v
@@ -39,6 +39,11 @@ HF_TO_GGUF = {
     "mlp.gate_proj": "ffn_gate",
     "mlp.up_proj": "ffn_up",
     "mlp.down_proj": "ffn_down",
+    "mlp.gate": "ffn_gate_inp",
+    "mlp.shared_expert_gate": "ffn_gate_inp_shexp",
+    "mlp.shared_expert.gate_proj": "ffn_gate_shexp",
+    "mlp.shared_expert.up_proj": "ffn_up_shexp",
+    "mlp.shared_expert.down_proj": "ffn_down_shexp",
     "per_layer_input_gate": "inp_gate",
     "per_layer_projection": "proj",
 }
@@ -50,6 +55,10 @@ GLOBAL_TENSOR_MAP = {
 
 LAYER_PATTERN = re.compile(
     r"(?:model\.(?:language_model\.)?)?layers\.(\d+)\.(.*?)\.weight$"
+)
+
+MOE_EXPERT_PATTERN = re.compile(
+    r"(?:model\.(?:language_model\.)?)?layers\.(\d+)\.mlp\.experts\.(gate_up_proj|down_proj)$"
 )
 
 GLOBAL_PATTERN = re.compile(
@@ -85,6 +94,24 @@ def hf_name_to_gguf(hf_suffix: str) -> str | None:
         if hf_suffix == hf_key:
             return gguf_name
     return None
+
+
+def compute_imatrix_values(weight: torch.Tensor) -> list[float]:
+    """Return llama.cpp imatrix values.
+
+    llama-quantize expects one value per tensor->ne[0] * tensor->ne[2]. For
+    normal HF Linear weights [out, in], that is per input channel. Qwen MoE
+    expert tensors are stored as [expert, out, in], so compute one per input
+    channel for each expert and concatenate experts in storage order.
+    """
+    if weight.ndim == 2:
+        return compute_channel_sensitivity(weight).tolist()
+    if weight.ndim == 3:
+        values = []
+        for expert_idx in range(weight.shape[0]):
+            values.extend(compute_channel_sensitivity(weight[expert_idx]).tolist())
+        return values
+    raise ValueError(f"unsupported tensor rank for imatrix: {tuple(weight.shape)}")
 
 
 def resolve_safetensors(model_path: str) -> list[Path]:
@@ -131,6 +158,18 @@ def generate_imatrix_streaming(
     targets = {}
     num_layers = 0
     for name in tensor_index:
+        em = MOE_EXPERT_PATTERN.match(name)
+        if em:
+            layer_idx = int(em.group(1))
+            expert_kind = em.group(2)
+            gguf_suffix = {
+                "gate_up_proj": "ffn_gate_up_exps",
+                "down_proj": "ffn_down_exps",
+            }[expert_kind]
+            gguf_name = f"blk.{layer_idx}.{gguf_suffix}.weight"
+            targets[gguf_name] = name
+            num_layers = max(num_layers, layer_idx + 1)
+            continue
         m = LAYER_PATTERN.match(name)
         if m:
             layer_idx = int(m.group(1))
@@ -181,8 +220,7 @@ def generate_imatrix_streaming(
                 print(f"  {gguf_name:40s} SKIP (1D, dim={w.shape[0]})")
             del w
             continue
-        sens = compute_channel_sensitivity(w)
-        imatrix_data[gguf_name] = sens.tolist()
+        imatrix_data[gguf_name] = compute_imatrix_values(w)
         del w
 
         if verbose:
@@ -210,7 +248,7 @@ def generate_imatrix_streaming(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Streaming imatrix generator — works on models of any size"
+        description="Cerebellum streaming imatrix generator — works on models of any size"
     )
     parser.add_argument("--model", required=True, help="HuggingFace model ID or local path")
     parser.add_argument("--output", required=True, help="Output imatrix file path")

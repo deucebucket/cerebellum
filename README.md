@@ -15,9 +15,9 @@ the Cerebellum name.
 
 Public Cerebellum is intentionally narrow:
 
-- `osmosis/imatrix_stream.py` generates llama.cpp-compatible imatrix files from
+- `cerebellum imatrix` generates llama.cpp-compatible imatrix files from
   safetensors without loading the full model into RAM.
-- `osmosis/imatrix_gen.py` generates an imatrix with optional activation
+- `cerebellum imatrix --mode calibrated` generates an imatrix with optional activation
   calibration.
 - `osmosis/cerebellum.py` reads measured ablation results and writes a
   `llama-quantize` tensor type override file.
@@ -175,7 +175,7 @@ Generate a streaming imatrix from a Hugging Face model ID or local safetensors
 directory:
 
 ```bash
-python -m osmosis.imatrix_stream \
+cerebellum imatrix \
   --model <hf-model-id-or-local-path> \
   --output cerebellum_imatrix.dat \
   -v
@@ -453,3 +453,24 @@ cerebellum self-test --run-dir RUN_DIR
 ```
 
 The API also exposes `/self-test?run_dir=RUN_DIR` for automation agents.
+
+### Cerebellum imatrix
+
+Imatrix generation is part of Cerebellum. The legacy `osmosis.imatrix_*` modules remain only as compatibility internals while the package rename finishes.
+
+```bash
+# Streaming mode: safest default for large models.
+cerebellum imatrix \
+  --model HF_OR_LOCAL_SAFETENSORS_MODEL \
+  --output cerebellum_imatrix.dat \
+  -v
+
+# Optional calibrated mode: loads the model and can blend activation stats.
+cerebellum imatrix \
+  --model HF_OR_LOCAL_MODEL \
+  --output cerebellum_imatrix.dat \
+  --mode calibrated \
+  --num-samples 8
+```
+
+Use the output with `cerebellum run --imatrix cerebellum_imatrix.dat`.

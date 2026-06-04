@@ -125,3 +125,7 @@ Added baseline-relative candidate size coloring to the compact dashboard so user
 ## Self-test command
 
 Added a built-in read-only smoke path so future validation does not require manually chaining help, tutorial, recover, report, package, and API calls. This supports big-run smoke without starting a separate tiny model.
+
+## Cerebellum imatrix surface
+
+Folded imatrix into the public Cerebellum CLI. Users can now run `cerebellum imatrix` instead of legacy `python -m osmosis.imatrix_stream`. The old modules remain implementation compatibility while the package rename is in flight.
