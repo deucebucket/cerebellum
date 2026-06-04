@@ -245,6 +245,57 @@ def process_rows_for_run(run_dir: Path) -> list[dict[str, Any]]:
     return rows
 
 
+def gpu_rows() -> list[dict[str, Any]]:
+    nvidia = shutil.which("nvidia-smi")
+    if not nvidia:
+        return []
+    proc = subprocess.run(
+        [
+            nvidia,
+            "--query-gpu=index,name,utilization.gpu,memory.used,memory.total,power.draw",
+            "--format=csv,noheader,nounits",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        return []
+    rows: list[dict[str, Any]] = []
+    for line in proc.stdout.splitlines():
+        parts = [part.strip() for part in line.split(",")]
+        if len(parts) < 6:
+            continue
+        rows.append(
+            {
+                "index": parts[0],
+                "name": parts[1],
+                "util": parts[2],
+                "mem_used": parts[3],
+                "mem_total": parts[4],
+                "power": parts[5],
+            }
+        )
+    return rows
+
+
+def estimate_eta(state: dict[str, Any], active_age: float | None, total: int | None) -> tuple[str, str]:
+    locked = len(state.get("locked", {}))
+    if not total:
+        return "-", "no total tensor count yet"
+    tested = state.get("tested", [])
+    if not tested:
+        return "-", "waiting for first locked tensor"
+    totals = state.get("totals", {})
+    elapsed = (totals.get("quant_seconds") or 0.0) + (totals.get("ppl_seconds") or 0.0)
+    if active_age:
+        elapsed += active_age
+    completed = max(1, len(tested))
+    avg = elapsed / completed
+    remaining = max(0, total - locked)
+    eta = remaining * avg
+    return fmt_seconds(eta), f"avg {fmt_seconds(avg)}/tensor from {completed} locked"
+
+
 def parse_ppl(output: str) -> tuple[float | None, float | None]:
     for line in output.splitlines():
         if "Final estimate" not in line:
@@ -1357,6 +1408,7 @@ def watch_cmd(args: argparse.Namespace) -> None:
             processes = process_rows_for_run(run_dir)
             active_processes = [row for row in processes if row["kind"] in {"quantize", "ppl"}]
             runner_processes = [row for row in processes if row["kind"] == "runner"]
+            gpu_info = gpu_rows()
             health = "idle"
             health_reason = "not running"
             health_code = "90"
@@ -1441,6 +1493,35 @@ def watch_cmd(args: argparse.Namespace) -> None:
             if status == "running" and not active_processes:
                 print(kv_line("warning", "no active llama child process detected", width, enabled, "31;1"))
             print(color("╰" + "─" * (width - 2) + "╯", health_code, enabled))
+            eta, eta_basis = estimate_eta(state, active_age, total_hint)
+            cpu_job = next((row for row in active_processes if row["kind"] == "quantize"), None)
+            gpu_job = next((row for row in active_processes if row["kind"] == "ppl"), None)
+            print()
+            print(color("╭─ Resources / ETA ─" + "─" * (width - 19) + "╮", "34;1", enabled))
+            print(kv_line("eta", eta, width, enabled, "36;1"))
+            print(kv_line("basis", eta_basis[: width - 14], width, enabled, "90"))
+            if cpu_job:
+                cpu_line = f"quantize pid={cpu_job['pid']} cpu={cpu_job['pcpu']}% mem={cpu_job['pmem']}% {cpu_job['etime']}"
+            else:
+                cpu_line = "idle or waiting"
+            if gpu_job:
+                gpu_line = f"ppl pid={gpu_job['pid']} cpu={gpu_job['pcpu']}% mem={gpu_job['pmem']}% {gpu_job['etime']}"
+            else:
+                gpu_line = "idle or waiting"
+            print(kv_line("cpu_job", cpu_line[: width - 14], width, enabled, "32;1" if cpu_job else "90"))
+            print(kv_line("gpu_job", gpu_line[: width - 14], width, enabled, "32;1" if gpu_job else "90"))
+            for gpu in gpu_info[:2]:
+                gpu_line = (
+                    f"cuda:{gpu['index']} {gpu['util']}% "
+                    f"vram {gpu['mem_used']}/{gpu['mem_total']} MiB power {gpu['power']} W"
+                )
+                print(kv_line("gpu", gpu_line[: width - 14], width, enabled, "36;1"))
+            try:
+                free_gb = disk_free_gb(run_dir)
+                print(kv_line("disk", f"{free_gb:.1f} GiB free at run dir", width, enabled, "36"))
+            except OSError:
+                pass
+            print(color("╰" + "─" * (width - 2) + "╯", "34;1", enabled))
             totals = state.get("totals", {})
             print()
             print(color("╭─ Timing ─" + "─" * (width - 11) + "╮", "35;1", enabled))
