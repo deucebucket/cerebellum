@@ -1255,6 +1255,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     watch.add_argument("--stall-fail-seconds", type=float, default=900.0)
     watch.add_argument("--events-limit", type=int, default=12)
     watch.add_argument("--measurements-limit", type=int, default=8)
+    watch.add_argument("--tui", action="store_true", help="open scrollable interactive terminal UI")
     watch.add_argument("--plain", action="store_true")
     watch.add_argument("--no-color", action="store_true")
 
@@ -1386,6 +1387,9 @@ def events_cmd(args: argparse.Namespace) -> None:
 
 
 def watch_cmd(args: argparse.Namespace) -> None:
+    if args.tui:
+        tui_watch_cmd(args)
+        return
     run_dir = Path(args.run_dir)
     enabled = not args.no_color and not args.plain
     try:
@@ -1626,6 +1630,156 @@ def stop_cmd(args: argparse.Namespace) -> None:
     marker.write_text(utc_now() + "\n", encoding="utf-8")
     append_event(events_path, "run_stopped", reason=args.reason, signaled_pids=signaled)
     print(json.dumps({"run_dir": str(run_dir), "status": "stopped", "signaled_pids": signaled}, indent=2, sort_keys=True))
+
+
+def build_watch_model(run_dir: Path) -> dict[str, Any]:
+    state = read_json(run_dir / "state.json", {})
+    manifest = read_json(run_dir / "manifest.json", {})
+    events = read_jsonl(first_existing(run_dir, EVENT_FILES))
+    candidates = read_jsonl(first_existing(run_dir, CANDIDATE_FILES))
+    status = state.get("run_status")
+    terminal_events = {"run_stopped", "run_finish", "tensor_interrupted", "signal_received"}
+    if status in {"stopped", "complete", "failed"}:
+        active = next((row for row in reversed(events) if row.get("event") in terminal_events), {})
+    else:
+        active = next((row for row in reversed(events) if row.get("event") in {"tensor_start", "quant_start", "ppl_start"}), {})
+    total = next((row.get("total") for row in reversed(events) if row.get("total")), None)
+    locked = len(state.get("locked", {}))
+    bar, progress = progress_bar(locked, total, width=22)
+    active_age = event_age_seconds(active)
+    last_age = event_age_seconds(events[-1]) if events else None
+    processes = process_rows_for_run(run_dir)
+    active_processes = [row for row in processes if row["kind"] in {"quantize", "ppl"}]
+    eta, eta_basis = estimate_eta(state, active_age, total)
+    baseline_path = Path(state.get("baseline_path") or run_dir / "artifacts" / "current_baseline.gguf")
+    active_path = active.get("tmp_output") or active.get("output") or active.get("model")
+    return {
+        "state": state,
+        "manifest": manifest,
+        "events": events,
+        "candidates": candidates,
+        "active": active,
+        "processes": processes,
+        "active_processes": active_processes,
+        "gpu": gpu_rows(),
+        "bar": bar,
+        "progress": progress,
+        "active_age": active_age,
+        "last_age": last_age,
+        "eta": eta,
+        "eta_basis": eta_basis,
+        "baseline_path": baseline_path,
+        "baseline_size": path_size(baseline_path) if baseline_path.exists() else None,
+        "active_path": active_path,
+        "active_size": path_size(Path(active_path)) if active_path else None,
+    }
+
+
+def tui_watch_cmd(args: argparse.Namespace) -> None:
+    import curses
+
+    run_dir = Path(args.run_dir)
+    panes = ["events", "measurements", "processes", "files"]
+    offsets = {name: 0 for name in panes}
+    active_pane = 0
+
+    def draw(stdscr: Any) -> None:
+        nonlocal active_pane, offsets
+        curses.curs_set(0)
+        stdscr.nodelay(True)
+        stdscr.timeout(max(250, int(args.interval * 1000)))
+        if curses.has_colors():
+            curses.start_color()
+            curses.use_default_colors()
+            for idx, fg in enumerate([curses.COLOR_CYAN, curses.COLOR_GREEN, curses.COLOR_YELLOW, curses.COLOR_MAGENTA, curses.COLOR_RED, curses.COLOR_WHITE], 1):
+                curses.init_pair(idx, fg, -1)
+        while True:
+            model = build_watch_model(run_dir)
+            h, w = stdscr.getmaxyx()
+            stdscr.erase()
+            state = model["state"]
+            manifest = model["manifest"]
+            active = model["active"]
+            title = " CEREBELLUM LIVE "
+            stdscr.addnstr(0, max(0, (w - len(title)) // 2), title, w - 1, curses.color_pair(1) | curses.A_BOLD)
+            summary = [
+                f"run {manifest.get('run_id') or state.get('run_id') or run_dir.name}",
+                f"model {state.get('model_family')}/{state.get('model_name')}  status {state.get('run_status')}  profile {manifest.get('ppl_profile') or state.get('ppl_profile') or 'custom'}",
+                f"progress {model['bar']} {model['progress']}  ppl {state.get('current_ppl')}  eta {model['eta']} ({model['eta_basis']})",
+                f"active {active.get('event')} {active.get('level')} {active.get('tensor')}  age {fmt_seconds(model['active_age'])}  last event {fmt_seconds(model['last_age'])}",
+                f"sizes current {fmt_bytes(model['baseline_size'])}  active {fmt_bytes(model['active_size'])}  disk {disk_free_gb(run_dir):.1f} GiB free",
+            ]
+            for y, line in enumerate(summary, 2):
+                if y < h:
+                    stdscr.addnstr(y, 0, line, w - 1, curses.color_pair(6))
+            tab_y = min(8, h - 2)
+            x = 0
+            for idx, pane in enumerate(panes):
+                label = f" {pane.upper()} "
+                attr = curses.A_REVERSE | curses.color_pair(2) if idx == active_pane else curses.color_pair(1)
+                stdscr.addnstr(tab_y, x, label, max(0, w - x - 1), attr)
+                x += len(label) + 1
+            body_top = tab_y + 2
+            body_h = max(1, h - body_top - 2)
+            pane = panes[active_pane]
+            lines: list[str] = []
+            if pane == "events":
+                for row in reversed(model["events"]):
+                    lines.append(f"{row.get('timestamp_utc', '')[-13:]} {row.get('event', ''):<20} {row.get('level', ''):<6} {row.get('tensor', '')}")
+            elif pane == "measurements":
+                for row in reversed(model["candidates"]):
+                    delta = row.get("delta")
+                    delta_s = "-" if delta is None else f"{delta:+.4f}"
+                    lines.append(f"{row.get('level', '-'):<6} ppl={row.get('ppl', '-')} delta={delta_s:<12} q={fmt_bytes(row.get('size_bytes')):<10} {row.get('tensor', '')}")
+            elif pane == "processes":
+                for row in model["processes"]:
+                    lines.append(f"{row['kind']:<9} pid={row['pid']:<7} etime={row['etime']:<9} cpu={row['pcpu']:>6}% mem={row['pmem']:>5}% {row['cmd'][:90]}")
+                for gpu in model["gpu"]:
+                    lines.append(f"gpu       cuda:{gpu['index']} util={gpu['util']}% vram={gpu['mem_used']}/{gpu['mem_total']} MiB power={gpu['power']} W {gpu['name']}")
+            else:
+                paths = [
+                    ("run_dir", run_dir),
+                    ("baseline", model["baseline_path"]),
+                ]
+                if model["active_path"]:
+                    paths.append(("active", Path(model["active_path"])))
+                for label, path in paths:
+                    lines.append(f"{label:<10} {fmt_bytes(path_size(path) if path.exists() else None):<10} {path}")
+            max_offset = max(0, len(lines) - body_h)
+            offsets[pane] = max(0, min(offsets[pane], max_offset))
+            visible = lines[offsets[pane] : offsets[pane] + body_h]
+            for idx, line in enumerate(visible):
+                y = body_top + idx
+                attr = curses.color_pair(6)
+                if "delta=-" in line:
+                    attr = curses.color_pair(2)
+                elif "delta=+" in line or "failure" in line.lower():
+                    attr = curses.color_pair(5)
+                elif "ppl" in line or "quantize" in line:
+                    attr = curses.color_pair(3)
+                stdscr.addnstr(y, 0, line, w - 1, attr)
+            footer = "Tab pane | arrows/PageUp/PageDown scroll | r reset | q quit | compact: watch without --tui"
+            stdscr.addnstr(h - 1, 0, footer, w - 1, curses.color_pair(1))
+            stdscr.refresh()
+            key = stdscr.getch()
+            if key in {ord("q"), ord("Q"), 27}:
+                return
+            if key in {9, curses.KEY_RIGHT}:
+                active_pane = (active_pane + 1) % len(panes)
+            elif key == curses.KEY_LEFT:
+                active_pane = (active_pane - 1) % len(panes)
+            elif key == curses.KEY_DOWN:
+                offsets[panes[active_pane]] += 1
+            elif key == curses.KEY_UP:
+                offsets[panes[active_pane]] -= 1
+            elif key == curses.KEY_NPAGE:
+                offsets[panes[active_pane]] += body_h
+            elif key == curses.KEY_PPAGE:
+                offsets[panes[active_pane]] -= body_h
+            elif key in {ord("r"), ord("R")}:
+                offsets = {name: 0 for name in panes}
+
+    curses.wrapper(draw)
 
 
 def runs_cmd(args: argparse.Namespace) -> None:
