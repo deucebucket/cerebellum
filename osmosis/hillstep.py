@@ -154,6 +154,56 @@ def fmt_seconds(seconds: float | None) -> str:
     return f"{int(hours)}h{int(minutes):02d}m"
 
 
+def event_age_seconds(row: dict[str, Any]) -> float | None:
+    timestamp = row.get("timestamp_utc")
+    if not timestamp:
+        return None
+    try:
+        then = datetime.fromisoformat(str(timestamp).replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    return max(0.0, (datetime.now(timezone.utc) - then).total_seconds())
+
+
+def process_rows_for_run(run_dir: Path) -> list[dict[str, Any]]:
+    proc = subprocess.run(["ps", "-eo", "pid=,ppid=,stat=,etime=,pcpu=,pmem=,cmd="], capture_output=True, text=True)
+    rows: list[dict[str, Any]] = []
+    run_key = str(run_dir)
+    run_name = run_dir.name
+    for line in proc.stdout.splitlines():
+        parts = line.strip().split(None, 6)
+        if len(parts) < 7:
+            continue
+        pid, ppid, stat, etime, pcpu, pmem, cmd = parts
+        if run_key not in cmd and run_name not in cmd:
+            continue
+        if "cerebellum watch" in cmd:
+            continue
+        kind = "process"
+        if "cerebellum run" in cmd:
+            kind = "runner"
+        elif cmd.startswith("/usr/bin/sh /usr/bin/distrobox") or cmd.startswith("podman exec"):
+            kind = "container"
+        elif "llama-quantize" in cmd:
+            kind = "quantize"
+        elif "llama-perplexity" in cmd:
+            kind = "ppl"
+        rows.append(
+            {
+                "pid": pid,
+                "ppid": ppid,
+                "stat": stat,
+                "etime": etime,
+                "pcpu": pcpu,
+                "pmem": pmem,
+                "kind": kind,
+                "cmd": cmd,
+            }
+        )
+    rows.sort(key=lambda row: {"runner": 0, "quantize": 1, "ppl": 2, "container": 3}.get(row["kind"], 9))
+    return rows
+
+
 def parse_ppl(output: str) -> tuple[float | None, float | None]:
     for line in output.splitlines():
         if "Final estimate" not in line:
@@ -1109,6 +1159,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     watch.add_argument("run_dir")
     watch.add_argument("--interval", type=float, default=5.0)
     watch.add_argument("--once", action="store_true", help="render one frame and exit")
+    watch.add_argument("--stall-warn-seconds", type=float, default=300.0)
+    watch.add_argument("--stall-fail-seconds", type=float, default=900.0)
     watch.add_argument("--plain", action="store_true")
     watch.add_argument("--no-color", action="store_true")
 
@@ -1256,6 +1308,36 @@ def watch_cmd(args: argparse.Namespace) -> None:
                 active = next((row for row in reversed(events) if row.get("event") in terminal_events), {})
             else:
                 active = next((row for row in reversed(events) if row.get("event") in {"tensor_start", "quant_start", "ppl_start"}), {})
+            last_event = events[-1] if events else {}
+            last_event_age = event_age_seconds(last_event)
+            active_age = event_age_seconds(active)
+            processes = process_rows_for_run(run_dir)
+            active_processes = [row for row in processes if row["kind"] in {"quantize", "ppl"}]
+            runner_processes = [row for row in processes if row["kind"] == "runner"]
+            health = "idle"
+            health_reason = "not running"
+            health_code = "90"
+            if status == "running":
+                if active_processes:
+                    health = "active"
+                    health_reason = ", ".join(f"{row['kind']} pid {row['pid']} {row['etime']}" for row in active_processes[:2])
+                    health_code = "32;1"
+                elif runner_processes and last_event_age is not None and last_event_age < args.stall_warn_seconds:
+                    health = "waiting"
+                    health_reason = f"runner alive; last event {fmt_seconds(last_event_age)} ago"
+                    health_code = "33;1"
+                elif runner_processes and last_event_age is not None and last_event_age < args.stall_fail_seconds:
+                    health = "stalled?"
+                    health_reason = f"runner alive but no event for {fmt_seconds(last_event_age)}"
+                    health_code = "33;1"
+                elif runner_processes:
+                    health = "failure suspected"
+                    health_reason = f"runner alive, no event for {fmt_seconds(last_event_age)}"
+                    health_code = "31;1"
+                else:
+                    health = "failure suspected"
+                    health_reason = "state says running but no runner process found"
+                    health_code = "31;1"
             os.system("clear" if os.name != "nt" else "cls")
             width = 96
             run_id = manifest.get("run_id") or state.get("run_id") or run_dir.name
@@ -1288,6 +1370,18 @@ def watch_cmd(args: argparse.Namespace) -> None:
             if last_tensor:
                 print(f"│ last     {str(last_tensor):<{width - 13}}│")
             print(color("╰" + "─" * (width - 2) + "╯", "37;1", enabled))
+            print()
+            print(color("╭─ Activity / health ─" + "─" * (width - 22) + "╮", health_code, enabled))
+            print(f"│ health   {health:<{width - 13}}│")
+            print(f"│ reason   {health_reason[:width - 13]:<{width - 13}}│")
+            print(f"│ active   {fmt_seconds(active_age):<{width - 13}}│")
+            print(f"│ last_evt {fmt_seconds(last_event_age):<{width - 13}}│")
+            for row in active_processes[:3]:
+                line = f"{row['kind']} pid={row['pid']} etime={row['etime']} cpu={row['pcpu']}% mem={row['pmem']}%"
+                print(f"│ proc     {line[:width - 13]:<{width - 13}}│")
+            if status == "running" and not active_processes:
+                print(f"│ warning  {'no active llama child process detected':<{width - 13}}│")
+            print(color("╰" + "─" * (width - 2) + "╯", health_code, enabled))
             totals = state.get("totals", {})
             print()
             print(color("╭─ Timing ─" + "─" * (width - 11) + "╮", "35;1", enabled))
