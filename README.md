@@ -11,6 +11,24 @@ The Python package is still named `osmosis` for compatibility with existing
 scripts and old experiment files. New documentation and release artifacts use
 the Cerebellum name.
 
+## Current State
+
+Current private-dev work is centered on visible, resumable Cerebellum
+hill-climber runs. The active Gemma 4 12B path starts from an explicit Q4
+baseline, walks every quantizable tensor, and tests both demotions and
+promotions before locking a tensor type. That is deeper than the older
+group-first experiments, so it should produce better data, but it still needs a
+finished GGUF, coherent chat smoke checks, and audited benchmarks before any
+release claim is treated as proven.
+
+Historical Cerebellum and legacy Osmosis-era artifacts are intentionally kept
+as evidence. Do not delete old logs, tensor maps, ablation traces, benchmark
+outputs, or model-card drafts unless there is a separate cleanup plan and a
+verified backup. The private `cerebellum-dev/README.md` is the factory index for
+current experiments, old evidence, and unpublished automation. The private
+`cerebellum-dev/ARTIFACT_INVENTORY.md` tracks the current preservation-first
+inventory and cleanup categories.
+
 ## What This Repo Contains
 
 Cerebellum development is split between a public release surface and a private
@@ -148,7 +166,9 @@ hashes. It is intended for attribution and auditability, not hidden watermarking
 `finalize` writes metadata sidecars and a model-card block everywhere; if a
 compatible `gguf-set-metadata` tool is installed, `--inject` can tag the GGUF.
 `compare-gguf-types` is useful for private Dynamic GGUF/Cerebellum comparisons:
-it reports tensor-type deltas by type, component, and layer.
+it reports tensor-type deltas by type, component, and layer, builds a Dynamic
+Quant Profile, and can compare a candidate against a planned tensor map with
+`--reference-map`.
 `package` writes a portable upload manifest. Public mode is the default and
 writes sanitized release sidecars under `public_package/`, with no run IDs, raw
 PPL, tensor maps, event logs, local paths, or selection internals. Use
@@ -421,6 +441,10 @@ Current profiles are `general`, `code`, `reason`, `chat`, `tools`, and
 variant suffix, and when relevant a resource strategy. `cpu-offload` is for
 huge models such as GLM-5.1 where size, CPU/RAM throughput, and optional GPU
 layer offload matter as much as raw VRAM fit.
+The CPU-offload plan is still a manifest layer: it records streaming artifacts,
+the final tensor map, throughput probe commands, Dynamic GGUF comparison, and
+auth-sensitive benchmark blockers without requiring a full in-memory model
+load.
 
 For each released model, keep a reproducibility bundle next to the benchmark
 artifacts when practical:
