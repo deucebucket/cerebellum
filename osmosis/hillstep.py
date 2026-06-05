@@ -4986,13 +4986,64 @@ def pipeline_run_markdown(plan: dict[str, Any]) -> str:
     ]
     if plan.get("blockers"):
         parts.extend(["", "## Blockers", "", markdown_table(["Phase", "Reason"], [[row["phase"], row["reason"]] for row in plan["blockers"]])])
+    if plan.get("executions"):
+        parts.extend(
+            [
+                "",
+                "## Executions",
+                "",
+                markdown_table(
+                    ["Phase", "Return", "Log"],
+                    [[str(row["phase"]), str(row["returncode"]), str(row["log"])] for row in plan["executions"]],
+                ),
+            ]
+        )
     return "\n".join(parts) + "\n"
+
+
+def append_pipeline_event(path: Path, event: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"time": utc_now(), **event}, sort_keys=True) + "\n")
+
+
+def pipeline_run_execute(plan: dict[str, Any]) -> dict[str, Any]:
+    if plan["blocked"]:
+        raise SystemExit("pipeline-run has blockers; fix the manifest before --execute")
+    manifest_path = Path(plan["manifest"])
+    log_dir = manifest_path.parent / "pipeline_run_logs"
+    event_log = manifest_path.parent / "pipeline_run_events.jsonl"
+    executions: list[dict[str, Any]] = []
+    for phase in plan["phases"]:
+        command = str(phase["command"])
+        name = slug(str(phase["name"]))
+        log_path = log_dir / f"{int(phase['index']):02d}_{name}.log"
+        append_pipeline_event(event_log, {"event": "phase_start", "phase": phase["name"], "command": command})
+        started = time.monotonic()
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "w", encoding="utf-8") as log:
+            proc = subprocess.run(shlex.split(command), cwd=manifest_path.parent, stdout=log, stderr=subprocess.STDOUT, text=True, check=False)
+        elapsed = time.monotonic() - started
+        row = {
+            "phase": phase["name"],
+            "command": command,
+            "returncode": proc.returncode,
+            "elapsed_seconds": round(elapsed, 3),
+            "log": str(log_path),
+        }
+        executions.append(row)
+        append_pipeline_event(event_log, {"event": "phase_finish", **row})
+        if proc.returncode != 0:
+            plan.update({"dry_run": False, "blocked": True, "blockers": [{"phase": phase["name"], "reason": f"command exited {proc.returncode}"}], "executions": executions, "event_log": str(event_log)})
+            return plan
+    plan.update({"dry_run": False, "executions": executions, "event_log": str(event_log)})
+    return plan
 
 
 def pipeline_run_cmd(args: argparse.Namespace) -> None:
     plan = pipeline_run_plan(Path(args.manifest), from_phase=args.from_phase, until_phase=args.until_phase)
     if args.execute:
-        raise SystemExit("pipeline-run execution is not enabled yet; omit --execute for dry-run validation")
+        plan = pipeline_run_execute(plan)
     if args.json:
         print(json.dumps(plan, indent=2, sort_keys=True))
     else:

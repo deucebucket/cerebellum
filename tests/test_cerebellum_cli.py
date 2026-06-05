@@ -63,6 +63,7 @@ from cerebellum import (
     pipeline_plan_cmd,
     pipeline_run_args_from_query,
     pipeline_run_cmd,
+    pipeline_run_execute,
     pipeline_run_plan,
     public_audit,
     public_audit_cmd,
@@ -906,6 +907,9 @@ def test_pipeline_run_command_parses():
     assert args.execute is False
     assert args.json is True
 
+    execute_args = parse_args(["pipeline-run", "--manifest", "pipeline.json", "--execute"])
+    assert execute_args.execute is True
+
 
 def test_pipeline_run_plan_slices_manifest(tmp_path: Path):
     manifest = tmp_path / "pipeline.json"
@@ -953,10 +957,23 @@ def test_pipeline_run_api_query_args_validate():
         raise AssertionError("pipeline-run API query should require manifest")
 
 
-def test_pipeline_run_cmd_prints_dry_run_and_blocks_execute(tmp_path: Path, capsys):
+def test_pipeline_run_cmd_prints_dry_run_and_executes_phases(tmp_path: Path, capsys):
     manifest = tmp_path / "pipeline.json"
+    output = tmp_path / "phase.out"
     manifest.write_text(
-        json.dumps({"pipeline": "cerebellum", "phases": [{"name": "imatrix", "status": "planned", "command": "cerebellum imatrix"}]}),
+        json.dumps(
+            {
+                "pipeline": "cerebellum",
+                "phases": [
+                    {"name": "imatrix", "status": "planned", "command": "cerebellum imatrix"},
+                    {
+                        "name": "local-smoke",
+                        "status": "planned",
+                        "command": f"{sys.executable} -c \"from pathlib import Path; Path('phase.out').write_text('ok')\"",
+                    },
+                ],
+            }
+        ),
         encoding="utf-8",
     )
     args = parse_args(["pipeline-run", "--manifest", str(manifest)])
@@ -964,13 +981,40 @@ def test_pipeline_run_cmd_prints_dry_run_and_blocks_execute(tmp_path: Path, caps
     pipeline_run_cmd(args)
     assert "# Cerebellum Pipeline Run" in capsys.readouterr().out
 
-    execute_args = parse_args(["pipeline-run", "--manifest", str(manifest), "--execute"])
-    try:
-        pipeline_run_cmd(execute_args)
-    except SystemExit as exc:
-        assert "execution is not enabled yet" in str(exc)
-    else:
-        raise AssertionError("pipeline-run --execute should be guarded")
+    execute_args = parse_args(["pipeline-run", "--manifest", str(manifest), "--from-phase", "local-smoke", "--execute", "--json"])
+    pipeline_run_cmd(execute_args)
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["dry_run"] is False
+    assert output.read_text(encoding="utf-8") == "ok"
+    assert Path(payload["event_log"]).is_file()
+    assert Path(payload["executions"][0]["log"]).is_file()
+
+
+def test_pipeline_run_execute_stops_on_failure(tmp_path: Path):
+    manifest = tmp_path / "pipeline.json"
+    skipped = tmp_path / "skipped.out"
+    manifest.write_text(
+        json.dumps(
+            {
+                "pipeline": "cerebellum",
+                "phases": [
+                    {"name": "fail", "status": "planned", "command": f"{sys.executable} -c \"raise SystemExit(7)\""},
+                    {"name": "skip", "status": "planned", "command": f"{sys.executable} -c \"from pathlib import Path; Path('skipped.out').write_text('bad')\""},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    plan = pipeline_run_plan(manifest)
+    result = pipeline_run_execute(plan)
+
+    assert result["dry_run"] is False
+    assert result["blocked"] is True
+    assert result["blockers"] == [{"phase": "fail", "reason": "command exited 7"}]
+    assert [row["phase"] for row in result["executions"]] == ["fail"]
+    assert not skipped.exists()
 
 
 def test_pipeline_plan_query_args_use_task_profile_defaults():
