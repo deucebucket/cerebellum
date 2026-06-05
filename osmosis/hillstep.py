@@ -1847,6 +1847,7 @@ class HillStepper:
             if c.status == "failed":
                 state["totals"]["failures"] += 1
 
+        self.write_types(state["locked"], self.paths.current_types)
         old_baseline = self.paths.baseline
         if best_candidate is not None and best_candidate.gguf_path.exists():
             old_backup = old_baseline.with_suffix(".previous.gguf")
@@ -1855,7 +1856,41 @@ class HillStepper:
             os.replace(best_candidate.gguf_path, old_baseline)
             if old_backup.exists():
                 old_backup.unlink()
-        self.write_types(state["locked"], self.paths.current_types)
+        elif best_candidate is not None:
+            tmp_baseline = old_baseline.with_suffix(old_baseline.suffix + ".tmp")
+            if tmp_baseline.exists():
+                tmp_baseline.unlink()
+            self.events.write("baseline_rebuild_start", path=str(old_baseline), reason="winning candidate artifact missing")
+            rc, output, seconds = run_external(
+                self.quantize_cmd(self.paths.current_types, tmp_baseline),
+                self.cfg.quant_timeout,
+                self.cfg.distrobox,
+                heartbeat=lambda elapsed, pid: self.events.write(
+                    "baseline_rebuild_heartbeat",
+                    path=str(old_baseline),
+                    elapsed_seconds=elapsed,
+                    child_pid=pid,
+                    size_bytes=path_size(tmp_baseline),
+                ),
+            )
+            self.events.write(
+                "baseline_rebuild_finish",
+                path=str(old_baseline),
+                returncode=rc,
+                seconds=seconds,
+                size_bytes=path_size(tmp_baseline),
+                output_tail=output[-2000:],
+            )
+            if rc != 0 or not tmp_baseline.exists() or path_size(tmp_baseline) <= 0:
+                if tmp_baseline.exists():
+                    tmp_baseline.unlink()
+                raise SystemExit("baseline rebuild failed after tensor lock; see events.jsonl")
+            old_backup = old_baseline.with_suffix(".previous.gguf")
+            if old_baseline.exists():
+                os.replace(old_baseline, old_backup)
+            os.replace(tmp_baseline, old_baseline)
+            if old_backup.exists():
+                old_backup.unlink()
         self.save_state(state, checkpoint=(len(state["locked"]) % self.cfg.backup_every == 0))
         self.events.write("tensor_locked", tensor=tensor, winner=best_level, ppl=best_ppl, baseline_ppl=baseline_ppl, reason=winner_reason)
 
