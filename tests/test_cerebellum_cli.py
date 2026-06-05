@@ -98,6 +98,9 @@ from cerebellum import (
     public_export_plan,
     public_export_plan_args_from_query,
     public_export_markdown,
+    release_gate,
+    release_gate_cmd,
+    release_gate_markdown,
     read_tensor_type_map,
     task_profiles_cmd,
     task_profiles_markdown,
@@ -2749,6 +2752,129 @@ def test_public_export_cmd_copies_manifest_and_files(tmp_path: Path, monkeypatch
     assert manifest["schema"] == "cerebellum.public_export.v1"
     assert manifest["files"][0]["path"] == "README.md"
     assert "manifest:" in capsys.readouterr().out
+
+
+def test_release_gate_command_parses():
+    args = parse_args(
+        [
+            "release-gate",
+            "README.md",
+            "--remote",
+            "origin",
+            "--benchmark-results",
+            "benchmark_results",
+            "--suite",
+            "release",
+            "--model",
+            "Cerebellum",
+            "--require-benchmarks",
+            "--json",
+            "--max-bytes",
+            "100",
+        ]
+    )
+
+    assert args.cmd == "release-gate"
+    assert args.paths == ["README.md"]
+    assert args.remote == "origin"
+    assert args.benchmark_results == ["benchmark_results"]
+    assert args.require_benchmarks is True
+    assert args.json is True
+    assert args.max_bytes == 100
+
+
+def test_release_gate_origin_blocks_private_artifacts(tmp_path: Path):
+    safe = tmp_path / "README.md"
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    risky = scripts / "factory.sh"
+    safe.write_text("public release notes\n", encoding="utf-8")
+    risky.write_text("HF_TOKEN=secret\n", encoding="utf-8")
+
+    report = release_gate([str(safe), str(risky)], remote="origin")
+    markdown = release_gate_markdown(report)
+
+    assert report["schema"] == "cerebellum.release_gate.v1"
+    assert report["visibility"] == "public"
+    assert report["ready"] is False
+    assert {item["source"] for item in report["blockers"]} >= {"public_audit", "path_policy"}
+    assert any(item["reason"] == "not in public export allowlist" for item in report["non_allowlisted"])
+    assert "Release gate blocked" in markdown
+
+
+def test_release_gate_dev_warns_without_blocking_private_artifacts(tmp_path: Path):
+    scripts = tmp_path / "scripts"
+    scripts.mkdir()
+    risky = scripts / "factory.sh"
+    risky.write_text("HF_TOKEN=secret\n", encoding="utf-8")
+
+    report = release_gate([str(risky)], remote="dev")
+
+    assert report["visibility"] == "private"
+    assert report["mode"] == "advisory"
+    assert report["ready"] is True
+    assert report["blockers"] == []
+    assert {item["source"] for item in report["warnings"]} >= {"public_audit", "path_policy"}
+
+
+def test_release_gate_requires_complete_benchmark_results(tmp_path: Path, monkeypatch):
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_gate", ["arc", "hellaswag"])
+    readme = tmp_path / "README.md"
+    benches = tmp_path / "benchmark_results"
+    benches.mkdir()
+    readme.write_text("public release notes\n", encoding="utf-8")
+    (benches / "model_arc_results.json").write_text('{"benchmark":"arc","accuracy":0.8}\n', encoding="utf-8")
+
+    report = release_gate(
+        [str(readme)],
+        remote="origin",
+        benchmark_results=[str(benches)],
+        suite="unit_gate",
+        model="model",
+        require_benchmarks=True,
+    )
+
+    assert report["ready"] is False
+    blocker = next(item for item in report["blockers"] if item["source"] == "benchmark_manifest")
+    assert blocker["missing"] == ["hellaswag"]
+
+
+def test_release_gate_accepts_clean_origin_with_complete_manifest(tmp_path: Path, monkeypatch):
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_gate", ["arc"])
+    readme = tmp_path / "README.md"
+    benches = tmp_path / "benchmark_results"
+    benches.mkdir()
+    readme.write_text("public release notes\n", encoding="utf-8")
+    (benches / "model_arc_results.json").write_text('{"benchmark":"arc","accuracy":0.8}\n', encoding="utf-8")
+
+    report = release_gate(
+        [str(readme)],
+        remote="origin",
+        benchmark_results=[str(benches)],
+        suite="unit_gate",
+        model="model",
+        require_benchmarks=True,
+    )
+
+    assert report["ready"] is True
+    assert report["blockers"] == []
+    assert report["benchmark_manifest"]["missing_measured"] == []
+    assert {item["path"] for item in report["export_plan"]["files"]} == {"README.md"}
+
+
+def test_release_gate_cmd_exits_nonzero_on_blockers(tmp_path: Path, capsys):
+    risky = tmp_path / "state.json"
+    risky.write_text("{}", encoding="utf-8")
+    args = parse_args(["release-gate", str(risky), "--remote", "origin"])
+
+    try:
+        release_gate_cmd(args)
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        raise AssertionError("release gate should exit non-zero when blocked")
+
+    assert "Release gate blocked" in capsys.readouterr().out
 
 
 def test_artifact_inventory_categorizes_legacy_files(tmp_path: Path):

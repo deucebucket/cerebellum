@@ -159,6 +159,7 @@ cerebellum finalize --run-dir /path/to/run --gguf model.gguf
 cerebellum package /path/to/run
 cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
 cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_results/ --clean
+cerebellum release-gate README.md docs/ benchmark_results/ --remote origin --benchmark-results benchmark_results --suite release --model Cerebellum --require-benchmarks
 cerebellum artifact-inventory . --output cerebellum-dev/artifact_inventory.json --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
 cerebellum queue add --kind pipeline --manifest /path/to/pipeline.json
 cerebellum queue list
@@ -193,6 +194,11 @@ Use `public-export` to assemble a clean public tree from allowlisted docs, model
 cards, benchmark artifacts, and release assets. It audits every selected file,
 skips blocked content, writes `cerebellum_public_export_manifest.json`, and does
 not rewrite Git history by itself.
+Use `release-gate` before pushing to `origin`. It treats `origin` as
+public-strict, combines `public-audit`, `public-export`, and optional benchmark
+manifest completeness checks, and exits non-zero on blockers. The private `dev`
+remote is advisory for public-safety findings so factory artifacts can stay in
+`cerebellum-dev` without pretending they are public-safe.
 Use `artifact-inventory` before cleanup. It scans file paths and sizes without
 reading log contents, groups legacy model trees and private artifacts into
 storage categories, flags public-risk paths, and writes JSON/Markdown inventory

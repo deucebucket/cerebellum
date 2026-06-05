@@ -2803,6 +2803,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     public_export.add_argument("--json", action="store_true")
     public_export.add_argument("--max-bytes", type=int, default=512_000, help="max bytes to audit from each file")
 
+    release_gate = sub.add_parser("release-gate", help="gate public/private release candidates before pushing")
+    release_gate.add_argument("paths", nargs="*", help="files/directories to gate; defaults to tracked public-safe files")
+    release_gate.add_argument("--remote", default="origin", help="target git remote name; origin is public-strict, dev is private/advisory")
+    release_gate.add_argument("--benchmark-results", action="append", default=[], help="benchmark result directory/file; may be repeated")
+    release_gate.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    release_gate.add_argument("--model", default=None)
+    release_gate.add_argument("--require-benchmarks", action="store_true", help="fail when selected suite measured benchmark JSONs are incomplete")
+    release_gate.add_argument("--max-bytes", type=int, default=512_000, help="max bytes to audit from each file")
+    release_gate.add_argument("--json", action="store_true")
+
     inventory = sub.add_parser("artifact-inventory", help="inventory legacy Cerebellum artifacts without deleting anything")
     inventory.add_argument("root", nargs="?", default=".", help="workspace root to scan")
     inventory.add_argument("--output", default=None, help="optional JSON output path")
@@ -3070,6 +3080,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and sys.argv[1] not in {
             "run", "imatrix", "status", "events", "runs", "schedule", "db", "report",
             "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "inspect-gguf-types", "finalize", "package", "plan-space",
+            "public-audit", "public-export", "release-gate", "artifact-inventory",
+            "benchmark-plan", "benchmark-run", "benchmark-ingest", "benchmark-status", "benchmark-rebench-plan", "benchmark-manifest", "benchmark-audit",
+            "benchmark-report", "cpu-offload-smoke", "compare-gguf-types", "compare-locks",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
             "cleanup", "rollback",
             "backup",
@@ -8147,6 +8160,170 @@ def public_export_plan(paths: list[str] | None = None, max_bytes: int = 512_000)
     }
 
 
+def release_gate_remote_policy(remote: str) -> dict[str, str]:
+    normalized = (remote or "").strip() or "origin"
+    if normalized == "origin":
+        return {
+            "remote": normalized,
+            "visibility": "public",
+            "mode": "strict",
+            "reason": "origin is the public release remote",
+        }
+    if normalized == "dev":
+        return {
+            "remote": normalized,
+            "visibility": "private",
+            "mode": "advisory",
+            "reason": "dev is the private factory remote",
+        }
+    return {
+        "remote": normalized,
+        "visibility": "unknown",
+        "mode": "advisory",
+        "reason": "unknown remotes are not assumed to be public origin",
+    }
+
+
+def release_gate_explicit_path_findings(paths: list[str] | None) -> list[dict[str, Any]]:
+    if not paths:
+        return []
+    allowed = {path.resolve() for path in public_export_candidates(paths)}
+    findings = []
+    for path in expand_audit_paths(paths):
+        if path.resolve() in allowed:
+            continue
+        findings.append(
+            {
+                "path": repo_relative_path(path).as_posix(),
+                "kind": "path",
+                "reason": "not in public export allowlist",
+                "severity": "blocker",
+            }
+        )
+    return findings
+
+
+def release_gate(
+    paths: list[str] | None = None,
+    *,
+    remote: str = "origin",
+    benchmark_results: list[str] | None = None,
+    suite: str = "release",
+    model: str | None = None,
+    require_benchmarks: bool = False,
+    max_bytes: int = 512_000,
+) -> dict[str, Any]:
+    policy = release_gate_remote_policy(remote)
+    selected_paths = paths or []
+    benchmark_paths = benchmark_results or []
+    audit_targets = selected_paths if selected_paths else [str(path) for path in public_export_candidates([])]
+    audit = public_audit(audit_targets, max_bytes=max_bytes)
+    export_plan = public_export_plan(selected_paths, max_bytes=max_bytes)
+    non_allowlisted = release_gate_explicit_path_findings(selected_paths)
+    benchmark = benchmark_manifest(benchmark_paths, suite=suite, model=model) if benchmark_paths else None
+    blockers: list[dict[str, Any]] = []
+    warnings: list[dict[str, Any]] = []
+
+    if policy["visibility"] == "public":
+        if audit["blocked"]:
+            blockers.append({"source": "public_audit", "reason": "public audit has blocker findings", "count": len(audit["findings"])})
+        if export_plan["blocked"]:
+            blockers.append({"source": "public_export", "reason": "public export plan skipped audited files", "count": len(export_plan["skipped"])})
+        if non_allowlisted:
+            blockers.append({"source": "path_policy", "reason": "explicit paths are not public export allowlisted", "count": len(non_allowlisted)})
+    else:
+        if audit["blocked"]:
+            warnings.append({"source": "public_audit", "reason": "private/advisory remote has public-audit findings", "count": len(audit["findings"])})
+        if export_plan["blocked"]:
+            warnings.append({"source": "public_export", "reason": "private/advisory remote has skipped public-export files", "count": len(export_plan["skipped"])})
+        if non_allowlisted:
+            warnings.append({"source": "path_policy", "reason": "private/advisory remote includes non-public-export paths", "count": len(non_allowlisted)})
+
+    if require_benchmarks and not benchmark_paths:
+        blockers.append({"source": "benchmark_manifest", "reason": "benchmark results path required", "count": 0})
+    if benchmark and benchmark["missing_measured"]:
+        target = blockers if require_benchmarks else warnings
+        target.append(
+            {
+                "source": "benchmark_manifest",
+                "reason": "suite has missing measured benchmarks",
+                "count": len(benchmark["missing_measured"]),
+                "missing": benchmark["missing_measured"],
+            }
+        )
+
+    ready = not blockers
+    return {
+        "schema": "cerebellum.release_gate.v1",
+        "remote": policy["remote"],
+        "visibility": policy["visibility"],
+        "mode": policy["mode"],
+        "ready": ready,
+        "blockers": blockers,
+        "warnings": warnings,
+        "paths": selected_paths,
+        "benchmark_results": benchmark_paths,
+        "audit": audit,
+        "export_plan": export_plan,
+        "non_allowlisted": non_allowlisted,
+        "benchmark_manifest": benchmark,
+        "notes": [
+            policy["reason"],
+            "origin requires public-audit clean, public-export clean, and allowlisted explicit paths.",
+            "dev and unknown remotes are advisory for public-safety findings but still honor explicit benchmark gates.",
+            "This gate does not rewrite Git history; scrub or rebuild public history before pushing origin.",
+        ],
+    }
+
+
+def release_gate_markdown(report: dict[str, Any]) -> str:
+    title = "Release gate passed" if report["ready"] else "Release gate blocked"
+    parts = [
+        f"{title}: remote `{report['remote']}` ({report['visibility']}/{report['mode']}).",
+        "",
+    ]
+    if report["blockers"]:
+        rows = [
+            [item["source"], str(item.get("count", "")), item["reason"], ", ".join(item.get("missing", []))]
+            for item in report["blockers"]
+        ]
+        parts.extend(["## Blockers", "", markdown_table(["Source", "Count", "Reason", "Missing"], rows), ""])
+    if report["warnings"]:
+        rows = [
+            [item["source"], str(item.get("count", "")), item["reason"], ", ".join(item.get("missing", []))]
+            for item in report["warnings"]
+        ]
+        parts.extend(["## Warnings", "", markdown_table(["Source", "Count", "Reason", "Missing"], rows), ""])
+    if report["non_allowlisted"]:
+        rows = [[item["path"], item["reason"]] for item in report["non_allowlisted"][:25]]
+        parts.extend(["## Non-Allowlisted Explicit Paths", "", markdown_table(["Path", "Reason"], rows), ""])
+    manifest = report.get("benchmark_manifest")
+    if manifest:
+        measured = ", ".join(manifest["measured_benchmarks"]) or "-"
+        missing = ", ".join(manifest["missing_measured"]) or "-"
+        parts.extend(["## Benchmarks", "", f"measured: {measured}", f"missing: {missing}", ""])
+    parts.extend(["## Notes", "", *[f"- {note}" for note in report["notes"]]])
+    return "\n".join(parts).rstrip() + "\n"
+
+
+def release_gate_cmd(args: argparse.Namespace) -> None:
+    report = release_gate(
+        args.paths,
+        remote=args.remote,
+        benchmark_results=args.benchmark_results,
+        suite=args.suite,
+        model=args.model,
+        require_benchmarks=args.require_benchmarks,
+        max_bytes=args.max_bytes,
+    )
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print(release_gate_markdown(report), end="")
+    if not report["ready"]:
+        raise SystemExit(1)
+
+
 def public_export_plan_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
     try:
         max_bytes = int(query_value(qs, "max_bytes", 512_000))
@@ -9368,6 +9545,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "compare_gguf_types": "cerebellum compare-gguf-types BASE.gguf CANDIDATE.gguf --json",
                         "artifact_inventory": "cerebellum artifact-inventory ROOT --json",
                         "public_export_plan": "cerebellum public-export OUT --dry-run --json",
+                        "release_gate": "cerebellum release-gate README.md docs benchmark_results --remote origin --benchmark-results benchmark_results --require-benchmarks --json",
                         "benchmark_rebench_plan": "cerebellum benchmark-rebench-plan --suite humaneval --json",
                         "hf_stats": "cerebellum hf-stats --author deucebucket --json",
                     },
@@ -9664,6 +9842,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "public-export":
         public_export_cmd(args)
+        return
+    if args.cmd == "release-gate":
+        release_gate_cmd(args)
         return
     if args.cmd == "artifact-inventory":
         artifact_inventory_cmd(args)
