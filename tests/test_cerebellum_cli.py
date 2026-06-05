@@ -951,6 +951,7 @@ def test_inspect_gguf_types_summarizes_layers_and_components(tmp_path: Path, mon
     assert summary["type_counts"] == {"F16": 1, "F32": 1, "Q3_K": 1, "Q4_K": 1, "Q5_K": 1}
     assert summary["component_counts"]["ffn_down"] == {"Q4_K": 1, "Q5_K": 1}
     assert summary["layer_counts"]["blk.0"] == {"Q3_K": 1, "Q4_K": 1}
+    assert summary["tensor_types"]["blk.0.attn_q.weight"] == "Q3_K"
 
 
 def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, monkeypatch):
@@ -992,8 +993,29 @@ def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, 
     assert report["type_counts"]["Q3_K"]["delta"] == 1
     assert report["component_counts"]["ffn_down"]["Q5_K"]["delta"] == 1
     assert report["layer_counts"]["blk.0"]["Q4_K"]["delta"] == -2
+    assert report["tensor_type_changes"] == [
+        {
+            "tensor": "blk.0.attn_q.weight",
+            "layer": 0,
+            "component": "attn_q",
+            "baseline": "Q4_K",
+            "candidate": "Q3_K",
+            "status": "changed",
+            "quantizable": True,
+        },
+        {
+            "tensor": "blk.0.ffn_down.weight",
+            "layer": 0,
+            "component": "ffn_down",
+            "baseline": "Q4_K",
+            "candidate": "Q5_K",
+            "status": "changed",
+            "quantizable": True,
+        },
+    ]
     assert "candidate: `dynamic`" in markdown
     assert "| Q4_K | 3 | 1 | -2 |" in markdown
+    assert "| blk.0.attn_q.weight | Q4_K | Q3_K | changed |" in markdown
 
 
 def test_compare_locks_filters_non_quantizable_entries():

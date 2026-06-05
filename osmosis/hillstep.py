@@ -3720,10 +3720,12 @@ def inspect_gguf_types(gguf: Path) -> dict[str, Any]:
     type_counts: dict[str, int] = {}
     component_counts: dict[str, dict[str, int]] = {}
     layer_counts: dict[str, dict[str, int]] = {}
+    tensor_types: dict[str, str] = {}
     quantized_tensors = 0
     for tensor in reader.tensors:
         name = str(tensor.name)
         qtype = gguf_quant_type_name(getattr(tensor, "tensor_type", "unknown"))
+        tensor_types[name] = qtype
         type_counts[qtype] = type_counts.get(qtype, 0) + 1
         if is_quantizable_tensor(name):
             quantized_tensors += 1
@@ -3741,6 +3743,7 @@ def inspect_gguf_types(gguf: Path) -> dict[str, Any]:
         "type_counts": dict(sorted(type_counts.items())),
         "component_counts": {key: dict(sorted(value.items())) for key, value in sorted(component_counts.items())},
         "layer_counts": {key: dict(sorted(value.items())) for key, value in sorted(layer_counts.items())},
+        "tensor_types": dict(sorted(tensor_types.items())),
     }
 
 
@@ -3794,6 +3797,26 @@ def compare_gguf_types(
 ) -> dict[str, Any]:
     base = inspect_gguf_types(baseline)
     cand = inspect_gguf_types(candidate)
+    base_tensors = base["tensor_types"]
+    cand_tensors = cand["tensor_types"]
+    tensor_type_changes = []
+    for name in sorted(set(base_tensors) | set(cand_tensors)):
+        baseline_type = base_tensors.get(name)
+        candidate_type = cand_tensors.get(name)
+        if baseline_type == candidate_type:
+            continue
+        layer, component = parse_tensor_name(name)
+        tensor_type_changes.append(
+            {
+                "tensor": name,
+                "layer": layer,
+                "component": component,
+                "baseline": baseline_type,
+                "candidate": candidate_type,
+                "status": "missing_baseline" if baseline_type is None else "missing_candidate" if candidate_type is None else "changed",
+                "quantizable": is_quantizable_tensor(name),
+            }
+        )
     return {
         "baseline": {"label": baseline_label, "gguf": str(baseline), "summary": base},
         "candidate": {"label": candidate_label, "gguf": str(candidate), "summary": cand},
@@ -3802,6 +3825,7 @@ def compare_gguf_types(
         "type_counts": compare_count_maps(base["type_counts"], cand["type_counts"]),
         "component_counts": compare_nested_count_maps(base["component_counts"], cand["component_counts"]),
         "layer_counts": compare_nested_count_maps(base["layer_counts"], cand["layer_counts"]),
+        "tensor_type_changes": tensor_type_changes,
     }
 
 
@@ -3843,7 +3867,18 @@ def compare_gguf_types_markdown(report: dict[str, Any]) -> str:
     layer_rows = changed_nested_rows(report["layer_counts"])
     if layer_rows:
         parts.extend(["", "## Layer Deltas", "", markdown_table(["Layer", "Type", "Baseline", "Candidate", "Delta"], layer_rows)])
-    if not type_rows and not component_rows and not layer_rows:
+    tensor_rows = [
+        [
+            row["tensor"],
+            "-" if row.get("baseline") is None else str(row["baseline"]),
+            "-" if row.get("candidate") is None else str(row["candidate"]),
+            str(row["status"]),
+        ]
+        for row in report.get("tensor_type_changes", [])[:80]
+    ]
+    if tensor_rows:
+        parts.extend(["", "## Tensor Type Changes", "", markdown_table(["Tensor", "Baseline", "Candidate", "Status"], tensor_rows)])
+    if not type_rows and not component_rows and not layer_rows and not tensor_rows:
         parts.append("\nNo tensor type distribution differences detected.")
     return "\n".join(parts) + "\n"
 
