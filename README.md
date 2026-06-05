@@ -13,27 +13,22 @@ the Cerebellum name.
 
 ## What This Repo Contains
 
-Public Cerebellum is intentionally narrow:
+Cerebellum development is split between a public release surface and a private
+factory. The private factory contains the engine internals, tensor-selection
+logic, raw ablation traces, dashboards, and automation. The public release
+surface is intentionally narrow:
 
 - `cerebellum imatrix` generates llama.cpp-compatible imatrix files from
   safetensors without loading the full model into RAM.
 - `cerebellum imatrix --mode calibrated` generates an imatrix with optional activation
   calibration.
-- `osmosis/cerebellum.py` reads measured ablation results and writes a
-  `llama-quantize` tensor type override file.
-- `osmosis/budget.py` reads weight-sensitivity curves and writes a
-  budget-fitting tensor type override file.
-- `osmosis/micro_quantizer.py` contains shared sensitivity helpers used by the
-  imatrix generators.
+- public docs describe high-level recipes, model cards, benchmark summaries,
+  runtime flags, release hashes, and safe provenance.
 
-The public repo is not meant to ship dashboards, local automation, private
-devlogs, credentials, or one-off model-building scripts. Private exploration
-lives in `cerebellum-dev`; public release artifacts live here.
-
-Public release artifacts do include benchmark results, Cerebellum ablation
-results, and the configuration needed to reproduce a release: source/model
-hashes, imatrix provenance, ablation result JSON, tensor type files, allocator
-settings, runtime flags, and benchmark artifacts.
+Public release artifacts should not include raw ablation JSON, tensor maps,
+candidate event logs, private dashboards, local automation, private devlogs,
+credentials, or one-off model-building scripts unless a specific file has been
+reviewed and sanitized for release.
 
 ## How Cerebellum Works
 
@@ -98,7 +93,10 @@ cerebellum run \
   --start-type q4_K \
   --levels q3_K,q2_K,q5_K,q6_K,f16
 cerebellum watch /path/to/run
-cerebellum watch /path/to/run --public --once --plain   # screenshot-safe
+cerebellum watch --public --once --plain                # screenshot-safe when one run is active
+cerebellum watch gemma-4-12b-it --public --once --plain # or select by model/run name
+cerebellum status gemma-4-12b-it
+cerebellum recover
 cerebellum watch /path/to/run --tui
 cerebellum report /path/to/run
 ```
@@ -146,8 +144,10 @@ Cerebellum provenance uses visible `cerebellum.*` GGUF metadata keys and report
 hashes. It is intended for attribution and auditability, not hidden watermarking.
 `finalize` writes metadata sidecars and a model-card block everywhere; if a
 compatible `gguf-set-metadata` tool is installed, `--inject` can tag the GGUF.
-`package` writes a portable upload manifest with the sidecars Cerebellum expects
-to travel with a published GGUF.
+`package` writes a portable upload manifest. Public mode is the default and
+includes only release-safe finalize/model-card provenance sidecars. Use
+`--private` only for private dev uploads that intentionally include raw state,
+events, candidates, decisions, or tensor maps.
 
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,
@@ -157,15 +157,18 @@ so results remain comparable later.
 
 The live dashboard shows run identity, selected PPL profile, active quant/PPL
 work, live process health, current/active GGUF sizes, timing totals, recent
-measurements, and the event stream. The dashboard stays bounded by default;
-increase visible rows with `--events-limit N` and `--measurements-limit N`. Use
-`cerebellum watch RUN_DIR --tui` for an interactive terminal UI with independent
-scrollable panes for events, measurements, processes/GPU, and files.
+measurements, the locked layer map, and the event stream. The dashboard stays
+bounded by default; increase visible rows with `--events-limit N` and
+`--measurements-limit N`. Use `cerebellum watch RUN_DIR --tui` for an
+interactive terminal UI with independent scrollable panes for events,
+measurements, processes/GPU, and files.
 
-For public screenshots, use `cerebellum watch RUN_DIR --public --once --plain`.
+For public screenshots, use `cerebellum watch --public --once --plain`.
 It redacts tensor names, candidate quant levels, per-tensor PPL deltas, run IDs,
 paths, process IDs, and event details while still showing progress, health,
 resources, disk, and ETA.
+If exactly one Cerebellum run is active, `RUN_DIR` can be omitted. A model or
+run name such as `gemma-4-12b-it` can also be used instead of the full path.
 
 CLI layout redesign notes live in
 [docs/cerebellum_cli_layout_notes.md](docs/cerebellum_cli_layout_notes.md).

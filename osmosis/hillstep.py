@@ -537,6 +537,34 @@ def eta_grid_values(state: dict[str, Any], active_age: float | None, total: int 
     }
 
 
+def locked_layer_lines(state: dict[str, Any]) -> list[str]:
+    rows = state.get("tested") or []
+    by_layer: dict[str, list[str]] = {}
+    for row in rows:
+        tensor = str(row.get("tensor") or "")
+        winner = row.get("winner") or row.get("level")
+        if not tensor or not winner:
+            continue
+        layer, component = parse_tensor_name(tensor)
+        layer_label = f"blk.{layer}" if layer is not None else "global"
+        component_label = component or tensor
+        by_layer.setdefault(layer_label, []).append(f"{component_label}={winner}")
+    if not by_layer:
+        locked = state.get("locked", {})
+        for tensor, winner in locked.items():
+            layer, component = parse_tensor_name(str(tensor))
+            layer_label = f"blk.{layer}" if layer is not None else "global"
+            by_layer.setdefault(layer_label, []).append(f"{component or tensor}={winner}")
+    def sort_key(label: str) -> tuple[int, str]:
+        if label.startswith("blk."):
+            try:
+                return (int(label.split(".", 1)[1]), label)
+            except ValueError:
+                pass
+        return (10_000, label)
+    return [f"{layer:<8} " + "  ".join(entries) for layer, entries in sorted(by_layer.items(), key=lambda item: sort_key(item[0]))]
+
+
 def parse_ppl(output: str) -> tuple[float | None, float | None]:
     for line in output.splitlines():
         if "Final estimate" not in line:
@@ -803,6 +831,85 @@ def default_data_root() -> Path:
     if os.environ.get("CEREBELLUM_DATA_ROOT"):
         return Path(os.environ["CEREBELLUM_DATA_ROOT"])
     return Path.home() / "cerebellum-runs"
+
+
+def candidate_data_roots() -> list[Path]:
+    roots = [
+        default_data_root(),
+        Path.cwd() / "cerebellum-runs",
+        Path.home() / "games" / "cerebellum-runs",
+        Path.home() / "ai-drive" / "cerebellum-runs",
+    ]
+    seen: set[str] = set()
+    unique = []
+    for root in roots:
+        key = str(root.expanduser())
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(root)
+    return unique
+
+
+def known_run_dirs() -> list[Path]:
+    runs: list[Path] = []
+    seen: set[str] = set()
+    for root in candidate_data_roots():
+        if not root.exists():
+            continue
+        for manifest in run_glob(root):
+            run_dir = manifest.parent
+            key = str(run_dir.resolve())
+            if key not in seen:
+                seen.add(key)
+                runs.append(run_dir)
+    return sorted(runs)
+
+
+def run_matches_ref(run_dir: Path, ref: str) -> bool:
+    run = load_run(run_dir)
+    manifest = run.get("manifest", {})
+    state = run.get("state", {})
+    needles = {
+        run_dir.name,
+        str(manifest.get("run_id") or ""),
+        str(state.get("run_id") or ""),
+        str(manifest.get("model_name") or ""),
+        str(state.get("model_name") or ""),
+        f"{manifest.get('model_family')}/{manifest.get('model_name')}",
+        f"{state.get('model_family')}/{state.get('model_name')}",
+    }
+    return ref in needles
+
+
+def run_is_live(run_dir: Path) -> bool:
+    state = read_json(run_dir / "state.json", {})
+    if state.get("run_status") != "running":
+        return False
+    return any(row["kind"] == "runner" for row in process_rows_for_run(run_dir))
+
+
+def resolve_run_dir(ref: str | None) -> Path:
+    if ref:
+        path = Path(ref)
+        if path.exists():
+            return path
+        matches = [run_dir for run_dir in known_run_dirs() if run_matches_ref(run_dir, ref)]
+        if not matches:
+            raise SystemExit(f"no Cerebellum run found for {ref!r}; pass RUN_DIR or set CEREBELLUM_DATA_ROOT")
+        live = [run_dir for run_dir in matches if run_is_live(run_dir)]
+        chosen = live or matches
+        if len(chosen) == 1:
+            return chosen[0]
+        options = "\n".join(f"  {path}" for path in chosen[:20])
+        raise SystemExit(f"multiple Cerebellum runs match {ref!r}; pass RUN_DIR\n{options}")
+    live = [run_dir for run_dir in known_run_dirs() if run_is_live(run_dir)]
+    if len(live) == 1:
+        return live[0]
+    if not live:
+        raise SystemExit("no active Cerebellum run found; pass RUN_DIR or model name")
+    options = "\n".join(f"  {path}" for path in live[:20])
+    raise SystemExit(f"multiple active Cerebellum runs found; pass RUN_DIR or model name\n{options}")
 
 
 def config_path() -> Path:
@@ -1817,7 +1924,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     sub.add_parser("imatrix", help="generate a Cerebellum/llama.cpp imatrix for quantization")
 
     status = sub.add_parser("status", help="show Cerebellum run status")
-    status.add_argument("run_dir")
+    status.add_argument("run_dir", nargs="?", help="run directory or model/run name; defaults to the only active run")
     status.add_argument("--plain", action="store_true")
     status.add_argument("--no-color", action="store_true")
 
@@ -1828,7 +1935,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     events.add_argument("--json", action="store_true")
 
     watch = sub.add_parser("watch", help="open the Cerebellum live terminal interface")
-    watch.add_argument("run_dir")
+    watch.add_argument("run_dir", nargs="?", help="run directory or model/run name; defaults to the only active run")
     watch.add_argument("--interval", type=float, default=5.0)
     watch.add_argument("--once", action="store_true", help="render one frame and exit")
     watch.add_argument("--stall-warn-seconds", type=float, default=300.0)
@@ -1874,7 +1981,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     backup.add_argument("--to", required=True)
 
     recover = sub.add_parser("recover", help="print a crash-recovery plan for a run")
-    recover.add_argument("run_dir")
+    recover.add_argument("run_dir", nargs="?", help="run directory or model/run name; defaults to the only active run")
     recover.add_argument("--json", action="store_true")
 
     runs = sub.add_parser("runs", help="list known runs under a data root")
@@ -1911,6 +2018,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     package = sub.add_parser("package", help="write portable upload/package manifest for a run")
     package.add_argument("run_dir")
     package.add_argument("--output", default=None)
+    package.add_argument("--private", action="store_true", help="include raw factory sidecars such as state, events, candidates, decisions, and tensor maps")
     package.add_argument("--json", action="store_true")
 
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
@@ -1976,6 +2084,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     upload.add_argument("--repo")
     upload.add_argument("--repo-type", default="model")
     upload.add_argument("--branch")
+    upload.add_argument("--private", action="store_true", help="upload raw factory sidecars; default uploads only public-safe sidecars")
     upload.add_argument("--dry-run", action="store_true")
 
     api = sub.add_parser("api", help="serve Cerebellum JSON API for automation/web UI")
@@ -2003,21 +2112,25 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def status_cmd(args: argparse.Namespace) -> None:
-    run_dir = Path(args.run_dir)
+    run_dir = resolve_run_dir(args.run_dir)
     state_path = run_dir / "state.json"
     if not state_path.exists():
         raise SystemExit(f"no state.json found in {run_dir}")
     state = json.loads(state_path.read_text())
+    recovery = build_recovery_plan(run_dir)
     enabled = not args.no_color and not args.plain
     locked = len(state.get("locked", {}))
     tested = state.get("tested", [])
     print(color("Cerebellum status", "36;1", enabled))
     print(f"run_dir     : {run_dir}")
     print(f"status      : {state.get('run_status')}")
+    print(f"health      : {recovery.get('active_health')} - {recovery.get('active_reason')}")
     print(f"model       : {state.get('model_family')}/{state.get('model_name')}")
     print(f"locked      : {locked}")
     print(f"current_ppl : {state.get('current_ppl')}")
     print(f"last_tensor : {state.get('last_tensor')}")
+    if recovery.get("interrupted"):
+        print(f"resume      : {recovery.get('resume_command')}")
     if tested:
         print("\nRecent locks:")
         for row in tested[-10:]:
@@ -2517,7 +2630,7 @@ def resume_cmd(args: argparse.Namespace) -> None:
 
 
 def recover_cmd(args: argparse.Namespace) -> None:
-    run_dir = Path(args.run_dir)
+    run_dir = resolve_run_dir(args.run_dir)
     plan = build_recovery_plan(run_dir)
     if args.json:
         print(json.dumps(plan, indent=2, sort_keys=True))
@@ -2568,7 +2681,7 @@ def print_heavy_box(title: str, lines: list[str], width: int, code: str, enabled
 
 
 def grid_watch_cmd(args: argparse.Namespace) -> None:
-    run_dir = Path(args.run_dir)
+    run_dir = resolve_run_dir(args.run_dir)
     enabled = not args.no_color and not args.plain
     public_view = bool(getattr(args, "public", False))
     try:
@@ -2586,7 +2699,10 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
             width = max(96, min(132, terminal_w))
             os.system("clear" if os.name != "nt" else "cls")
             run_id = manifest.get("run_id") or state.get("run_id") or run_dir.name
-            title = f" CEREBELLUM  {state.get('model_family')}/{state.get('model_name')}  {manifest.get('ppl_profile') or state.get('ppl_profile') or 'custom'}  {state.get('run_status')} "
+            if public_view:
+                title = f" CEREBELLUM  {state.get('run_status')}  public-safe "
+            else:
+                title = f" CEREBELLUM  {state.get('model_family')}/{state.get('model_name')}  {manifest.get('ppl_profile') or state.get('ppl_profile') or 'custom'}  {state.get('run_status')} "
             print(color("╔" + "═" * (width - 2) + "╗", "36;1", enabled))
             print(color("║" + title.center(width - 2) + "║", "36;1", enabled))
             print(color("╚" + "═" * (width - 2) + "╝", "36;1", enabled))
@@ -2655,6 +2771,9 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
                     )
                     measure_lines.append(line)
                 print_heavy_box("RECENT MEASUREMENTS", measure_lines, width, "32;1", enabled)
+                print()
+                locked_lines = locked_layer_lines(state) or ["No locked tensors yet."]
+                print_heavy_box("LOCKED LAYER MAP", locked_lines, width, "35;1", enabled)
             print()
 
             if public_view:
@@ -2747,7 +2866,7 @@ def build_watch_model(
 def tui_watch_cmd(args: argparse.Namespace) -> None:
     import curses
 
-    run_dir = Path(args.run_dir)
+    run_dir = resolve_run_dir(args.run_dir)
     panes = ["events", "measurements", "processes", "files"]
     offsets = {name: 0 for name in panes}
     active_pane = 0
@@ -3357,9 +3476,14 @@ def finalize_cmd(args: argparse.Namespace) -> None:
         print("  metadata not injected; rerun with --inject to tag the GGUF")
 
 
-def package_files(run_dir: Path) -> list[Path]:
+def package_files(run_dir: Path, private: bool = False) -> list[Path]:
     finalize_dir = run_dir / "finalize"
-    candidates = [
+    public_candidates = [
+        finalize_dir / "cerebellum_gguf_metadata.json",
+        finalize_dir / "cerebellum_gguf_metadata.env",
+        finalize_dir / "MODEL_CARD_CEREBELLUM.md",
+    ]
+    private_candidates = [
         run_dir / "manifest.json",
         run_dir / "state.json",
         first_existing(run_dir, EVENT_FILES),
@@ -3369,45 +3493,51 @@ def package_files(run_dir: Path) -> list[Path]:
         first_existing(run_dir, DECISION_CSV_FILES),
         first_existing(run_dir, INFOGRAPHIC_FILES),
         first_existing(run_dir, BEST_TYPES_FILES),
-        finalize_dir / "cerebellum_gguf_metadata.json",
-        finalize_dir / "cerebellum_gguf_metadata.env",
-        finalize_dir / "MODEL_CARD_CEREBELLUM.md",
+        *public_candidates,
     ]
+    candidates = private_candidates if private else public_candidates
     return [path for path in candidates if path.exists()]
 
 
-def package_manifest(run_dir: Path) -> dict[str, Any]:
+def package_manifest(run_dir: Path, private: bool = False) -> dict[str, Any]:
     report = build_report(run_dir)
     files = []
-    for path in package_files(run_dir):
+    for path in package_files(run_dir, private=private):
         size = path_size(path)
         files.append(
             {
-                "path": str(path),
                 "name": path.name,
                 "size_bytes": size,
                 "sha256": sha256_file(path) if size < 128 * 1024 * 1024 else None,
                 "hf_path": f"cerebellum_runs/{report['run_id']}/{path.name}",
             }
         )
-    return {
+        if private:
+            files[-1]["path"] = str(path)
+    payload = {
         "schema": "cerebellum.package.v1",
+        "mode": "private" if private else "public",
         "run_id": report["run_id"],
-        "run_dir": str(run_dir),
         "model": f"{report.get('model_family')}/{report.get('model_name')}",
         "status": report.get("status"),
         "ppl_profile": report.get("ppl_profile"),
         "files": files,
         "notes": [
-            "Upload these sidecars with the GGUF so Cerebellum provenance remains auditable.",
-            "If GGUF metadata is stripped, compare sidecar provenance and model-card text.",
+            (
+                "Public mode includes only release-safe finalize/model-card provenance sidecars. "
+                "Use --private only for private dev uploads."
+            ),
+            "If GGUF metadata is stripped, compare public sidecar provenance and model-card text.",
         ],
     }
+    if private:
+        payload["run_dir"] = str(run_dir)
+    return payload
 
 
 def package_cmd(args: argparse.Namespace) -> None:
     run_dir = Path(args.run_dir)
-    payload = package_manifest(run_dir)
+    payload = package_manifest(run_dir, private=args.private)
     files = payload["files"]
     output = Path(args.output) if args.output else run_dir / "cerebellum_package_manifest.json"
     atomic_write_json(output, payload)
@@ -3898,24 +4028,44 @@ def auth_cmd(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
-def github_upload_plan(report: dict[str, Any], files: list[Path], repo: str, branch: str | None = None) -> dict[str, Any]:
+def public_report_summary(report: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "run_id": report.get("run_id"),
+        "model": f"{report.get('model_family')}/{report.get('model_name')}",
+        "status": report.get("status"),
+        "ppl_profile": report.get("ppl_profile"),
+        "locked_count": report.get("locked_count"),
+        "candidate_count": report.get("candidate_count"),
+    }
+
+
+def github_upload_plan(
+    report: dict[str, Any],
+    files: list[Path],
+    repo: str,
+    branch: str | None = None,
+    private: bool = False,
+    include_local_paths: bool = True,
+) -> dict[str, Any]:
     target_branch = branch or f"cerebellum-run-{report['run_id']}"
     planned_files = []
     for path in files:
         planned_files.append(
             {
-                "path": str(path),
                 "name": path.name,
                 "size_bytes": path_size(path),
                 "github_path": f"cerebellum_runs/{report['run_id']}/{path.name}",
             }
         )
+        if include_local_paths:
+            planned_files[-1]["path"] = str(path)
     return {
         "target": "github",
         "repo": repo,
         "branch": target_branch,
         "files": planned_files,
-        "report": report,
+        "report": report if private else public_report_summary(report),
+        "mode": "private" if private else "public",
     }
 
 
@@ -4000,12 +4150,18 @@ def upload_github_sidecars(repo: str, branch: str, files: list[dict[str, Any]]) 
 def upload_cmd(args: argparse.Namespace) -> None:
     run_dir = Path(args.run_dir)
     report = build_report(run_dir)
-    files = package_files(run_dir)
+    files = package_files(run_dir, private=args.private)
     if args.dry_run:
         if args.target == "github" and args.repo:
-            payload = github_upload_plan(report, files, args.repo, args.branch)
+            payload = github_upload_plan(report, files, args.repo, args.branch, private=args.private, include_local_paths=args.private)
         else:
-            payload = {"target": args.target, "repo": args.repo, "files": [str(p) for p in files], "report": report}
+            payload = {
+                "target": args.target,
+                "repo": args.repo,
+                "files": [str(p) for p in files] if args.private else [p.name for p in files],
+                "report": report if args.private else public_report_summary(report),
+                "mode": "private" if args.private else "public",
+            }
         print(json.dumps(payload, indent=2))
         return
     if args.target in {"hf", "huggingface"}:
@@ -4033,7 +4189,7 @@ def upload_cmd(args: argparse.Namespace) -> None:
             raise SystemExit("gh CLI not found")
         if not args.repo:
             raise SystemExit("--repo owner/name required for GitHub upload")
-        plan = github_upload_plan(report, files, args.repo, args.branch)
+        plan = github_upload_plan(report, files, args.repo, args.branch, private=args.private)
         uploaded = upload_github_sidecars(args.repo, plan["branch"], plan["files"])
         print(json.dumps({"target": "github", "repo": args.repo, "branch": plan["branch"], "uploaded": uploaded}, indent=2))
     else:

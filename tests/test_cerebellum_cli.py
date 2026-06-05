@@ -15,7 +15,12 @@ from cerebellum import (
     github_upload_plan,
     grid_watch_cmd,
     is_quantizable_tensor,
+    locked_layer_lines,
+    package_files,
+    package_manifest,
     parse_args,
+    resolve_run_dir,
+    public_report_summary,
     sanitize_process_cmd,
     tensor_type_line,
     write_tensor_types_map,
@@ -35,6 +40,27 @@ def test_watch_public_flag_parses():
 
     assert args.cmd == "watch"
     assert args.public is True
+
+
+def test_watch_run_dir_is_optional_for_single_active_run():
+    args = parse_args(["watch", "--public", "--once", "--plain"])
+
+    assert args.cmd == "watch"
+    assert args.run_dir is None
+    assert args.public is True
+
+
+def test_resolve_run_dir_defaults_to_single_live_run(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "manifest.json").write_text('{"model_name":"gemma-4-12b-it"}', encoding="utf-8")
+    (run_dir / "state.json").write_text('{"run_status":"running"}', encoding="utf-8")
+
+    monkeypatch.setattr("osmosis.hillstep.known_run_dirs", lambda: [run_dir])
+    monkeypatch.setattr("osmosis.hillstep.run_is_live", lambda path: path == run_dir)
+
+    assert resolve_run_dir(None) == run_dir
+    assert resolve_run_dir("gemma-4-12b-it") == run_dir
 
 
 def test_active_work_status_marks_missing_started_process_interrupted():
@@ -255,6 +281,23 @@ def test_watch_model_shows_rollback_finish_before_resume(tmp_path: Path):
     assert model["active"]["event"] == "rollback_finish"
 
 
+def test_locked_layer_lines_groups_locked_quants_by_layer():
+    state = {
+        "tested": [
+            {"tensor": "blk.0.ffn_down.weight", "winner": "q3_K"},
+            {"tensor": "blk.0.attn_q.weight", "winner": "q4_K"},
+            {"tensor": "blk.1.attn_k.weight", "winner": "q5_K"},
+        ]
+    }
+
+    lines = locked_layer_lines(state)
+
+    assert lines == [
+        "blk.0    ffn_down=q3_K  attn_q=q4_K",
+        "blk.1    attn_k=q5_K",
+    ]
+
+
 def test_public_watch_redacts_factory_details(tmp_path: Path, monkeypatch, capsys):
     run_dir = tmp_path / "run"
     run_dir.mkdir()
@@ -312,12 +355,130 @@ def test_public_watch_redacts_factory_details(tmp_path: Path, monkeypatch, capsy
     output = capsys.readouterr().out
     assert "public-safe telemetry" in output
     assert "redacted" in output
+    assert "gemma-4-12b-it" not in output
+    assert "wiki" not in output
     assert "blk.1.attn_k.weight" not in output
     assert "q3_K" not in output
     assert "2147.7021" not in output
     assert "+5.0996" not in output
     assert "gemma4-12b-cerebellum-q4km-wiki-visible-20260604" not in output
     assert "pid" not in output.lower()
+
+
+def test_private_watch_shows_locked_layer_map(tmp_path: Path, monkeypatch, capsys):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "run_status": "running",
+                "model_family": "gemma-4",
+                "model_name": "gemma-4-12b-it",
+                "locked": {"blk.0.ffn_down.weight": "q3_K"},
+                "tested": [{"tensor": "blk.0.ffn_down.weight", "winner": "q3_K", "ppl": 1.0}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text('{"run_id":"run","ppl_profile":"wiki"}', encoding="utf-8")
+    (run_dir / "cerebellum_events.jsonl").write_text(
+        '{"event":"run_start","tensors":328}\n',
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_candidates.jsonl").write_text("", encoding="utf-8")
+    monkeypatch.setattr("osmosis.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("osmosis.hillstep.gpu_rows", lambda: [])
+    monkeypatch.setattr("osmosis.hillstep.os.system", lambda _cmd: 0)
+
+    grid_watch_cmd(
+        types.SimpleNamespace(
+            run_dir=str(run_dir),
+            stall_warn_seconds=300.0,
+            stall_fail_seconds=900.0,
+            measurements_limit=8,
+            events_limit=12,
+            once=True,
+            public=False,
+            plain=True,
+            no_color=True,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "LOCKED LAYER MAP" in output
+    assert "blk.0" in output
+    assert "ffn_down=q3_K" in output
+
+
+def test_package_files_default_to_public_safe_finalize_sidecars(tmp_path: Path):
+    run_dir = tmp_path / "run"
+    finalize = run_dir / "finalize"
+    finalize.mkdir(parents=True)
+    raw_names = [
+        "manifest.json",
+        "state.json",
+        "cerebellum_events.jsonl",
+        "cerebellum_candidates.jsonl",
+        "cerebellum_summary.json",
+        "cerebellum_summary.md",
+        "cerebellum_decisions.csv",
+        "cerebellum_best_tensor_types.txt",
+    ]
+    for name in raw_names:
+        (run_dir / name).write_text("{}", encoding="utf-8")
+    for name in ["cerebellum_gguf_metadata.json", "cerebellum_gguf_metadata.env", "MODEL_CARD_CEREBELLUM.md"]:
+        (finalize / name).write_text("safe", encoding="utf-8")
+
+    public = {path.name for path in package_files(run_dir)}
+    private = {path.name for path in package_files(run_dir, private=True)}
+
+    assert public == {"cerebellum_gguf_metadata.json", "cerebellum_gguf_metadata.env", "MODEL_CARD_CEREBELLUM.md"}
+    assert set(raw_names).issubset(private)
+
+
+def test_package_manifest_marks_public_mode(tmp_path: Path):
+    run_dir = tmp_path / "run"
+    finalize = run_dir / "finalize"
+    finalize.mkdir(parents=True)
+    (run_dir / "manifest.json").write_text('{"run_id":"run","model_family":"gemma","model_name":"tiny"}', encoding="utf-8")
+    (run_dir / "state.json").write_text('{"run_status":"complete","locked":{},"tested":[]}', encoding="utf-8")
+    (run_dir / "cerebellum_candidates.jsonl").write_text(
+        '{"tensor":"blk.0.attn_q.weight","delta":1.0}\n',
+        encoding="utf-8",
+    )
+    (finalize / "MODEL_CARD_CEREBELLUM.md").write_text("safe", encoding="utf-8")
+
+    payload = package_manifest(run_dir)
+
+    assert payload["mode"] == "public"
+    assert "run_dir" not in payload
+    assert [item["name"] for item in payload["files"]] == ["MODEL_CARD_CEREBELLUM.md"]
+    assert "path" not in payload["files"][0]
+
+
+def test_public_report_summary_strips_factory_fields():
+    summary = public_report_summary(
+        {
+            "run_id": "run",
+            "model_family": "gemma",
+            "model_name": "tiny",
+            "status": "running",
+            "ppl_profile": "wiki",
+            "locked_count": 3,
+            "candidate_count": 9,
+            "recent_decisions": [{"tensor": "blk.0.attn_q.weight"}],
+            "artifacts": {"events": "/tmp/events.jsonl"},
+        }
+    )
+
+    assert summary == {
+        "run_id": "run",
+        "model": "gemma/tiny",
+        "status": "running",
+        "ppl_profile": "wiki",
+        "locked_count": 3,
+        "candidate_count": 9,
+    }
 
 
 def test_github_upload_plan_uses_run_sidecar_paths(tmp_path: Path):
@@ -332,6 +493,7 @@ def test_github_upload_plan_uses_run_sidecar_paths(tmp_path: Path):
     )
 
     assert plan["branch"] == "cerebellum-run-gemma4-live"
+    assert plan["mode"] == "public"
     assert plan["files"][0]["github_path"] == "cerebellum_runs/gemma4-live/cerebellum_summary.json"
     assert plan["files"][0]["size_bytes"] == 2
 

@@ -194,3 +194,11 @@
 - Added `cerebellum watch --public` for screenshot-safe progress telemetry.
 - Public watch mode redacts tensor names, candidate quant levels, per-tensor PPL deltas, run IDs, GGUF paths, process IDs, and event stream details.
 - Normal private `watch` and `watch --tui` views still show full factory/debugging details.
+
+## 2026-06-05 watch/status/package safety
+
+- `cerebellum watch`, `status`, and `recover` can now omit `RUN_DIR` when exactly one run is active.
+- The same commands can resolve a model/run selector such as `gemma-4-12b-it` instead of requiring the full run path.
+- Private compact watch now includes a locked layer map showing each locked component and chosen quant grouped by layer.
+- `cerebellum status` now prints the same active/interrupted health model used by `recover`.
+- `cerebellum package` and `upload` default to public-safe finalize/model-card sidecars; raw state/events/candidates/decisions/tensor maps require `--private`.

@@ -84,5 +84,7 @@ Before making `origin` public again:
   model cards.
 - Use `cerebellum watch --public --once --plain` or crop/redact raw watch
   screenshots before publishing.
+- Use default `cerebellum package` / `upload` for public-safe sidecars; pass
+  `--private` only for private dev uploads.
 - Keep releasing GGUFs and benchmark artifacts even while the factory remains
   private.
