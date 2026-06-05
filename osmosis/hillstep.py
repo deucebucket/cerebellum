@@ -6546,6 +6546,28 @@ def artifact_inventory_cmd(args: argparse.Namespace) -> None:
         print(artifact_inventory_markdown(report), end="")
 
 
+def artifact_inventory_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    root_value = query_value(qs, "root")
+    if not root_value:
+        raise ValueError("root query param required")
+    try:
+        top = int(query_value(qs, "top", 25))
+    except ValueError as exc:
+        raise ValueError("top must be an integer") from exc
+    if top < 1:
+        raise ValueError("top must be at least 1")
+    if top > 100:
+        raise ValueError("top must be 100 or lower")
+    root = Path(root_value).expanduser().resolve()
+    if not root.exists():
+        raise ValueError(f"root does not exist: {root}")
+    if not root.is_dir():
+        raise ValueError(f"root must be a directory: {root}")
+    if root == Path(root.anchor) and not query_bool(qs, "allow_broad"):
+        raise ValueError("filesystem root inventory requires allow_broad=true")
+    return argparse.Namespace(root=str(root), top=top)
+
+
 def repo_relative_path(path: Path) -> Path:
     try:
         return path.resolve().relative_to(Path.cwd().resolve())
@@ -7569,6 +7591,12 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 self._json(pipeline_plan(pipeline_plan_args_from_query(qs)))
             except ValueError as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/artifact-inventory":
+            try:
+                args = artifact_inventory_args_from_query(qs)
+                self._json(artifact_inventory(Path(args.root), top=args.top))
+            except ValueError as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/hf-stats":
             try:
                 self._json(hf_model_stats(hf_stats_args_from_query(qs)))
@@ -7601,6 +7629,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "imatrix": "cerebellum imatrix --model HF_OR_PATH --family FAMILY --model-name MODEL --source-name SOURCE",
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
                         "pipeline_plan": "cerebellum pipeline-plan --source-gguf MODEL.gguf --output-dir OUT --json",
+                        "artifact_inventory": "cerebellum artifact-inventory ROOT --json",
                         "benchmark_rebench_plan": "cerebellum benchmark-rebench-plan --suite humaneval --json",
                         "hf_stats": "cerebellum hf-stats --author deucebucket --json",
                     },
@@ -7618,6 +7647,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "run": "/run?run_dir=RUN_DIR",
                         "recover": "/recover?run_dir=RUN_DIR",
                         "pipeline_plan": "/pipeline-plan?source_gguf=MODEL.gguf&output_dir=OUT",
+                        "artifact_inventory": "/artifact-inventory?root=ROOT&top=25",
                         "benchmark_rebench_plan": "/benchmark-rebench-plan?suite=humaneval",
                         "hf_stats": "/hf-stats?author=deucebucket",
                         "tutorial": "/tutorial?topic=overview",
@@ -7644,6 +7674,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/system", "params": [], "returns": "host resources and tool availability"},
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
                         {"path": "/pipeline-plan", "params": ["source_gguf", "output_dir", "task_profile?", "benchmark_suite?"], "returns": "pipeline phase manifest"},
+                        {"path": "/artifact-inventory", "params": ["root", "top?", "allow_broad?"], "returns": "preservation-first legacy artifact inventory"},
                         {"path": "/benchmark-rebench-plan", "params": ["suite=humaneval|release?", "results_root?", "port?", "model?", "correction_issue?"], "returns": "published-model corrected rebench queue"},
                         {"path": "/hf-stats", "params": ["author?", "period=recent|all-time?", "publisher_org?", "limit?"], "returns": "HF model release telemetry"},
                         {"path": "/tutorial", "params": ["topic"], "returns": "tutorial lines"},
@@ -7667,7 +7698,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /artifact-inventory /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 

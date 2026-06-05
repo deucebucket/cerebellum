@@ -12,6 +12,7 @@ from cerebellum import (
     ablation_analyze_cmd,
     analyze_ablation_input,
     artifact_inventory,
+    artifact_inventory_args_from_query,
     artifact_inventory_cmd,
     artifact_inventory_markdown,
     benchmark_audit,
@@ -1815,6 +1816,34 @@ def test_artifact_inventory_command_parses():
     assert args.markdown == "inventory.md"
     assert args.top == 5
     assert args.json is True
+
+
+def test_artifact_inventory_api_query_args_validate(tmp_path: Path):
+    args = artifact_inventory_args_from_query({"root": [str(tmp_path)], "top": ["5"]})
+
+    assert args.root == str(tmp_path.resolve())
+    assert args.top == 5
+
+    try:
+        artifact_inventory_args_from_query({})
+    except ValueError as exc:
+        assert "root query param required" in str(exc)
+    else:
+        raise AssertionError("missing artifact inventory root should fail")
+
+    try:
+        artifact_inventory_args_from_query({"root": [str(tmp_path)], "top": ["many"]})
+    except ValueError as exc:
+        assert "top must be an integer" in str(exc)
+    else:
+        raise AssertionError("invalid artifact inventory top should fail")
+
+    try:
+        artifact_inventory_args_from_query({"root": ["/"]})
+    except ValueError as exc:
+        assert "allow_broad=true" in str(exc)
+    else:
+        raise AssertionError("filesystem root inventory should require explicit override")
 
 
 class _FakeHTTPResponse:
