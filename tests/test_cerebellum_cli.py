@@ -55,6 +55,7 @@ from cerebellum import (
     pipeline_plan_args_from_query,
     pipeline_plan_markdown,
     pipeline_plan_cmd,
+    pipeline_run_args_from_query,
     pipeline_run_cmd,
     pipeline_run_plan,
     public_audit,
@@ -740,6 +741,27 @@ def test_pipeline_run_plan_slices_manifest(tmp_path: Path):
     assert plan["dry_run"] is True
     assert [row["name"] for row in plan["phases"]] == ["ablate", "benchmark"]
     assert plan["blocked"] is False
+
+
+def test_pipeline_run_api_query_args_validate():
+    args = pipeline_run_args_from_query(
+        {
+            "manifest": ["pipeline.json"],
+            "from_phase": ["ablate"],
+            "until_phase": ["benchmark"],
+        }
+    )
+
+    assert args.manifest == "pipeline.json"
+    assert args.from_phase == "ablate"
+    assert args.until_phase == "benchmark"
+
+    try:
+        pipeline_run_args_from_query({})
+    except ValueError as exc:
+        assert "manifest query param required" in str(exc)
+    else:
+        raise AssertionError("pipeline-run API query should require manifest")
 
 
 def test_pipeline_run_cmd_prints_dry_run_and_blocks_execute(tmp_path: Path, capsys):
