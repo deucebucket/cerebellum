@@ -40,6 +40,7 @@ from cerebellum import (
     build_recovery_plan,
     build_watch_model,
     compare_gguf_types,
+    compare_gguf_types_args_from_query,
     compare_gguf_types_markdown,
     discover_projects,
     doctor_cmd,
@@ -50,6 +51,7 @@ from cerebellum import (
     hf_model_stats_markdown,
     hf_stats_args_from_query,
     inspect_gguf_types,
+    inspect_gguf_types_args_from_query,
     is_quantizable_tensor,
     locked_layer_lines,
     package_files,
@@ -101,6 +103,28 @@ def test_inspect_gguf_types_command_parses():
     assert args.json is True
 
 
+def test_inspect_gguf_types_api_query_args_validate():
+    args = inspect_gguf_types_args_from_query(
+        {
+            "gguf": ["model.gguf"],
+            "by_layer": ["true"],
+            "by_component": ["yes"],
+        }
+    )
+
+    assert args.gguf == "model.gguf"
+    assert args.by_layer is True
+    assert args.by_component is True
+    assert args.json is True
+
+    try:
+        inspect_gguf_types_args_from_query({})
+    except ValueError as exc:
+        assert "gguf query param required" in str(exc)
+    else:
+        raise AssertionError("inspect-gguf-types API query should require gguf")
+
+
 def test_compare_gguf_types_command_parses():
     args = parse_args(["compare-gguf-types", "base.gguf", "cand.gguf", "--baseline-label", "q4", "--candidate-label", "dynamic", "--reference-map", "types.txt", "--json"])
 
@@ -111,6 +135,39 @@ def test_compare_gguf_types_command_parses():
     assert args.candidate_label == "dynamic"
     assert args.reference_map == "types.txt"
     assert args.json is True
+
+
+def test_compare_gguf_types_api_query_args_validate():
+    args = compare_gguf_types_args_from_query(
+        {
+            "baseline": ["base.gguf"],
+            "candidate": ["cand.gguf"],
+            "baseline_label": ["q4"],
+            "candidate_label": ["dynamic"],
+            "reference_map": ["types.txt"],
+        }
+    )
+
+    assert args.baseline == "base.gguf"
+    assert args.candidate == "cand.gguf"
+    assert args.baseline_label == "q4"
+    assert args.candidate_label == "dynamic"
+    assert args.reference_map == "types.txt"
+    assert args.json is True
+
+    try:
+        compare_gguf_types_args_from_query({"candidate": ["cand.gguf"]})
+    except ValueError as exc:
+        assert "baseline query param required" in str(exc)
+    else:
+        raise AssertionError("compare-gguf-types API query should require baseline")
+
+    try:
+        compare_gguf_types_args_from_query({"baseline": ["base.gguf"]})
+    except ValueError as exc:
+        assert "candidate query param required" in str(exc)
+    else:
+        raise AssertionError("compare-gguf-types API query should require candidate")
 
 
 def test_compare_locks_command_parses():
@@ -1007,6 +1064,7 @@ def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path
     assert "no full-model RAM load" in dry_run["model_load"]
     assert {row["phase"] for row in dry_run["disk_requirements"]} >= {"inspect-source", "ablate", "build-final-gguf"}
     assert {row["phase"] for row in dry_run["artifact_flow"]} >= {"stream-imatrix", "build-final-gguf", "dynamic-compare"}
+    assert "plan-space --source-gguf" in " ".join(dry_run["preflight_commands"])
     assert "inspect-gguf-types" in " ".join(dry_run["preflight_commands"])
     assert "cpu_tok_s" in plan["cpu_offload_plan"]["runtime_targets"]["record"]
     assert "scripts/benchmark_perf.py" in plan["cpu_offload_plan"]["throughput_probe_command"]

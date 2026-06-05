@@ -3848,6 +3848,18 @@ def inspect_gguf_types_cmd(args: argparse.Namespace) -> None:
             print(f"  {layer:<8} {cells}")
 
 
+def inspect_gguf_types_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    gguf = query_value(qs, "gguf")
+    if not gguf:
+        raise ValueError("gguf query param required")
+    return argparse.Namespace(
+        gguf=gguf,
+        by_layer=query_bool(qs, "by_layer"),
+        by_component=query_bool(qs, "by_component"),
+        json=True,
+    )
+
+
 def compare_count_maps(base: dict[str, int], candidate: dict[str, int]) -> dict[str, dict[str, int]]:
     keys = sorted(set(base) | set(candidate))
     return {
@@ -4154,6 +4166,23 @@ def compare_gguf_types_cmd(args: argparse.Namespace) -> None:
         print(json.dumps(report, indent=2, sort_keys=True))
         return
     print(compare_gguf_types_markdown(report), end="")
+
+
+def compare_gguf_types_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    baseline = query_value(qs, "baseline")
+    candidate = query_value(qs, "candidate")
+    if not baseline:
+        raise ValueError("baseline query param required")
+    if not candidate:
+        raise ValueError("candidate query param required")
+    return argparse.Namespace(
+        baseline=baseline,
+        candidate=candidate,
+        baseline_label=query_value(qs, "baseline_label", "baseline"),
+        candidate_label=query_value(qs, "candidate_label", "candidate"),
+        reference_map=query_value(qs, "reference_map"),
+        json=True,
+    )
 
 
 def state_path_for_compare(path: Path) -> Path:
@@ -5110,7 +5139,7 @@ def cpu_offload_streaming_quant_dry_run(
         "artifact_flow": artifact_flow,
         "preflight_commands": [
             shell_join(["cerebellum", "system"]),
-            shell_join(["cerebellum", "space", "--source-gguf", source, "--scratch", output_dir, "--margin-gb", "20"]),
+            shell_join(["cerebellum", "plan-space", "--source-gguf", source, "--scratch", output_dir, "--margin-gb", "20"]),
             shell_join(["cerebellum", "inspect-gguf-types", source, "--by-component", "--json"]),
         ],
         "execution_guard": "plan only; actual streaming quant build must be launched separately and monitored",
@@ -7068,7 +7097,7 @@ def self_test_payload(run_dir: Path | None = None) -> dict[str, Any]:
     add("system_info", bool(info.get("schema_version")), {"hostname": info.get("hostname"), "python": info.get("python")})
     add("llama_quantize", Path(str(info["binaries"].get("llama_quantize", ""))).exists(), info["binaries"].get("llama_quantize"))
     add("llama_perplexity", Path(str(info["binaries"].get("llama_perplexity", ""))).exists(), info["binaries"].get("llama_perplexity"))
-    add("api_catalog", True, ["/health", "/schema", "/tutorial", "/recover", "/export", "/pipeline-plan", "/commands"])
+    add("api_catalog", True, ["/health", "/schema", "/tutorial", "/recover", "/export", "/pipeline-plan", "/inspect-gguf-types", "/compare-gguf-types", "/commands"])
     if run_dir:
         state = read_json(run_dir / "state.json", {})
         manifest = read_json(run_dir / "manifest.json", {})
@@ -7817,6 +7846,26 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                     )
             except (ValueError, SystemExit, OSError, json.JSONDecodeError) as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/inspect-gguf-types":
+            try:
+                args = inspect_gguf_types_args_from_query(qs)
+                self._json(inspect_gguf_types(Path(args.gguf)))
+            except (ValueError, OSError, RuntimeError, SystemExit) as exc:
+                self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/compare-gguf-types":
+            try:
+                args = compare_gguf_types_args_from_query(qs)
+                self._json(
+                    compare_gguf_types(
+                        Path(args.baseline),
+                        Path(args.candidate),
+                        baseline_label=args.baseline_label,
+                        candidate_label=args.candidate_label,
+                        reference_map=Path(args.reference_map) if args.reference_map else None,
+                    )
+                )
+            except (ValueError, OSError, RuntimeError, json.JSONDecodeError) as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/artifact-inventory":
             try:
                 args = artifact_inventory_args_from_query(qs)
@@ -7866,6 +7915,8 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "benchmark_manifest": "cerebellum benchmark-manifest benchmark_results --suite release --model MODEL --json",
                         "benchmark_audit": "cerebellum benchmark-audit benchmark_results --json",
                         "benchmark_report": "cerebellum benchmark-report benchmark_results --leaderboard --suite frontier --json",
+                        "inspect_gguf_types": "cerebellum inspect-gguf-types MODEL.gguf --by-component --by-layer --json",
+                        "compare_gguf_types": "cerebellum compare-gguf-types BASE.gguf CANDIDATE.gguf --json",
                         "artifact_inventory": "cerebellum artifact-inventory ROOT --json",
                         "public_export_plan": "cerebellum public-export OUT --dry-run --json",
                         "benchmark_rebench_plan": "cerebellum benchmark-rebench-plan --suite humaneval --json",
@@ -7890,6 +7941,8 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "benchmark_manifest": "/benchmark-manifest?path=benchmark_results&suite=release&model=MODEL",
                         "benchmark_audit": "/benchmark-audit?path=benchmark_results",
                         "benchmark_report": "/benchmark-report?path=benchmark_results&leaderboard=true&suite=frontier",
+                        "inspect_gguf_types": "/inspect-gguf-types?gguf=MODEL.gguf&by_component=true&by_layer=true",
+                        "compare_gguf_types": "/compare-gguf-types?baseline=BASE.gguf&candidate=CANDIDATE.gguf",
                         "artifact_inventory": "/artifact-inventory?root=ROOT&top=25",
                         "public_export_plan": "/public-export-plan?path=README.md&path=docs",
                         "benchmark_rebench_plan": "/benchmark-rebench-plan?suite=humaneval",
@@ -7923,6 +7976,8 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/benchmark-manifest", "params": ["path", "suite?", "model?", "require_complete?"], "returns": "hashed benchmark artifact manifest"},
                         {"path": "/benchmark-audit", "params": ["path", "fail_empty_pct?", "fail_unknown_pct?", "fail_pass_only_pct?"], "returns": "benchmark detailed-artifact quality audit"},
                         {"path": "/benchmark-report", "params": ["path", "baseline?", "leaderboard?", "suite?", "size?", "size_json?", "weight?", "list_suites?"], "returns": "benchmark aggregate comparison and leaderboard report"},
+                        {"path": "/inspect-gguf-types", "params": ["gguf", "by_layer?", "by_component?"], "returns": "GGUF tensor type inventory by type, component, layer, and tensor"},
+                        {"path": "/compare-gguf-types", "params": ["baseline", "candidate", "baseline_label?", "candidate_label?", "reference_map?"], "returns": "GGUF tensor type comparison and Dynamic GGUF profile"},
                         {"path": "/artifact-inventory", "params": ["root", "top?", "allow_broad?"], "returns": "preservation-first legacy artifact inventory"},
                         {"path": "/public-export-plan", "params": ["path?", "paths?", "max_bytes?"], "returns": "sanitized public export dry-run manifest"},
                         {"path": "/benchmark-rebench-plan", "params": ["suite=humaneval|release?", "results_root?", "port?", "model?", "correction_issue?"], "returns": "published-model corrected rebench queue"},
@@ -7948,7 +8003,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /benchmark-plan /benchmark-manifest /benchmark-audit /benchmark-report /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /benchmark-plan /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
