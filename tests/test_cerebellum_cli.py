@@ -13,6 +13,8 @@ from cerebellum import (
     benchmark_audit,
     benchmark_audit_cmd,
     benchmark_audit_markdown,
+    benchmark_manifest,
+    benchmark_manifest_markdown,
     benchmark_plan,
     benchmark_plan_cmd,
     benchmark_plan_markdown,
@@ -355,6 +357,39 @@ def test_benchmark_plan_cmd_exits_when_required_suite_not_ready(capsys):
         raise AssertionError("benchmark-plan --require-ready should fail for pending frontier adapters")
 
     assert "Readiness Blockers" in capsys.readouterr().out
+
+
+def test_benchmark_manifest_hashes_artifacts_and_tracks_missing_suite_items(tmp_path: Path):
+    summary = tmp_path / "model_arc_results.json"
+    detail = tmp_path / "model_arc_detailed.jsonl"
+    summary.write_text(json.dumps({"benchmark": "arc", "model": "model", "accuracy": 0.8, "bpw": 4.5}), encoding="utf-8")
+    detail.write_text(json.dumps({"correct": True, "predicted": "A"}) + "\n", encoding="utf-8")
+
+    manifest = benchmark_manifest([tmp_path], suite="release", model="model")
+    markdown = benchmark_manifest_markdown(manifest)
+
+    kinds = {item["name"]: item["kind"] for item in manifest["artifacts"]}
+    assert manifest["schema"] == "cerebellum.benchmark_manifest.v1"
+    assert manifest["model"] == "model"
+    assert kinds["model_arc_results.json"] == "summary"
+    assert kinds["model_arc_detailed.jsonl"] == "detail"
+    assert manifest["artifacts"][0]["sha256"]
+    assert "arc" in manifest["measured_benchmarks"]
+    assert "hellaswag" in manifest["missing_measured"]
+    assert manifest["release_metadata"]["model"]["bpw"] == 4.5
+    assert "# Benchmark Artifact Manifest" in markdown
+    assert "model_arc_detailed.jsonl" in markdown
+
+
+def test_benchmark_manifest_command_parses():
+    args = parse_args(["benchmark-manifest", "benchmark_results", "--suite", "release", "--model", "m", "--output", "manifest.json", "--json"])
+
+    assert args.cmd == "benchmark-manifest"
+    assert args.paths == ["benchmark_results"]
+    assert args.suite == "release"
+    assert args.model == "m"
+    assert args.output == "manifest.json"
+    assert args.json is True
 
 
 def test_benchmark_audit_flags_mcq_empty_and_unknown(tmp_path: Path):

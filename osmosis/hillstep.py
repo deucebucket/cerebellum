@@ -2404,6 +2404,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_plan_parser.add_argument("--require-ready", action="store_true", help="exit non-zero if any suite benchmark lacks an implemented runner")
     benchmark_plan_parser.add_argument("--json", action="store_true")
 
+    benchmark_manifest_parser = sub.add_parser("benchmark-manifest", help="write a hashed manifest for benchmark artifacts")
+    benchmark_manifest_parser.add_argument("paths", nargs="+", help="benchmark result files/directories")
+    benchmark_manifest_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    benchmark_manifest_parser.add_argument("--model", default=None, help="optional model label for the manifest")
+    benchmark_manifest_parser.add_argument("--output", default=None, help="write manifest JSON/Markdown to this path")
+    benchmark_manifest_parser.add_argument("--json", action="store_true")
+
     benchmark_audit_parser = sub.add_parser("benchmark-audit", help="audit benchmark detailed artifacts before publishing")
     benchmark_audit_parser.add_argument("paths", nargs="+", help="detailed JSONL/sample files or directories")
     benchmark_audit_parser.add_argument("--json", action="store_true")
@@ -4539,6 +4546,29 @@ def benchmark_files(paths: list[Any]) -> list[tuple[Path, str | None]]:
     return files
 
 
+def benchmark_artifact_files(paths: list[Any]) -> list[Path]:
+    files: list[Path] = []
+    seen: set[Path] = set()
+    for path, _label in benchmark_input_specs(paths):
+        candidates = sorted(path.rglob("*")) if path.is_dir() else [path]
+        for candidate in candidates:
+            if not candidate.is_file() or candidate.suffix.lower() not in {".json", ".jsonl"}:
+                continue
+            key = candidate.resolve()
+            if key in seen:
+                continue
+            seen.add(key)
+            files.append(candidate)
+    return files
+
+
+def benchmark_artifact_kind(path: Path) -> str:
+    name = path.name.lower()
+    if name.endswith(".jsonl") or "detailed" in name or "samples" in name:
+        return "detail"
+    return "summary"
+
+
 def benchmark_records(paths: list[Any]) -> list[dict[str, Any]]:
     records: list[dict[str, Any]] = []
     for path, label in benchmark_files(paths):
@@ -4569,6 +4599,81 @@ def benchmark_records(paths: list[Any]) -> list[dict[str, Any]]:
         )
     records.sort(key=lambda row: (str(row["benchmark"]), str(row["model"]), str(row["path"])))
     return records
+
+
+def benchmark_manifest(paths: list[Any], suite: str = "release", model: str | None = None) -> dict[str, Any]:
+    records = benchmark_records(paths)
+    measured = sorted({str(row["benchmark_key"]) for row in records})
+    suite_keys = list(BENCHMARK_SUITES[suite])
+    files = []
+    for path in benchmark_artifact_files(paths):
+        data: dict[str, Any] = {}
+        if path.suffix.lower() == ".json":
+            try:
+                loaded = json.loads(path.read_text(encoding="utf-8"))
+                if isinstance(loaded, dict):
+                    data = loaded
+            except Exception:
+                data = {}
+        benchmark = infer_benchmark_name(path, data)
+        files.append(
+            {
+                "path": str(path),
+                "name": path.name,
+                "benchmark": benchmark,
+                "benchmark_key": benchmark_key(benchmark),
+                "kind": benchmark_artifact_kind(path),
+                "size_bytes": path_size(path),
+                "sha256": sha256_file(path),
+            }
+        )
+    files.sort(key=lambda item: (item["benchmark_key"], item["kind"], item["path"]))
+    missing_measured = [key for key in suite_keys if key not in measured]
+    return {
+        "schema": "cerebellum.benchmark_manifest.v1",
+        "suite": suite,
+        "model": model,
+        "paths": [str(path) for path in paths],
+        "artifacts": files,
+        "measured_benchmarks": measured,
+        "missing_measured": missing_measured,
+        "records": records,
+        "release_metadata": benchmark_report(paths).get("release_metadata", {}),
+    }
+
+
+def benchmark_manifest_markdown(manifest: dict[str, Any]) -> str:
+    rows = [
+        [
+            item["benchmark_key"],
+            item["kind"],
+            item["name"],
+            fmt_bytes(item["size_bytes"]),
+            item["sha256"],
+        ]
+        for item in manifest["artifacts"]
+    ]
+    parts = [
+        "# Benchmark Artifact Manifest",
+        "",
+        f"suite: `{manifest['suite']}`",
+        f"model: `{manifest.get('model') or '-'}`",
+        "",
+        markdown_table(["Benchmark", "Kind", "File", "Size", "SHA256"], rows) if rows else "No benchmark artifacts found.",
+    ]
+    if manifest["missing_measured"]:
+        parts.extend(["", "## Missing Measured Benchmarks", "", ", ".join(manifest["missing_measured"])])
+    return "\n".join(parts) + "\n"
+
+
+def benchmark_manifest_cmd(args: argparse.Namespace) -> None:
+    manifest = benchmark_manifest(args.paths, suite=args.suite, model=args.model)
+    text = json.dumps(manifest, indent=2, sort_keys=True) if args.json else benchmark_manifest_markdown(manifest)
+    if args.output:
+        Path(args.output).write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
+        print(args.output)
+        return
+    print(text, end="" if text.endswith("\n") else "\n")
 
 
 def metric_is_quality_percent(metric: str) -> bool:
@@ -6759,6 +6864,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-plan":
         benchmark_plan_cmd(args)
+        return
+    if args.cmd == "benchmark-manifest":
+        benchmark_manifest_cmd(args)
         return
     if args.cmd == "benchmark-audit":
         benchmark_audit_cmd(args)
