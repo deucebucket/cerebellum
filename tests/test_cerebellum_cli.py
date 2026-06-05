@@ -31,6 +31,7 @@ from cerebellum import (
     benchmark_rebench_plan_args_from_query,
     benchmark_rebench_plan_markdown,
     benchmark_report,
+    benchmark_report_args_from_query,
     benchmark_report_markdown,
     cerebellum_metadata_block,
     clear_terminal_markers,
@@ -325,6 +326,44 @@ def test_benchmark_report_command_parses():
     assert args.size == ["q4=8.0"]
     assert args.weight == ["gpqa_diamond=2"]
     assert args.json is True
+
+
+def test_benchmark_report_api_query_args_validate():
+    args = benchmark_report_args_from_query(
+        {
+            "path": ["benchmark_results", "extra_results"],
+            "baseline": ["q4"],
+            "leaderboard": ["true"],
+            "suite": ["frontier"],
+            "size": ["q4=8.0"],
+            "weight": ["gpqa_diamond=2"],
+        }
+    )
+
+    assert args.paths == ["benchmark_results", "extra_results"]
+    assert args.baseline == "q4"
+    assert args.leaderboard is True
+    assert args.suite == "frontier"
+    assert args.size == ["q4=8.0"]
+    assert args.weight == ["gpqa_diamond=2"]
+
+    suite_args = benchmark_report_args_from_query({"list_suites": ["true"]})
+    assert suite_args.list_suites is True
+    assert suite_args.paths == []
+
+    try:
+        benchmark_report_args_from_query({})
+    except ValueError as exc:
+        assert "path query param required" in str(exc)
+    else:
+        raise AssertionError("benchmark-report API query should require path unless list_suites=true")
+
+    try:
+        benchmark_report_args_from_query({"path": ["benchmark_results"], "suite": ["unknown"]})
+    except ValueError as exc:
+        assert "unknown benchmark suite unknown" in str(exc)
+    else:
+        raise AssertionError("invalid benchmark report suite should fail")
 
 
 def test_benchmark_plan_lists_commands_and_pending_frontier():

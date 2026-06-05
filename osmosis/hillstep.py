@@ -5642,6 +5642,26 @@ def benchmark_report_cmd(args: argparse.Namespace) -> None:
     print(text, end="" if text.endswith("\n") else "\n")
 
 
+def benchmark_report_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    list_suites = query_bool(qs, "list_suites")
+    paths = qs.get("path") or qs.get("paths") or []
+    if not paths and not list_suites:
+        raise ValueError("path query param required")
+    suite = query_value(qs, "suite", "full")
+    if suite not in BENCHMARK_SUITES:
+        raise ValueError(f"unknown benchmark suite {suite}")
+    return argparse.Namespace(
+        paths=paths,
+        baseline=query_value(qs, "baseline"),
+        leaderboard=query_bool(qs, "leaderboard"),
+        suite=suite,
+        size=qs.get("size") or [],
+        size_json=query_value(qs, "size_json"),
+        weight=qs.get("weight") or [],
+        list_suites=list_suites,
+    )
+
+
 def benchmark_audit_files(paths: list[str]) -> list[Path]:
     files: list[Path] = []
     seen: set[Path] = set()
@@ -7776,6 +7796,27 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 )
             except (ValueError, OSError, json.JSONDecodeError) as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/benchmark-report":
+            try:
+                args = benchmark_report_args_from_query(qs)
+                if args.list_suites:
+                    self._json({"suites": BENCHMARK_SUITES})
+                else:
+                    sizes = read_size_json(args.size_json)
+                    sizes.update(parse_size_specs(args.size))
+                    weights = parse_weight_specs(args.weight)
+                    self._json(
+                        benchmark_report(
+                            args.paths,
+                            baseline=args.baseline,
+                            suite=args.suite,
+                            leaderboard=args.leaderboard,
+                            sizes=sizes,
+                            weights=weights,
+                        )
+                    )
+            except (ValueError, SystemExit, OSError, json.JSONDecodeError) as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/artifact-inventory":
             try:
                 args = artifact_inventory_args_from_query(qs)
@@ -7824,6 +7865,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "benchmark_plan": "cerebellum benchmark-plan --suite release --model MODEL --json",
                         "benchmark_manifest": "cerebellum benchmark-manifest benchmark_results --suite release --model MODEL --json",
                         "benchmark_audit": "cerebellum benchmark-audit benchmark_results --json",
+                        "benchmark_report": "cerebellum benchmark-report benchmark_results --leaderboard --suite frontier --json",
                         "artifact_inventory": "cerebellum artifact-inventory ROOT --json",
                         "public_export_plan": "cerebellum public-export OUT --dry-run --json",
                         "benchmark_rebench_plan": "cerebellum benchmark-rebench-plan --suite humaneval --json",
@@ -7847,6 +7889,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "benchmark_plan": "/benchmark-plan?suite=release&model=MODEL",
                         "benchmark_manifest": "/benchmark-manifest?path=benchmark_results&suite=release&model=MODEL",
                         "benchmark_audit": "/benchmark-audit?path=benchmark_results",
+                        "benchmark_report": "/benchmark-report?path=benchmark_results&leaderboard=true&suite=frontier",
                         "artifact_inventory": "/artifact-inventory?root=ROOT&top=25",
                         "public_export_plan": "/public-export-plan?path=README.md&path=docs",
                         "benchmark_rebench_plan": "/benchmark-rebench-plan?suite=humaneval",
@@ -7879,6 +7922,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/benchmark-plan", "params": ["suite?", "model?", "port?", "results_dir?"], "returns": "benchmark suite command/artifact readiness plan"},
                         {"path": "/benchmark-manifest", "params": ["path", "suite?", "model?", "require_complete?"], "returns": "hashed benchmark artifact manifest"},
                         {"path": "/benchmark-audit", "params": ["path", "fail_empty_pct?", "fail_unknown_pct?", "fail_pass_only_pct?"], "returns": "benchmark detailed-artifact quality audit"},
+                        {"path": "/benchmark-report", "params": ["path", "baseline?", "leaderboard?", "suite?", "size?", "size_json?", "weight?", "list_suites?"], "returns": "benchmark aggregate comparison and leaderboard report"},
                         {"path": "/artifact-inventory", "params": ["root", "top?", "allow_broad?"], "returns": "preservation-first legacy artifact inventory"},
                         {"path": "/public-export-plan", "params": ["path?", "paths?", "max_bytes?"], "returns": "sanitized public export dry-run manifest"},
                         {"path": "/benchmark-rebench-plan", "params": ["suite=humaneval|release?", "results_root?", "port?", "model?", "correction_issue?"], "returns": "published-model corrected rebench queue"},
@@ -7904,7 +7948,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /benchmark-plan /benchmark-manifest /benchmark-audit /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /benchmark-plan /benchmark-manifest /benchmark-audit /benchmark-report /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
