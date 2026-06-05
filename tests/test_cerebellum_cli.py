@@ -19,6 +19,7 @@ from cerebellum import (
     benchmark_audit_cmd,
     benchmark_audit_markdown,
     benchmark_manifest,
+    benchmark_manifest_args_from_query,
     benchmark_manifest_cmd,
     benchmark_manifest_markdown,
     benchmark_plan,
@@ -581,6 +582,36 @@ def test_benchmark_manifest_command_parses():
     assert args.output == "manifest.json"
     assert args.require_complete is True
     assert args.json is True
+
+
+def test_benchmark_manifest_api_query_args_validate():
+    args = benchmark_manifest_args_from_query(
+        {
+            "path": ["benchmark_results", "extra_results"],
+            "suite": ["frontier"],
+            "model": ["m"],
+            "require_complete": ["true"],
+        }
+    )
+
+    assert args.paths == ["benchmark_results", "extra_results"]
+    assert args.suite == "frontier"
+    assert args.model == "m"
+    assert args.require_complete is True
+
+    try:
+        benchmark_manifest_args_from_query({})
+    except ValueError as exc:
+        assert "path query param required" in str(exc)
+    else:
+        raise AssertionError("benchmark-manifest API query should require path")
+
+    try:
+        benchmark_manifest_args_from_query({"path": ["benchmark_results"], "suite": ["unknown"]})
+    except ValueError as exc:
+        assert "unknown benchmark suite unknown" in str(exc)
+    else:
+        raise AssertionError("invalid benchmark manifest suite should fail")
 
 
 def test_benchmark_manifest_cmd_requires_complete_suite(tmp_path: Path):
