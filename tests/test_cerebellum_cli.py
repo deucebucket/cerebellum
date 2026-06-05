@@ -21,6 +21,8 @@ from cerebellum import (
     compare_locks,
     build_recovery_plan,
     build_watch_model,
+    compare_gguf_types,
+    compare_gguf_types_markdown,
     discover_projects,
     doctor_cmd,
     eta_grid_values,
@@ -66,6 +68,17 @@ def test_inspect_gguf_types_command_parses():
     assert args.cmd == "inspect-gguf-types"
     assert args.gguf == "/tmp/model.gguf"
     assert args.by_layer is True
+    assert args.json is True
+
+
+def test_compare_gguf_types_command_parses():
+    args = parse_args(["compare-gguf-types", "base.gguf", "cand.gguf", "--baseline-label", "q4", "--candidate-label", "dynamic", "--json"])
+
+    assert args.cmd == "compare-gguf-types"
+    assert args.baseline == "base.gguf"
+    assert args.candidate == "cand.gguf"
+    assert args.baseline_label == "q4"
+    assert args.candidate_label == "dynamic"
     assert args.json is True
 
 
@@ -661,6 +674,49 @@ def test_inspect_gguf_types_summarizes_layers_and_components(tmp_path: Path, mon
     assert summary["type_counts"] == {"F16": 1, "F32": 1, "Q3_K": 1, "Q4_K": 1, "Q5_K": 1}
     assert summary["component_counts"]["ffn_down"] == {"Q4_K": 1, "Q5_K": 1}
     assert summary["layer_counts"]["blk.0"] == {"Q3_K": 1, "Q4_K": 1}
+
+
+def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, monkeypatch):
+    baseline = tmp_path / "baseline.gguf"
+    candidate = tmp_path / "candidate.gguf"
+    baseline.write_bytes(b"fake")
+    candidate.write_bytes(b"fake")
+
+    class Tensor:
+        def __init__(self, name: str, tensor_type: int):
+            self.name = name
+            self.tensor_type = tensor_type
+
+    class Reader:
+        def __init__(self, path: str):
+            if Path(path).name == "baseline.gguf":
+                self.tensors = [
+                    Tensor("blk.0.ffn_down.weight", 12),
+                    Tensor("blk.0.attn_q.weight", 12),
+                    Tensor("blk.1.ffn_down.weight", 12),
+                ]
+            else:
+                self.tensors = [
+                    Tensor("blk.0.ffn_down.weight", 13),
+                    Tensor("blk.0.attn_q.weight", 11),
+                    Tensor("blk.1.ffn_down.weight", 12),
+                ]
+
+    class Quant:
+        def __init__(self, value: int):
+            self.name = {11: "Q3_K", 12: "Q4_K", 13: "Q5_K"}[value]
+
+    monkeypatch.setitem(sys.modules, "gguf", types.SimpleNamespace(GGUFReader=Reader, GGMLQuantizationType=Quant))
+
+    report = compare_gguf_types(baseline, candidate, baseline_label="q4", candidate_label="dynamic")
+    markdown = compare_gguf_types_markdown(report)
+
+    assert report["type_counts"]["Q4_K"]["delta"] == -2
+    assert report["type_counts"]["Q3_K"]["delta"] == 1
+    assert report["component_counts"]["ffn_down"]["Q5_K"]["delta"] == 1
+    assert report["layer_counts"]["blk.0"]["Q4_K"]["delta"] == -2
+    assert "candidate: `dynamic`" in markdown
+    assert "| Q4_K | 3 | 1 | -2 |" in markdown
 
 
 def test_compare_locks_filters_non_quantizable_entries():

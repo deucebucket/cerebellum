@@ -136,6 +136,7 @@ Transparent provenance metadata:
 cerebellum provenance --run-dir /path/to/run
 cerebellum provenance --gguf model.gguf
 cerebellum provenance --run-dir /path/to/run --gguf model.gguf --hash-files
+cerebellum compare-gguf-types baseline.gguf candidate.gguf --baseline-label Q4 --candidate-label Dynamic
 cerebellum finalize --run-dir /path/to/run --gguf model.gguf
 cerebellum package /path/to/run
 cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
@@ -145,6 +146,8 @@ Cerebellum provenance uses visible `cerebellum.*` GGUF metadata keys and report
 hashes. It is intended for attribution and auditability, not hidden watermarking.
 `finalize` writes metadata sidecars and a model-card block everywhere; if a
 compatible `gguf-set-metadata` tool is installed, `--inject` can tag the GGUF.
+`compare-gguf-types` is useful for private Dynamic GGUF/Cerebellum comparisons:
+it reports tensor-type deltas by type, component, and layer.
 `package` writes a portable upload manifest. Public mode is the default and
 includes only release-safe finalize/model-card provenance sidecars. Use
 `--private` only for private dev uploads that intentionally include raw state,

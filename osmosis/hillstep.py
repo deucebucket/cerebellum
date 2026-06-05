@@ -2239,6 +2239,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     inspect_types.add_argument("--by-component", action="store_true", help="include per-component type counts")
     inspect_types.add_argument("--json", action="store_true")
 
+    compare_types = sub.add_parser("compare-gguf-types", help="compare tensor quantization type distributions between two GGUFs")
+    compare_types.add_argument("baseline")
+    compare_types.add_argument("candidate")
+    compare_types.add_argument("--baseline-label", default="baseline")
+    compare_types.add_argument("--candidate-label", default="candidate")
+    compare_types.add_argument("--json", action="store_true")
+
     compare_locks = sub.add_parser("compare-locks", help="compare Cerebellum tensor locks between a run and an archive/state")
     compare_locks.add_argument("run_dir", help="current run directory or model/run name")
     compare_locks.add_argument("--against", required=True, help="state.json, checkpoint JSON, or archive directory containing state.json")
@@ -3682,6 +3689,101 @@ def inspect_gguf_types_cmd(args: argparse.Namespace) -> None:
         for layer, counts in summary["layer_counts"].items():
             cells = "  ".join(f"{qtype}={count}" for qtype, count in counts.items())
             print(f"  {layer:<8} {cells}")
+
+
+def compare_count_maps(base: dict[str, int], candidate: dict[str, int]) -> dict[str, dict[str, int]]:
+    keys = sorted(set(base) | set(candidate))
+    return {
+        key: {
+            "baseline": int(base.get(key, 0)),
+            "candidate": int(candidate.get(key, 0)),
+            "delta": int(candidate.get(key, 0)) - int(base.get(key, 0)),
+        }
+        for key in keys
+    }
+
+
+def compare_nested_count_maps(
+    base: dict[str, dict[str, int]],
+    candidate: dict[str, dict[str, int]],
+) -> dict[str, dict[str, dict[str, int]]]:
+    keys = sorted(set(base) | set(candidate))
+    return {key: compare_count_maps(base.get(key, {}), candidate.get(key, {})) for key in keys}
+
+
+def compare_gguf_types(
+    baseline: Path,
+    candidate: Path,
+    baseline_label: str = "baseline",
+    candidate_label: str = "candidate",
+) -> dict[str, Any]:
+    base = inspect_gguf_types(baseline)
+    cand = inspect_gguf_types(candidate)
+    return {
+        "baseline": {"label": baseline_label, "gguf": str(baseline), "summary": base},
+        "candidate": {"label": candidate_label, "gguf": str(candidate), "summary": cand},
+        "tensor_count_delta": int(cand["tensor_count"]) - int(base["tensor_count"]),
+        "quantizable_tensor_count_delta": int(cand["quantizable_tensor_count"]) - int(base["quantizable_tensor_count"]),
+        "type_counts": compare_count_maps(base["type_counts"], cand["type_counts"]),
+        "component_counts": compare_nested_count_maps(base["component_counts"], cand["component_counts"]),
+        "layer_counts": compare_nested_count_maps(base["layer_counts"], cand["layer_counts"]),
+    }
+
+
+def changed_count_rows(counts: dict[str, dict[str, int]]) -> list[list[str]]:
+    rows = []
+    for key, values in counts.items():
+        if values["delta"] == 0:
+            continue
+        rows.append([key, str(values["baseline"]), str(values["candidate"]), f"{values['delta']:+d}"])
+    return rows
+
+
+def changed_nested_rows(counts: dict[str, dict[str, dict[str, int]]], limit: int = 60) -> list[list[str]]:
+    rows = []
+    for bucket, values in counts.items():
+        for qtype, row in values.items():
+            if row["delta"] == 0:
+                continue
+            rows.append([bucket, qtype, str(row["baseline"]), str(row["candidate"]), f"{row['delta']:+d}"])
+    return rows[:limit]
+
+
+def compare_gguf_types_markdown(report: dict[str, Any]) -> str:
+    parts = [
+        "# GGUF Tensor Type Comparison",
+        "",
+        f"baseline: `{report['baseline']['label']}`",
+        f"candidate: `{report['candidate']['label']}`",
+        "",
+        f"tensor_count_delta: {report['tensor_count_delta']:+d}",
+        f"quantizable_tensor_count_delta: {report['quantizable_tensor_count_delta']:+d}",
+    ]
+    type_rows = changed_count_rows(report["type_counts"])
+    if type_rows:
+        parts.extend(["", "## Type Count Deltas", "", markdown_table(["Type", "Baseline", "Candidate", "Delta"], type_rows)])
+    component_rows = changed_nested_rows(report["component_counts"])
+    if component_rows:
+        parts.extend(["", "## Component Deltas", "", markdown_table(["Component", "Type", "Baseline", "Candidate", "Delta"], component_rows)])
+    layer_rows = changed_nested_rows(report["layer_counts"])
+    if layer_rows:
+        parts.extend(["", "## Layer Deltas", "", markdown_table(["Layer", "Type", "Baseline", "Candidate", "Delta"], layer_rows)])
+    if not type_rows and not component_rows and not layer_rows:
+        parts.append("\nNo tensor type distribution differences detected.")
+    return "\n".join(parts) + "\n"
+
+
+def compare_gguf_types_cmd(args: argparse.Namespace) -> None:
+    report = compare_gguf_types(
+        Path(args.baseline),
+        Path(args.candidate),
+        baseline_label=args.baseline_label,
+        candidate_label=args.candidate_label,
+    )
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+    print(compare_gguf_types_markdown(report), end="")
 
 
 def state_path_for_compare(path: Path) -> Path:
@@ -6161,6 +6263,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "inspect-gguf-types":
         inspect_gguf_types_cmd(args)
+        return
+    if args.cmd == "compare-gguf-types":
+        compare_gguf_types_cmd(args)
         return
     if args.cmd == "compare-locks":
         compare_locks_cmd(args)
