@@ -8,6 +8,7 @@ from pathlib import Path
 from cerebellum import (
     EventLog,
     active_work_status,
+    clear_terminal_markers,
     compare_locks,
     build_recovery_plan,
     build_watch_model,
@@ -26,6 +27,7 @@ from cerebellum import (
     resolve_run_dir,
     public_report_summary,
     sanitize_process_cmd,
+    stop_target_pids,
     tensor_type_line,
     upload_github_sidecars,
     watch_cmd,
@@ -112,6 +114,39 @@ def test_active_work_status_marks_missing_started_process_interrupted():
     assert status["stale"] is True
     assert status["expected_pid"] == "123456"
     assert status["expected_pid_alive"] is False
+
+
+def test_clear_terminal_markers_removes_stale_run_markers(tmp_path: Path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    for name in ["STOPPED", "ABORTED", "COMPLETE"]:
+        (run_dir / name).write_text("old\n", encoding="utf-8")
+
+    removed = clear_terminal_markers(run_dir)
+
+    assert removed == ["STOPPED", "ABORTED", "COMPLETE"]
+    assert not any((run_dir / name).exists() for name in removed)
+
+
+def test_stop_target_pids_includes_detached_run_processes(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    events = [{"pid": 100}]
+
+    monkeypatch.setattr("osmosis.hillstep.child_pids", lambda pid: [pid + 1] if pid == 100 else [])
+    monkeypatch.setattr(
+        "osmosis.hillstep.process_rows_for_run",
+        lambda _run_dir: [
+            {"kind": "runner", "pid": "100"},
+            {"kind": "ppl", "pid": "300"},
+            {"kind": "quantize", "pid": "400"},
+            {"kind": "process", "pid": "500"},
+        ],
+    )
+
+    targets = stop_target_pids(run_dir, events)
+
+    assert targets == [101, 100, 300, 400]
 
 
 def test_eta_grid_values_includes_wall_clock_completion():

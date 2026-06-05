@@ -1925,8 +1925,9 @@ class HillStepper:
         remaining = [t for t in tensors if t not in state["locked"]]
         state["run_status"] = "running"
         self.save_state(state)
+        removed_markers = clear_terminal_markers(self.cfg.run_dir)
         self.render_banner(len(tensors), len(state["locked"]))
-        self.events.write("run_start", tensors=len(tensors), locked=len(state["locked"]))
+        self.events.write("run_start", tensors=len(tensors), locked=len(state["locked"]), cleared_markers=removed_markers)
         self.build_baseline_if_needed(state)
         for tensor in remaining:
             if self.stop_requested:
@@ -2468,6 +2469,58 @@ def child_pids(root_pid: int) -> list[int]:
     return found
 
 
+TERMINAL_MARKERS = ("STOPPED", "ABORTED", "COMPLETE")
+
+
+def clear_terminal_markers(run_dir: Path) -> list[str]:
+    removed: list[str] = []
+    for name in TERMINAL_MARKERS:
+        marker = run_dir / name
+        if not marker.exists():
+            continue
+        try:
+            marker.unlink()
+            removed.append(name)
+        except OSError:
+            pass
+    return removed
+
+
+def stop_target_pids(run_dir: Path, events: list[dict[str, Any]]) -> list[int]:
+    targets: list[int] = []
+
+    def add(pid: Any) -> None:
+        try:
+            value = int(pid)
+        except (TypeError, ValueError):
+            return
+        if value == os.getpid() or value in targets:
+            return
+        targets.append(value)
+
+    recent: list[int] = []
+    for row in reversed(events):
+        pid = row.get("pid")
+        if isinstance(pid, int) and pid not in recent:
+            recent.append(pid)
+        if len(recent) >= 3:
+            break
+    for pid in recent:
+        for child in child_pids(pid):
+            add(child)
+        add(pid)
+
+    for row in process_rows_for_run(run_dir):
+        if row.get("kind") not in {"runner", "quantize", "ppl", "container"}:
+            continue
+        pid = row.get("pid")
+        for child in child_pids(int(pid)):
+            add(child)
+        add(pid)
+
+    return targets
+
+
 def stop_cmd(args: argparse.Namespace) -> None:
     run_dir = Path(args.run_dir)
     state_path = run_dir / "state.json"
@@ -2475,25 +2528,16 @@ def stop_cmd(args: argparse.Namespace) -> None:
         raise SystemExit(f"no state.json found in {run_dir}")
     events_path = first_existing(run_dir, EVENT_FILES)
     events = read_jsonl(events_path)
-    pids = []
-    for row in reversed(events):
-        pid = row.get("pid")
-        if isinstance(pid, int) and pid not in pids:
-            pids.append(pid)
-        if len(pids) >= 3:
-            break
     signaled: list[int] = []
     if not args.no_kill:
-        for pid in pids:
-            targets = [*child_pids(pid), pid]
-            for target in targets:
-                if target == os.getpid() or target in signaled or not process_exists(target):
-                    continue
-                try:
-                    os.kill(target, signal.SIGTERM)
-                    signaled.append(target)
-                except OSError:
-                    pass
+        for target in stop_target_pids(run_dir, events):
+            if target in signaled or not process_exists(target):
+                continue
+            try:
+                os.kill(target, signal.SIGTERM)
+                signaled.append(target)
+            except OSError:
+                pass
     state = read_json(state_path, {})
     state["run_status"] = "stopped"
     state["stopped_at"] = utc_now()
