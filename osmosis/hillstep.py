@@ -2055,6 +2055,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     provenance.add_argument("--hash-files", action="store_true", help="compute full SHA256 hashes for large files")
     provenance.add_argument("--format", choices=["json", "env"], default="json")
 
+    inspect_types = sub.add_parser("inspect-gguf-types", help="summarize GGUF tensor quantization types")
+    inspect_types.add_argument("gguf")
+    inspect_types.add_argument("--by-layer", action="store_true", help="include per-layer type counts")
+    inspect_types.add_argument("--by-component", action="store_true", help="include per-component type counts")
+    inspect_types.add_argument("--json", action="store_true")
+
     finalize = sub.add_parser("finalize", help="write final reports/model card and tag GGUF provenance")
     finalize.add_argument("--run-dir", required=True)
     finalize.add_argument("--gguf", default=None, help="Final GGUF to tag/inspect")
@@ -2148,7 +2154,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and len(sys.argv) > 1
         and sys.argv[1] not in {
             "run", "imatrix", "status", "events", "runs", "schedule", "db", "report",
-            "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "finalize", "package", "plan-space",
+            "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "inspect-gguf-types", "finalize", "package", "plan-space",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
             "cleanup", "rollback",
             "backup",
@@ -3309,6 +3315,73 @@ def inspect_gguf_metadata(gguf: Path) -> dict[str, Any]:
             value = value.decode("utf-8", errors="replace")
         fields[key] = str(value)
     return fields
+
+
+def gguf_quant_type_name(value: Any) -> str:
+    name = getattr(value, "name", None)
+    if name:
+        return str(name)
+    try:
+        from gguf import GGMLQuantizationType
+
+        return GGMLQuantizationType(int(value)).name
+    except Exception:
+        return str(value)
+
+
+def inspect_gguf_types(gguf: Path) -> dict[str, Any]:
+    try:
+        from gguf import GGUFReader
+    except ImportError as exc:
+        raise SystemExit("gguf Python package is required to inspect GGUF tensor types") from exc
+    reader = GGUFReader(str(gguf))
+    type_counts: dict[str, int] = {}
+    component_counts: dict[str, dict[str, int]] = {}
+    layer_counts: dict[str, dict[str, int]] = {}
+    quantized_tensors = 0
+    for tensor in reader.tensors:
+        name = str(tensor.name)
+        qtype = gguf_quant_type_name(getattr(tensor, "tensor_type", "unknown"))
+        type_counts[qtype] = type_counts.get(qtype, 0) + 1
+        if is_quantizable_tensor(name):
+            quantized_tensors += 1
+        layer, component = parse_tensor_name(name)
+        component_key = component or "other"
+        component_counts.setdefault(component_key, {})
+        component_counts[component_key][qtype] = component_counts[component_key].get(qtype, 0) + 1
+        layer_key = f"blk.{layer}" if layer is not None else "global"
+        layer_counts.setdefault(layer_key, {})
+        layer_counts[layer_key][qtype] = layer_counts[layer_key].get(qtype, 0) + 1
+    return {
+        "gguf": str(gguf),
+        "tensor_count": len(reader.tensors),
+        "quantizable_tensor_count": quantized_tensors,
+        "type_counts": dict(sorted(type_counts.items())),
+        "component_counts": {key: dict(sorted(value.items())) for key, value in sorted(component_counts.items())},
+        "layer_counts": {key: dict(sorted(value.items())) for key, value in sorted(layer_counts.items())},
+    }
+
+
+def inspect_gguf_types_cmd(args: argparse.Namespace) -> None:
+    summary = inspect_gguf_types(Path(args.gguf))
+    if args.json:
+        print(json.dumps(summary, indent=2, sort_keys=True))
+        return
+    print(f"GGUF tensor types: {summary['gguf']}")
+    print(f"tensors: {summary['tensor_count']}  quantizable: {summary['quantizable_tensor_count']}")
+    print("Type counts:")
+    for qtype, count in summary["type_counts"].items():
+        print(f"  {qtype:<8} {count}")
+    if args.by_component:
+        print("\nComponent counts:")
+        for component, counts in summary["component_counts"].items():
+            cells = "  ".join(f"{qtype}={count}" for qtype, count in counts.items())
+            print(f"  {component:<24} {cells}")
+    if args.by_layer:
+        print("\nLayer counts:")
+        for layer, counts in summary["layer_counts"].items():
+            cells = "  ".join(f"{qtype}={count}" for qtype, count in counts.items())
+            print(f"  {layer:<8} {cells}")
 
 
 def write_report_files(run_dir: Path, report: dict[str, Any], formats: list[str]) -> list[Path]:
@@ -4645,6 +4718,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "provenance":
         provenance_cmd(args)
+        return
+    if args.cmd == "inspect-gguf-types":
+        inspect_gguf_types_cmd(args)
         return
     if args.cmd == "finalize":
         finalize_cmd(args)

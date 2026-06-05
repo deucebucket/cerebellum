@@ -15,6 +15,7 @@ from cerebellum import (
     eta_grid_values,
     github_upload_plan,
     grid_watch_cmd,
+    inspect_gguf_types,
     is_quantizable_tensor,
     locked_layer_lines,
     package_files,
@@ -36,6 +37,15 @@ def test_project_root_alias_parses_as_data_root():
 
     assert args.cmd == "project"
     assert args.data_root == "/tmp/cerebellum-runs"
+    assert args.json is True
+
+
+def test_inspect_gguf_types_command_parses():
+    args = parse_args(["inspect-gguf-types", "/tmp/model.gguf", "--by-layer", "--json"])
+
+    assert args.cmd == "inspect-gguf-types"
+    assert args.gguf == "/tmp/model.gguf"
+    assert args.by_layer is True
     assert args.json is True
 
 
@@ -210,6 +220,41 @@ def test_tensor_type_map_skips_noop_source_tensors(tmp_path: Path, monkeypatch):
     write_tensor_types_map(source, {"blk.0.attn_q.weight": "q5_K"}, "q4_K", path)
 
     assert path.read_text(encoding="utf-8") == r"^blk\.0\.attn_q\.weight$=q5_K" + "\n"
+
+
+def test_inspect_gguf_types_summarizes_layers_and_components(tmp_path: Path, monkeypatch):
+    gguf = tmp_path / "model.gguf"
+    gguf.write_bytes(b"fake")
+
+    class Tensor:
+        def __init__(self, name: str, tensor_type: int):
+            self.name = name
+            self.tensor_type = tensor_type
+
+    class Reader:
+        def __init__(self, _path: str):
+            self.tensors = [
+                Tensor("token_embd.weight", 1),
+                Tensor("blk.0.ffn_down.weight", 12),
+                Tensor("blk.0.attn_q.weight", 11),
+                Tensor("blk.1.ffn_down.weight", 13),
+                Tensor("blk.1.attn_norm.weight", 0),
+            ]
+
+    class Quant:
+        def __init__(self, value: int):
+            self.name = {0: "F32", 1: "F16", 11: "Q3_K", 12: "Q4_K", 13: "Q5_K"}[value]
+
+    quant = Quant
+    monkeypatch.setitem(sys.modules, "gguf", types.SimpleNamespace(GGUFReader=Reader, GGMLQuantizationType=quant))
+
+    summary = inspect_gguf_types(gguf)
+
+    assert summary["tensor_count"] == 5
+    assert summary["quantizable_tensor_count"] == 3
+    assert summary["type_counts"] == {"F16": 1, "F32": 1, "Q3_K": 1, "Q4_K": 1, "Q5_K": 1}
+    assert summary["component_counts"]["ffn_down"] == {"Q4_K": 1, "Q5_K": 1}
+    assert summary["layer_counts"]["blk.0"] == {"Q3_K": 1, "Q4_K": 1}
 
 
 def test_watch_model_uses_latest_run_epoch_after_rollback(tmp_path: Path):
