@@ -160,6 +160,7 @@ cerebellum package /path/to/run
 cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
 cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_results/ --clean
 cerebellum artifact-inventory . --output cerebellum-dev/artifact_inventory.json --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
+cerebellum pipeline-status --manifest /path/to/pipeline.json
 cerebellum hf-stats --author deucebucket --snapshot db/hf_downloads.jsonl
 ```
 
@@ -187,6 +188,9 @@ Use `artifact-inventory` before cleanup. It scans file paths and sizes without
 reading log contents, groups legacy model trees and private artifacts into
 storage categories, flags public-risk paths, and writes JSON/Markdown inventory
 reports. The command is preservation-first; it never deletes files.
+Use `pipeline-status` after `pipeline-run --execute` to read
+`pipeline_run_events.jsonl`, summarize complete/running/failed phases, and print
+the resume command for the failed or next pending phase.
 Use `hf-stats` for release telemetry. The default public Hugging Face model API
 reports rolling/recent downloads, not lifetime totals, so Cerebellum labels
 those fields as `downloads_recent`. True all-time totals require Hugging Face

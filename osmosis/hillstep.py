@@ -2430,6 +2430,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     pipeline_run_parser.add_argument("--execute", action="store_true", help="actually run phase commands; dry-run is default")
     pipeline_run_parser.add_argument("--json", action="store_true")
 
+    pipeline_status_parser = sub.add_parser("pipeline-status", help="summarize pipeline-run event logs and resume point")
+    pipeline_status_parser.add_argument("--manifest", required=True, help="pipeline-plan JSON manifest")
+    pipeline_status_parser.add_argument("--events", default=None, help="pipeline_run_events.jsonl path; defaults next to manifest")
+    pipeline_status_parser.add_argument("--json", action="store_true")
+
     cpu_offload_smoke = sub.add_parser("cpu-offload-smoke", help="validate huge-model CPU-offload workflow without launching quantization")
     cpu_offload_smoke.add_argument("--source-gguf", required=True)
     cpu_offload_smoke.add_argument("--output-dir", required=True)
@@ -5220,6 +5225,135 @@ def pipeline_run_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace
         from_phase=query_value(qs, "from_phase"),
         until_phase=query_value(qs, "until_phase"),
     )
+
+
+def pipeline_status(
+    manifest_path: Path,
+    events_path: Path | None = None,
+) -> dict[str, Any]:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    phases = manifest.get("phases")
+    if not isinstance(phases, list) or not phases:
+        raise SystemExit("pipeline manifest has no phases")
+    event_log = events_path or manifest_path.parent / "pipeline_run_events.jsonl"
+    events = read_jsonl(event_log)
+    phase_rows: list[dict[str, Any]] = []
+    phase_index: dict[str, dict[str, Any]] = {}
+    for index, phase in enumerate(phases):
+        name = str(phase.get("name"))
+        row = {
+            "index": index,
+            "name": name,
+            "status": "pending",
+            "command": phase.get("command"),
+            "outputs": phase.get("outputs", []),
+            "started_at": None,
+            "finished_at": None,
+            "returncode": None,
+            "elapsed_seconds": None,
+            "log": None,
+        }
+        phase_rows.append(row)
+        phase_index[name] = row
+    for event in events:
+        name = str(event.get("phase") or "")
+        row = phase_index.get(name)
+        if row is None:
+            continue
+        kind = event.get("event")
+        if kind == "phase_start":
+            row["status"] = "running"
+            row["started_at"] = event.get("time")
+            row["command"] = event.get("command") or row.get("command")
+        elif kind == "phase_finish":
+            returncode = int(event.get("returncode", 0))
+            row["status"] = "complete" if returncode == 0 else "failed"
+            row["finished_at"] = event.get("time")
+            row["returncode"] = returncode
+            row["elapsed_seconds"] = event.get("elapsed_seconds")
+            row["log"] = event.get("log")
+            row["command"] = event.get("command") or row.get("command")
+    failed = next((row for row in phase_rows if row["status"] == "failed"), None)
+    running = next((row for row in phase_rows if row["status"] == "running"), None)
+    pending = next((row for row in phase_rows if row["status"] == "pending"), None)
+    if failed:
+        status = "failed"
+        resume_phase = failed["name"]
+    elif running:
+        status = "running"
+        resume_phase = running["name"]
+    elif pending and any(row["status"] == "complete" for row in phase_rows):
+        status = "partial"
+        resume_phase = pending["name"]
+    elif pending:
+        status = "not-started" if not events else "partial"
+        resume_phase = pending["name"]
+    else:
+        status = "complete"
+        resume_phase = None
+    resume_command = None
+    if resume_phase:
+        resume_command = shell_join(["cerebellum", "pipeline-run", "--manifest", manifest_path, "--from-phase", resume_phase, "--execute"])
+    return {
+        "schema": "cerebellum.pipeline_status.v1",
+        "manifest": str(manifest_path),
+        "event_log": str(event_log),
+        "event_count": len(events),
+        "pipeline": manifest.get("pipeline"),
+        "run_dir": manifest.get("run_dir"),
+        "status": status,
+        "completed_phases": sum(1 for row in phase_rows if row["status"] == "complete"),
+        "failed_phase": failed["name"] if failed else None,
+        "running_phase": running["name"] if running else None,
+        "next_phase": pending["name"] if pending else None,
+        "resume_phase": resume_phase,
+        "resume_command": resume_command,
+        "last_event": events[-1] if events else None,
+        "phases": phase_rows,
+    }
+
+
+def pipeline_status_markdown(status: dict[str, Any]) -> str:
+    rows = [
+        [
+            str(row["index"]),
+            str(row["name"]),
+            str(row["status"]),
+            "-" if row.get("returncode") is None else str(row["returncode"]),
+            str(row.get("log") or "-"),
+        ]
+        for row in status["phases"]
+    ]
+    parts = [
+        "# Cerebellum Pipeline Status",
+        "",
+        f"manifest: `{status['manifest']}`",
+        f"status: `{status['status']}`",
+        f"events: `{status['event_count']}`",
+        f"completed: `{status['completed_phases']}/{len(status['phases'])}`",
+    ]
+    if status.get("resume_command"):
+        parts.append(f"resume: `{status['resume_command']}`")
+    parts.extend(["", markdown_table(["#", "Phase", "Status", "Return", "Log"], rows)])
+    return "\n".join(parts) + "\n"
+
+
+def pipeline_status_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    manifest = query_value(qs, "manifest")
+    if not manifest:
+        raise ValueError("manifest query param required")
+    return argparse.Namespace(
+        manifest=manifest,
+        events=query_value(qs, "events"),
+    )
+
+
+def pipeline_status_cmd(args: argparse.Namespace) -> None:
+    result = pipeline_status(Path(args.manifest), Path(args.events) if args.events else None)
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(pipeline_status_markdown(result), end="")
 
 
 def cpu_offload_pipeline_detail(
@@ -8212,6 +8346,12 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 self._json(pipeline_run_plan(Path(args.manifest), from_phase=args.from_phase, until_phase=args.until_phase))
             except (ValueError, SystemExit, OSError, json.JSONDecodeError) as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/pipeline-status":
+            try:
+                args = pipeline_status_args_from_query(qs)
+                self._json(pipeline_status(Path(args.manifest), Path(args.events) if args.events else None))
+            except (ValueError, SystemExit, OSError, json.JSONDecodeError) as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/benchmark-plan":
             try:
                 args = benchmark_plan_args_from_query(qs)
@@ -8326,6 +8466,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
                         "pipeline_plan": "cerebellum pipeline-plan --source-gguf MODEL.gguf --output-dir OUT --json",
                         "pipeline_run": "cerebellum pipeline-run --manifest pipeline.json --json",
+                        "pipeline_status": "cerebellum pipeline-status --manifest pipeline.json --json",
                         "benchmark_plan": "cerebellum benchmark-plan --suite release --model MODEL --json",
                         "benchmark_manifest": "cerebellum benchmark-manifest benchmark_results --suite release --model MODEL --json",
                         "benchmark_audit": "cerebellum benchmark-audit benchmark_results --json",
@@ -8354,6 +8495,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "recover": "/recover?run_dir=RUN_DIR",
                         "pipeline_plan": "/pipeline-plan?source_gguf=MODEL.gguf&output_dir=OUT",
                         "pipeline_run": "/pipeline-run?manifest=pipeline.json",
+                        "pipeline_status": "/pipeline-status?manifest=pipeline.json",
                         "benchmark_plan": "/benchmark-plan?suite=release&model=MODEL",
                         "benchmark_manifest": "/benchmark-manifest?path=benchmark_results&suite=release&model=MODEL",
                         "benchmark_audit": "/benchmark-audit?path=benchmark_results",
@@ -8389,6 +8531,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
                         {"path": "/pipeline-plan", "params": ["source_gguf", "output_dir", "task_profile?", "benchmark_suite?"], "returns": "pipeline phase manifest"},
                         {"path": "/pipeline-run", "params": ["manifest", "from_phase?", "until_phase?"], "returns": "pipeline dry-run phase validation"},
+                        {"path": "/pipeline-status", "params": ["manifest", "events?"], "returns": "pipeline execution status and resume command from event logs"},
                         {"path": "/benchmark-plan", "params": ["suite?", "model?", "port?", "results_dir?"], "returns": "benchmark suite command/artifact readiness plan"},
                         {"path": "/benchmark-manifest", "params": ["path", "suite?", "model?", "require_complete?"], "returns": "hashed benchmark artifact manifest"},
                         {"path": "/benchmark-audit", "params": ["path", "fail_empty_pct?", "fail_unknown_pct?", "fail_pass_only_pct?"], "returns": "benchmark detailed-artifact quality audit"},
@@ -8420,7 +8563,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /benchmark-plan /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
@@ -8627,6 +8770,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "pipeline-run":
         pipeline_run_cmd(args)
+        return
+    if args.cmd == "pipeline-status":
+        pipeline_status_cmd(args)
         return
     if args.cmd == "cpu-offload-smoke":
         cpu_offload_smoke_cmd(args)

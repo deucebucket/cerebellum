@@ -73,6 +73,9 @@ from cerebellum import (
     pipeline_run_cmd,
     pipeline_run_execute,
     pipeline_run_plan,
+    pipeline_status,
+    pipeline_status_args_from_query,
+    pipeline_status_markdown,
     public_audit,
     public_audit_cmd,
     public_audit_markdown,
@@ -1110,6 +1113,82 @@ def test_pipeline_run_execute_stops_on_failure(tmp_path: Path):
     assert result["blockers"] == [{"phase": "fail", "reason": "command exited 7"}]
     assert [row["phase"] for row in result["executions"]] == ["fail"]
     assert not skipped.exists()
+
+
+def test_pipeline_status_command_parses():
+    args = parse_args(["pipeline-status", "--manifest", "pipeline.json", "--events", "events.jsonl", "--json"])
+
+    assert args.cmd == "pipeline-status"
+    assert args.manifest == "pipeline.json"
+    assert args.events == "events.jsonl"
+    assert args.json is True
+
+
+def test_pipeline_status_reports_complete_run(tmp_path: Path):
+    manifest = tmp_path / "pipeline.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "pipeline": "cerebellum",
+                "run_dir": "run",
+                "phases": [
+                    {"name": "one", "status": "planned", "command": f"{sys.executable} -c \"print('one')\""},
+                    {"name": "two", "status": "planned", "command": f"{sys.executable} -c \"print('two')\""},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    pipeline_run_execute(pipeline_run_plan(manifest))
+
+    status = pipeline_status(manifest)
+    markdown = pipeline_status_markdown(status)
+
+    assert status["schema"] == "cerebellum.pipeline_status.v1"
+    assert status["status"] == "complete"
+    assert status["completed_phases"] == 2
+    assert status["resume_command"] is None
+    assert [row["status"] for row in status["phases"]] == ["complete", "complete"]
+    assert "# Cerebellum Pipeline Status" in markdown
+
+
+def test_pipeline_status_reports_failed_resume_point(tmp_path: Path):
+    manifest = tmp_path / "pipeline.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "pipeline": "cerebellum",
+                "phases": [
+                    {"name": "fail", "status": "planned", "command": f"{sys.executable} -c \"raise SystemExit(7)\""},
+                    {"name": "skip", "status": "planned", "command": f"{sys.executable} -c \"print('skip')\""},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    pipeline_run_execute(pipeline_run_plan(manifest))
+
+    status = pipeline_status(manifest)
+
+    assert status["status"] == "failed"
+    assert status["failed_phase"] == "fail"
+    assert status["resume_phase"] == "fail"
+    assert "--from-phase fail --execute" in status["resume_command"]
+    assert [row["status"] for row in status["phases"]] == ["failed", "pending"]
+
+
+def test_pipeline_status_api_query_args_validate():
+    args = pipeline_status_args_from_query({"manifest": ["pipeline.json"], "events": ["events.jsonl"]})
+
+    assert args.manifest == "pipeline.json"
+    assert args.events == "events.jsonl"
+
+    try:
+        pipeline_status_args_from_query({})
+    except ValueError as exc:
+        assert "manifest query param required" in str(exc)
+    else:
+        raise AssertionError("pipeline-status API query should require manifest")
 
 
 def test_pipeline_plan_query_args_use_task_profile_defaults():
