@@ -21,12 +21,14 @@ from osmosis.dashboard.models import (
     Model,
     Artifact,
     BenchmarkRun,
+    BenchmarkAudit,
     ModelCard,
     get_session,
     init_db,
     PIPELINE_PHASES,
     stable_model_id,
 )
+from osmosis.hillstep import audit_jsonl_file
 from osmosis.dashboard.worker import Worker, event_bus
 from osmosis.dashboard.scheduler import Scheduler
 
@@ -68,6 +70,17 @@ class ModelWatchCreate(BaseModel):
     max_params_b: float = 0.0
 
 
+class BenchmarkResultIngest(BaseModel):
+    path: str
+    model_id: str = ""
+    artifact_id: int | None = None
+    detailed_path: str = ""
+    harness: str = ""
+    harness_revision: str = ""
+    command: str = ""
+    server_settings: dict = {}
+
+
 def envelope(data=None, error: str | None = None) -> dict:
     return {"data": data, "error": error}
 
@@ -103,6 +116,19 @@ def _json_file(path: Path) -> dict:
         return data if isinstance(data, dict) else {}
     except (OSError, json.JSONDecodeError):
         return {}
+
+
+def _sha256_file(path: Path) -> str:
+    import hashlib
+
+    h = hashlib.sha256()
+    try:
+        with path.open("rb") as f:
+            for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                h.update(chunk)
+    except OSError:
+        return ""
+    return h.hexdigest()
 
 
 def _file_size_gb(path: Path) -> float:
@@ -493,6 +519,26 @@ def _benchmark_key(item: dict) -> str:
     return str(item.get("benchmark") or item.get("file") or "benchmark").lower().replace(" ", "_")
 
 
+def _benchmark_metric(data: dict) -> tuple[str | None, float | None]:
+    for key in (
+        "pass_at_1_plus",
+        "pass_at_1_base",
+        "pass_at_1",
+        "accuracy",
+        "acc",
+        "score",
+    ):
+        value = data.get(key)
+        if isinstance(value, (int, float)):
+            return key, round(float(value) * 100.0 if 0.0 <= float(value) <= 1.0 else float(value), 4)
+    return None, None
+
+
+def _infer_benchmark_from_result(path: Path, data: dict) -> str:
+    raw = str(data.get("benchmark") or _benchmark_label(path))
+    return raw.lower().replace(" ", "_").replace("-", "_")
+
+
 def _upsert_benchmarks_from_card(sess, model_id: str, card: dict) -> list[BenchmarkRun]:
     runs: list[BenchmarkRun] = []
     for item in card.get("benchmarks") or []:
@@ -515,8 +561,161 @@ def _upsert_benchmarks_from_card(sess, model_id: str, card: dict) -> list[Benchm
                 "audit": item.get("audit"),
             }
         )
+        sess.flush()
+        audit_info = item.get("audit") if isinstance(item.get("audit"), dict) else {}
+        audit = sess.query(BenchmarkAudit).filter(BenchmarkAudit.benchmark_run_id == run.id).first()
+        if not audit:
+            audit = BenchmarkAudit(benchmark_run_id=run.id)
+            sess.add(audit)
+        audit.passed = str(audit_info.get("status") or "").lower() == "verified"
+        audit.parse_method = "discovery_summary"
+        audit.notes = "; ".join(str(note) for note in audit_info.get("notes") or [])
+        sess.flush()
+        run.audit_id = audit.id
         runs.append(run)
     return runs
+
+
+def _audit_detail_counts(detail_path: Path) -> dict:
+    row = audit_jsonl_file(detail_path)
+    counts = row.get("counts") or {}
+    kind = str(row.get("kind") or "")
+    total = int(row.get("total") or 0)
+    blockers: list[str] = []
+    if int(counts.get("json_error", 0)):
+        blockers.append("JSONL parse errors")
+    if int(counts.get("empty", 0)):
+        blockers.append("empty responses present")
+    if int(counts.get("unknown", 0)):
+        blockers.append("unknown MCQ predictions present")
+    if int(counts.get("pass_only", 0)):
+        blockers.append("pass-only EvalPlus completions present")
+    if int(counts.get("prompt_echo", 0)):
+        blockers.append("prompt echoes present")
+    if total <= 0:
+        blockers.append("detailed artifact has no samples")
+    return {
+        "kind": kind,
+        "total": total,
+        "counts": counts,
+        "samples": row.get("samples") or [],
+        "passed": not blockers,
+        "blockers": blockers,
+    }
+
+
+def _build_benchmark_audit_payload(summary_path: Path, data: dict, detail_path_text: str) -> dict:
+    detail_path = Path(detail_path_text) if detail_path_text else None
+    benchmark = _infer_benchmark_from_result(summary_path, data)
+    notes: list[str] = []
+    counts: dict = {}
+    samples: list = []
+    blockers: list[str] = []
+    parse_method = "summary_only"
+    inspected: list[str] = []
+
+    if detail_path and detail_path.exists():
+        detail = _audit_detail_counts(detail_path)
+        counts = detail["counts"]
+        samples = detail["samples"]
+        blockers.extend(detail["blockers"])
+        parse_method = f"{detail['kind']}_jsonl"
+        inspected = [str(item.get("task_id") or item.get("line") or "") for item in samples if item]
+        notes.append(f"audited detailed JSONL with {detail['total']} samples")
+    else:
+        if detail_path_text:
+            blockers.append("detailed artifact missing")
+        if any(key in benchmark for key in ("evalplus", "humaneval", "arc", "hellaswag", "mmlu")):
+            blockers.append("detailed audit artifact required before publishing")
+        notes.append("summary ingested without detailed JSONL audit")
+
+    status_audit = _benchmark_audit(summary_path, data)
+    if status_audit.get("status") in {"stale", "needs_audit"}:
+        blockers.append(f"discovery audit status is {status_audit['status']}")
+    notes.extend(str(note) for note in status_audit.get("notes") or [])
+
+    return {
+        "passed": not blockers,
+        "parse_method": parse_method,
+        "counts": counts,
+        "notes": "; ".join(notes + blockers),
+        "inspected_sample_ids": inspected[:30],
+        "first_wrong_sample_path": detail_path_text if samples else "",
+    }
+
+
+def _upsert_benchmark_result(sess, payload: BenchmarkResultIngest) -> tuple[BenchmarkRun, BenchmarkAudit, Artifact]:
+    result_path = Path(payload.path).expanduser()
+    if not result_path.exists():
+        raise ValueError(f"benchmark result not found: {result_path}")
+    data = _json_file(result_path)
+    if not data:
+        raise ValueError(f"benchmark result is not valid JSON object: {result_path}")
+
+    model_name = str(payload.model_id or data.get("model") or result_path.parent.parent.name or result_path.stem)
+    model_id = stable_model_id(model_name)
+    model = sess.query(Model).filter(Model.id == model_id).first()
+    now = datetime.now(timezone.utc)
+    if not model:
+        model = Model(id=model_id, display_name=model_name, root_path=str(result_path.parent.parent), created_at=now)
+        sess.add(model)
+    model.updated_at = now
+
+    artifact = _upsert_artifact(sess, model_id, str(result_path), "benchmark_result")
+    artifact.sha256 = _sha256_file(result_path)
+    artifact.visibility = "public"
+    if payload.artifact_id:
+        artifact.experiment_id = payload.artifact_id
+    sess.flush()
+
+    benchmark = _infer_benchmark_from_result(result_path, data)
+    metric, value = _benchmark_metric(data)
+    detailed_path = payload.detailed_path or str(data.get("detailed_path") or "")
+    run = (
+        sess.query(BenchmarkRun)
+        .filter(BenchmarkRun.model_id == model_id, BenchmarkRun.benchmark == benchmark, BenchmarkRun.detailed_path == detailed_path)
+        .first()
+    )
+    if not run:
+        run = BenchmarkRun(model_id=model_id, benchmark=benchmark, detailed_path=detailed_path)
+        sess.add(run)
+    run.artifact_id = artifact.id
+    run.status = str(data.get("status") or "completed")
+    run.harness = payload.harness or str(data.get("harness") or "")
+    run.harness_revision = payload.harness_revision or str(data.get("harness_revision") or "")
+    run.command = payload.command or str(data.get("command") or "")
+    run.server_settings = json.dumps(payload.server_settings or data.get("server_settings") or {})
+    run.results = json.dumps(
+        {
+            "metric": metric,
+            "value": value,
+            "total_problems": data.get("total_problems") or data.get("total"),
+            "correct": data.get("correct"),
+            "raw": data,
+        }
+    )
+    sess.flush()
+
+    audit_payload = _build_benchmark_audit_payload(result_path, data, detailed_path)
+    audit = sess.query(BenchmarkAudit).filter(BenchmarkAudit.benchmark_run_id == run.id).first()
+    if not audit:
+        audit = BenchmarkAudit(benchmark_run_id=run.id)
+        sess.add(audit)
+    counts = audit_payload["counts"]
+    audit.passed = bool(audit_payload["passed"])
+    audit.parse_method = str(audit_payload["parse_method"])
+    audit.empty_response_fallback_count = int(counts.get("empty", 0))
+    audit.unknown_answer_count = int(counts.get("unknown", 0))
+    audit.pass_only_count = int(counts.get("pass_only", 0))
+    audit.prompt_echo_count = int(counts.get("prompt_echo", 0))
+    audit.cop_out_count = int(counts.get("empty", 0))
+    audit.first_wrong_sample_path = str(audit_payload["first_wrong_sample_path"])
+    audit.inspected_sample_ids = json.dumps(audit_payload["inspected_sample_ids"])
+    audit.notes = str(audit_payload["notes"])
+    sess.flush()
+    run.audit_id = audit.id
+    sess.commit()
+    return run, audit, artifact
 
 
 def _upsert_model_card(sess, model_id: str, card: dict) -> ModelCard:
@@ -560,6 +759,81 @@ def ingest_scan():
     except Exception as exc:
         sess.rollback()
         raise HTTPException(status_code=400, detail=envelope(None, str(exc)))
+    finally:
+        sess.close()
+
+
+@app.post("/api/ingest/benchmark-result")
+def ingest_benchmark_result(data: BenchmarkResultIngest):
+    sess = get_session()
+    try:
+        run, audit, artifact = _upsert_benchmark_result(sess, data)
+        return envelope({"benchmark_run": run.to_dict(), "audit": audit.to_dict(), "artifact": artifact.to_dict()})
+    except Exception as exc:
+        sess.rollback()
+        raise HTTPException(status_code=400, detail=envelope(None, str(exc)))
+    finally:
+        sess.close()
+
+
+@app.get("/api/benchmarks")
+def list_benchmarks(model_id: str | None = None, limit: int = Query(200, le=1000)):
+    sess = get_session()
+    try:
+        q = sess.query(BenchmarkRun)
+        if model_id:
+            q = q.filter(BenchmarkRun.model_id == model_id)
+        rows = q.order_by(BenchmarkRun.created_at.desc()).limit(limit).all()
+        return envelope([row.to_dict() for row in rows])
+    finally:
+        sess.close()
+
+
+@app.get("/api/benchmarks/{benchmark_id}")
+def get_benchmark(benchmark_id: int):
+    sess = get_session()
+    try:
+        row = sess.query(BenchmarkRun).filter(BenchmarkRun.id == benchmark_id).first()
+        if not row:
+            raise HTTPException(status_code=404, detail=envelope(None, "benchmark not found"))
+        return envelope(row.to_dict())
+    finally:
+        sess.close()
+
+
+@app.get("/api/benchmarks/{benchmark_id}/audit")
+def get_benchmark_audit(benchmark_id: int):
+    sess = get_session()
+    try:
+        run = sess.query(BenchmarkRun).filter(BenchmarkRun.id == benchmark_id).first()
+        if not run:
+            raise HTTPException(status_code=404, detail=envelope(None, "benchmark not found"))
+        row = sess.query(BenchmarkAudit).filter(BenchmarkAudit.benchmark_run_id == benchmark_id).order_by(BenchmarkAudit.id.desc()).first()
+        if not row:
+            raise HTTPException(status_code=404, detail=envelope(None, "benchmark audit not found"))
+        return envelope(row.to_dict())
+    finally:
+        sess.close()
+
+
+@app.get("/api/benchmarks/{benchmark_id}/publishability")
+def get_benchmark_publishability(benchmark_id: int):
+    sess = get_session()
+    try:
+        run = sess.query(BenchmarkRun).filter(BenchmarkRun.id == benchmark_id).first()
+        if not run:
+            raise HTTPException(status_code=404, detail=envelope(None, "benchmark not found"))
+        audit = sess.query(BenchmarkAudit).filter(BenchmarkAudit.benchmark_run_id == benchmark_id).order_by(BenchmarkAudit.id.desc()).first()
+        blockers: list[str] = []
+        if run.status != "completed":
+            blockers.append(f"benchmark status is {run.status}")
+        if not run.detailed_path:
+            blockers.append("missing detailed audit artifact")
+        if not audit:
+            blockers.append("missing automated audit")
+        elif not audit.passed:
+            blockers.append(audit.notes or "automated audit failed")
+        return envelope({"benchmark_run_id": run.id, "publishable": not blockers, "blockers": blockers})
     finally:
         sess.close()
 
@@ -615,6 +889,23 @@ def get_model_benchmarks(model_id: str):
         if not sess.query(Model).filter(Model.id == model_id).first():
             raise HTTPException(status_code=404, detail=envelope(None, "model not found"))
         rows = sess.query(BenchmarkRun).filter(BenchmarkRun.model_id == model_id).order_by(BenchmarkRun.benchmark.asc()).all()
+        audits = {
+            row.benchmark_run_id: row.to_dict()
+            for row in sess.query(BenchmarkAudit).filter(BenchmarkAudit.benchmark_run_id.in_([run.id for run in rows])).all()
+        } if rows else {}
+        return envelope([{**row.to_dict(), "audit": audits.get(row.id)} for row in rows])
+    finally:
+        sess.close()
+
+
+@app.get("/api/models/{model_id}/benchmark-audits")
+def get_model_benchmark_audits(model_id: str):
+    sess = get_session()
+    try:
+        if not sess.query(Model).filter(Model.id == model_id).first():
+            raise HTTPException(status_code=404, detail=envelope(None, "model not found"))
+        run_ids = [row.id for row in sess.query(BenchmarkRun).filter(BenchmarkRun.model_id == model_id).all()]
+        rows = sess.query(BenchmarkAudit).filter(BenchmarkAudit.benchmark_run_id.in_(run_ids)).order_by(BenchmarkAudit.id.asc()).all() if run_ids else []
         return envelope([row.to_dict() for row in rows])
     finally:
         sess.close()
