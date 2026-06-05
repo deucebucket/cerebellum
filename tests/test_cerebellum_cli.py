@@ -46,6 +46,9 @@ from cerebellum import (
     compare_gguf_types,
     compare_gguf_types_args_from_query,
     compare_gguf_types_markdown,
+    cpu_offload_smoke_cmd,
+    cpu_offload_smoke_markdown,
+    cpu_offload_smoke_payload,
     discover_projects,
     doctor_cmd,
     eta_grid_values,
@@ -1213,6 +1216,72 @@ def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path
     assert "### Streaming Disk Dry Run" in markdown
     assert "### Streaming Artifact Flow" in markdown
     assert "full RAM load required" in markdown
+
+
+def test_cpu_offload_smoke_command_parses():
+    args = parse_args(["cpu-offload-smoke", "--source-gguf", "glm.gguf", "--output-dir", "out", "--model-name", "GLM 5.1", "--skip-inspect", "--json"])
+
+    assert args.cmd == "cpu-offload-smoke"
+    assert args.source_gguf == "glm.gguf"
+    assert args.output_dir == "out"
+    assert args.model_name == "GLM 5.1"
+    assert args.skip_inspect is True
+    assert args.json is True
+
+
+def test_cpu_offload_smoke_validates_plan_without_full_model_load(tmp_path: Path, capsys):
+    source = tmp_path / "glm-5.1-f16.gguf"
+    source.write_bytes(b"gguf" * 1024)
+    args = parse_args(
+        [
+            "cpu-offload-smoke",
+            "--source-gguf",
+            str(source),
+            "--output-dir",
+            str(tmp_path / "glm51-cpu"),
+            "--model-name",
+            "GLM 5.1",
+            "--skip-inspect",
+            "--json",
+        ]
+    )
+
+    payload = cpu_offload_smoke_payload(args)
+    markdown = cpu_offload_smoke_markdown(payload)
+    cpu_offload_smoke_cmd(args)
+    cmd_payload = json.loads(capsys.readouterr().out)
+
+    assert payload["schema"] == "cerebellum.cpu_offload_smoke.v1"
+    assert payload["blocked"] is False
+    assert payload["full_model_ram_load_required"] is False
+    assert payload["pipeline"]["task_profile"] == "cpu-offload"
+    assert payload["pipeline"]["cpu_offload_plan"]["streaming"]["full_model_ram_load_required"] is False
+    assert payload["space"]["source_gguf"] == str(source)
+    assert payload["inspect"]["skipped"] is True
+    assert any(row["name"] == "glm-layout-unverified" for row in payload["hazards"])
+    assert "CPU-Offload Smoke" in markdown
+    assert cmd_payload["schema"] == "cerebellum.cpu_offload_smoke.v1"
+
+
+def test_cpu_offload_smoke_can_block_on_inspect_failure(tmp_path: Path):
+    source = tmp_path / "not-a-real.gguf"
+    source.write_bytes(b"not gguf")
+    args = parse_args(
+        [
+            "cpu-offload-smoke",
+            "--source-gguf",
+            str(source),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--require-inspect",
+            "--json",
+        ]
+    )
+
+    payload = cpu_offload_smoke_payload(args)
+
+    assert payload["blocked"] is True
+    assert any(row["name"] == "inspect_gguf_types" for row in payload["blockers"])
 
 
 def test_task_profiles_command_outputs_catalog(capsys):

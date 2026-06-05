@@ -2430,6 +2430,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     pipeline_run_parser.add_argument("--execute", action="store_true", help="actually run phase commands; dry-run is default")
     pipeline_run_parser.add_argument("--json", action="store_true")
 
+    cpu_offload_smoke = sub.add_parser("cpu-offload-smoke", help="validate huge-model CPU-offload workflow without launching quantization")
+    cpu_offload_smoke.add_argument("--source-gguf", required=True)
+    cpu_offload_smoke.add_argument("--output-dir", required=True)
+    cpu_offload_smoke.add_argument("--model-name", default="GLM-5.1")
+    cpu_offload_smoke.add_argument("--scratch-root", default=None)
+    cpu_offload_smoke.add_argument("--benchmark-port", type=int, default=8084)
+    cpu_offload_smoke.add_argument("--margin-gb", type=float, default=20.0)
+    cpu_offload_smoke.add_argument("--skip-inspect", action="store_true", help="skip GGUF tensor parsing and validate only stat/plan/space workflow")
+    cpu_offload_smoke.add_argument("--require-inspect", action="store_true", help="exit non-zero if GGUF tensor inspection fails")
+    cpu_offload_smoke.add_argument("--json", action="store_true")
+
     task_profiles = sub.add_parser("task-profiles", help="list task-specific Cerebellum variant profiles")
     task_profiles.add_argument("--json", action="store_true")
 
@@ -5344,6 +5355,140 @@ def cpu_offload_streaming_quant_dry_run(
     }
 
 
+def cpu_offload_hazards(source: Path, model_name: str) -> list[dict[str, str]]:
+    text = f"{source.name} {model_name}".lower()
+    hazards = [
+        {
+            "name": "huge-gguf-disk",
+            "status": "active",
+            "detail": "Source, one active candidate, final output, logs, and benchmark artifacts can require multiple source-size equivalents; use game-drive scratch when main drive is low.",
+        },
+        {
+            "name": "cpu-offload-objective",
+            "status": "active",
+            "detail": "Allocation must record CPU tok/s, RAM GiB, GPU offload layers, size GiB, and quality score; size/PPL alone is not enough for this target.",
+        },
+        {
+            "name": "streaming-build",
+            "status": "active",
+            "detail": "Planning and inspection are metadata/stat only; candidate/final GGUF phases still write large files and must be monitored.",
+        },
+    ]
+    if "glm" in text:
+        hazards.append(
+            {
+                "name": "glm-layout-unverified",
+                "status": "needs-inspection",
+                "detail": "Confirm GLM-5.1 tensor names, architecture metadata, and unsupported tensor layouts with inspect-gguf-types before a full build.",
+            }
+        )
+    return hazards
+
+
+def cpu_offload_smoke_payload(args: argparse.Namespace) -> dict[str, Any]:
+    source = Path(args.source_gguf)
+    output_dir = Path(args.output_dir)
+    scratch_roots = [output_dir]
+    if args.scratch_root:
+        scratch_roots.append(Path(args.scratch_root))
+    scratch_roots.extend([default_data_root(), Path.cwd()])
+    plan_args = pipeline_plan_args_from_query(
+        {
+            "source_gguf": [str(source)],
+            "output_dir": [str(output_dir)],
+            "model_name": [args.model_name],
+            "task_profile": ["cpu-offload"],
+            "scratch_root": [args.scratch_root] if args.scratch_root else [None],
+            "benchmark_port": [str(args.benchmark_port)],
+            "low_space": ["true"],
+        }
+    )
+    plan = pipeline_plan(plan_args)
+    inspect_payload: dict[str, Any] = {"skipped": bool(args.skip_inspect)}
+    if not args.skip_inspect:
+        try:
+            summary = inspect_gguf_types(source)
+            inspect_payload = {
+                "ok": True,
+                "tensor_count": summary["tensor_count"],
+                "quantizable_tensor_count": summary["quantizable_tensor_count"],
+                "type_counts": summary["type_counts"],
+            }
+        except (Exception, SystemExit) as exc:
+            inspect_payload = {"ok": False, "error": str(exc)}
+    checks = [
+        {"name": "source_exists", "ok": source.exists(), "detail": str(source)},
+        {"name": "source_stat_only", "ok": True, "detail": "source size computed with stat; no full-model RAM load"},
+        {"name": "pipeline_plan", "ok": plan.get("task_profile") == "cpu-offload", "detail": plan.get("run_dir")},
+        {"name": "space_plan", "ok": True, "detail": "computed from disk usage and source size"},
+    ]
+    if args.skip_inspect:
+        checks.append({"name": "inspect_gguf_types", "ok": True, "detail": "skipped by --skip-inspect"})
+    else:
+        checks.append({"name": "inspect_gguf_types", "ok": bool(inspect_payload.get("ok")), "detail": inspect_payload.get("error") or inspect_payload.get("type_counts")})
+    blockers = [row for row in checks if not row["ok"]]
+    if inspect_payload.get("ok") is False and not args.require_inspect:
+        blockers = [row for row in blockers if row["name"] != "inspect_gguf_types"]
+    return {
+        "schema": "cerebellum.cpu_offload_smoke.v1",
+        "dry_run": True,
+        "source": str(source),
+        "output_dir": str(output_dir),
+        "model_name": args.model_name,
+        "full_model_ram_load_required": False,
+        "source_size_gib": path_size(source) / (1024**3) if source.exists() else None,
+        "checks": checks,
+        "blocked": bool(blockers),
+        "blockers": blockers,
+        "hazards": cpu_offload_hazards(source, args.model_name),
+        "space": space_plan(source, scratch_roots, args.margin_gb),
+        "pipeline": plan,
+        "inspect": inspect_payload,
+        "smoke_commands": [
+            shell_join(["cerebellum", "plan-space", "--source-gguf", source, "--scratch-candidates", output_dir, "--margin-gb", args.margin_gb, "--json"]),
+            shell_join(["cerebellum", "pipeline-plan", "--source-gguf", source, "--output-dir", output_dir, "--model-name", args.model_name, "--task-profile", "cpu-offload", "--json"]),
+            shell_join(["cerebellum", "inspect-gguf-types", source, "--by-component", "--json"]),
+        ],
+    }
+
+
+def cpu_offload_smoke_markdown(payload: dict[str, Any]) -> str:
+    checks = [[row["name"], "ok" if row["ok"] else "blocked", str(row.get("detail") or "-")] for row in payload["checks"]]
+    hazards = [[row["name"], row["status"], row["detail"]] for row in payload["hazards"]]
+    commands = [[command] for command in payload["smoke_commands"]]
+    parts = [
+        "# CPU-Offload Smoke",
+        "",
+        f"source: `{payload['source']}`",
+        f"output_dir: `{payload['output_dir']}`",
+        f"full_model_ram_load_required: `{payload['full_model_ram_load_required']}`",
+        f"status: `{'blocked' if payload['blocked'] else 'ready'}`",
+        "",
+        "## Checks",
+        "",
+        markdown_table(["Check", "Status", "Detail"], checks),
+        "",
+        "## Hazards",
+        "",
+        markdown_table(["Hazard", "Status", "Detail"], hazards),
+        "",
+        "## Commands",
+        "",
+        markdown_table(["Command"], commands),
+    ]
+    return "\n".join(parts) + "\n"
+
+
+def cpu_offload_smoke_cmd(args: argparse.Namespace) -> None:
+    payload = cpu_offload_smoke_payload(args)
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(cpu_offload_smoke_markdown(payload), end="")
+    if payload["blocked"]:
+        raise SystemExit(1)
+
+
 def query_value(qs: dict[str, list[str]], key: str, default: Any = None) -> Any:
     return qs.get(key, [default])[0]
 
@@ -8127,6 +8272,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "rollback_layer": "cerebellum rollback RUN_DIR --last-completed-layer --yes",
                         "backup": "cerebellum backup RUN_DIR --to BACKUP_ROOT",
                         "benchmark_run": "cerebellum benchmark-run --suite frontier --model MODEL --results-dir benchmark_results --execute",
+                        "cpu_offload_smoke": "cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir OUT --json",
                         "finalize": "cerebellum finalize --run-dir RUN_DIR --gguf MODEL.gguf",
                     },
                     "api": {
@@ -8409,6 +8555,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "pipeline-run":
         pipeline_run_cmd(args)
+        return
+    if args.cmd == "cpu-offload-smoke":
+        cpu_offload_smoke_cmd(args)
         return
     if args.cmd == "task-profiles":
         task_profiles_cmd(args)
