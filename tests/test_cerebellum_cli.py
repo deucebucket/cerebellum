@@ -316,7 +316,11 @@ def test_benchmark_plan_lists_commands_and_pending_frontier():
 
     arc = next(row for row in release["rows"] if row["benchmark"] == "arc")
     humaneval = next(row for row in release["rows"] if row["benchmark"] == "humaneval")
-    pending = {row["benchmark"]: row["status"] for row in frontier["rows"]}
+    frontier_status = {row["benchmark"]: row["status"] for row in frontier["rows"]}
+    mmlu_pro = next(row for row in frontier["rows"] if row["benchmark"] == "mmlu_pro")
+    gpqa = next(row for row in frontier["rows"] if row["benchmark"] == "gpqa_diamond")
+    hle = next(row for row in frontier["rows"] if row["benchmark"] == "hle_no_tools")
+    livecodebench = next(row for row in frontier["rows"] if row["benchmark"] == "livecodebench_v6")
 
     assert "BENCH_MODEL=gemma4_12b" in arc["command"]
     assert frontier["purpose"].startswith("frontier public leaderboard core")
@@ -325,17 +329,21 @@ def test_benchmark_plan_lists_commands_and_pending_frontier():
     assert "scripts/benchmark_arc.py" in arc["command"]
     assert humaneval["workers"] == 1
     assert "BENCH_MAX_TOKENS=4096" in humaneval["command"]
-    assert pending == {
-        "mmlu_pro": "pending",
-        "gpqa_diamond": "pending",
-        "mmmlu": "pending",
-        "hle_no_tools": "pending",
-        "livecodebench_v6": "pending",
+    assert frontier_status == {
+        "mmlu_pro": "implemented",
+        "gpqa_diamond": "implemented",
+        "mmmlu": "implemented",
+        "hle_no_tools": "implemented",
+        "livecodebench_v6": "implemented",
     }
+    assert "LM_EVAL_TASK=mmlu_pro" in mmlu_pro["command"]
+    assert "LM_EVAL_TASK=gpqa_diamond_zeroshot" in gpqa["command"]
+    assert "BENCH_MAX_TOKENS=8192" in hle["command"]
+    assert "scripts/benchmark_livecodebench_v6.py" in livecodebench["command"]
     assert release["readiness"]["ready"] is False
-    assert frontier["readiness"]["ready"] is False
-    assert frontier["readiness"]["implemented"] == 0
-    assert len(frontier["readiness"]["blockers"]) == 5
+    assert frontier["readiness"]["ready"] is True
+    assert frontier["readiness"]["implemented"] == 5
+    assert frontier["readiness"]["blockers"] == []
     assert "readiness: `blocked`" in markdown
     assert "purpose: `model-card release proof" in markdown
     assert "| arc | implemented | 4 |" in markdown
@@ -359,7 +367,8 @@ def test_benchmark_plan_capability_suite_includes_extra_clean_benchmarks():
         "aider_polyglot",
     ]
     assert plan["purpose"].startswith("expanded capability board")
-    assert plan["readiness"]["implemented"] == 0
+    assert plan["readiness"]["implemented"] == 5
+    assert len(plan["readiness"]["blockers"]) == 5
 
 
 def test_benchmark_plan_command_parses():
@@ -385,14 +394,14 @@ def test_provenance_and_finalize_private_flags_parse():
 
 
 def test_benchmark_plan_cmd_exits_when_required_suite_not_ready(capsys):
-    args = parse_args(["benchmark-plan", "--suite", "frontier", "--require-ready"])
+    args = parse_args(["benchmark-plan", "--suite", "capability", "--require-ready"])
 
     try:
         benchmark_plan_cmd(args)
     except SystemExit as exc:
         assert exc.code == 1
     else:
-        raise AssertionError("benchmark-plan --require-ready should fail for pending frontier adapters")
+        raise AssertionError("benchmark-plan --require-ready should fail for pending capability adapters")
 
     assert "Readiness Blockers" in capsys.readouterr().out
 

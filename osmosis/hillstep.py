@@ -161,11 +161,52 @@ BENCHMARK_CATALOG = {
         "status": "external",
         "note": "Run llama-perplexity with the same prompt corpus/context used for ablation.",
     },
-    "mmlu_pro": {"name": "MMLU-Pro", "status": "pending", "note": "Add no-thinking chat MCQ runner and audit parser."},
-    "gpqa_diamond": {"name": "GPQA-Diamond", "status": "pending", "note": "Add no-thinking chat MCQ runner and audit parser."},
-    "mmmlu": {"name": "MMMLU", "status": "pending", "note": "Add multilingual MCQ runner with language/category rollups."},
-    "hle_no_tools": {"name": "HLE no-tools", "status": "pending", "note": "Add no-tool harness and refusal/parser audit."},
-    "livecodebench_v6": {"name": "LiveCodeBench v6", "status": "pending", "note": "Add version-pinned code runner and syntax/execution audit."},
+    "mmlu_pro": {
+        "name": "MMLU-Pro",
+        "status": "implemented",
+        "script": "scripts/benchmark_lm_eval.py",
+        "workers": 4,
+        "env": {"LM_EVAL_TASK": "mmlu_pro", "BENCHMARK_NAME": "mmlu_pro"},
+        "artifacts": ["{model}_mmlu_pro_results.json", "{model}_mmlu_pro_lm_eval/"],
+        "audit": "cerebellum benchmark-audit {results_dir}/{model}_mmlu_pro_lm_eval",
+    },
+    "gpqa_diamond": {
+        "name": "GPQA-Diamond",
+        "status": "implemented",
+        "script": "scripts/benchmark_lm_eval.py",
+        "workers": 4,
+        "env": {"LM_EVAL_TASK": "gpqa_diamond_zeroshot", "BENCHMARK_NAME": "gpqa_diamond"},
+        "artifacts": ["{model}_gpqa_diamond_results.json", "{model}_gpqa_diamond_lm_eval/"],
+        "audit": "cerebellum benchmark-audit {results_dir}/{model}_gpqa_diamond_lm_eval",
+        "note": "GPQA is gated on Hugging Face; authenticate and accept dataset terms before running.",
+    },
+    "mmmlu": {
+        "name": "MMMLU / Global-MMLU",
+        "status": "implemented",
+        "script": "scripts/benchmark_lm_eval.py",
+        "workers": 4,
+        "env": {"LM_EVAL_TASK": "global_mmlu", "BENCHMARK_NAME": "mmmlu"},
+        "artifacts": ["{model}_mmmlu_results.json", "{model}_mmmlu_lm_eval/"],
+        "audit": "cerebellum benchmark-audit {results_dir}/{model}_mmmlu_lm_eval",
+    },
+    "hle_no_tools": {
+        "name": "HLE no-tools",
+        "status": "implemented",
+        "script": "scripts/benchmark_hle_no_tools.py",
+        "workers": 4,
+        "max_tokens": 8192,
+        "artifacts": ["{model}_hle_no_tools_results.json", "{model}_hle_no_tools_predictions.json"],
+        "note": "Requires the CAIS HLE eval package or HLE_EVAL_DIR and gated HF dataset access; judge model is configured separately.",
+    },
+    "livecodebench_v6": {
+        "name": "LiveCodeBench v6",
+        "status": "implemented",
+        "script": "scripts/benchmark_livecodebench_v6.py",
+        "workers": 1,
+        "max_tokens": 4096,
+        "artifacts": ["{model}_livecodebench_v6_results.json", "{model}_livecodebench_v6/"],
+        "audit": "cerebellum benchmark-audit {results_dir}/{model}_livecodebench_v6",
+    },
     "aime_2025": {"name": "AIME 2025", "status": "pending", "note": "Add deterministic math runner with exact-answer normalization."},
     "ifeval": {"name": "IFEval", "status": "pending", "note": "Add instruction-following runner with strict/loose scoring artifacts."},
     "bfcl_v3": {"name": "BFCL v3", "status": "pending", "note": "Add function-calling runner and JSON/tool-call validity audit."},
@@ -4130,8 +4171,11 @@ def benchmark_command(entry: dict[str, Any], model: str, port: int, results_dir:
     }
     if entry.get("max_tokens"):
         env["BENCH_MAX_TOKENS"] = str(entry["max_tokens"])
+    for key, value in (entry.get("env") or {}).items():
+        env[str(key)] = str(value).format(model=model, port=port, results_dir=results_dir)
     prefix = " ".join(f"{key}={shlex.quote(value)}" for key, value in env.items())
-    return f"{prefix} python {shlex.quote(str(script))}"
+    args = " ".join(shlex.quote(str(arg).format(model=model, port=port, results_dir=results_dir)) for arg in entry.get("args", []))
+    return f"{prefix} python {shlex.quote(str(script))}{(' ' + args) if args else ''}"
 
 
 def format_artifact_template(template: str, model: str, results_dir: str) -> str:
