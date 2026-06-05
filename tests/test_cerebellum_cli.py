@@ -52,6 +52,7 @@ from cerebellum import (
     public_export_cmd,
     public_export_plan,
     public_export_markdown,
+    read_tensor_type_map,
     task_profiles_cmd,
     task_profiles_markdown,
     rollback_cmd,
@@ -84,13 +85,14 @@ def test_inspect_gguf_types_command_parses():
 
 
 def test_compare_gguf_types_command_parses():
-    args = parse_args(["compare-gguf-types", "base.gguf", "cand.gguf", "--baseline-label", "q4", "--candidate-label", "dynamic", "--json"])
+    args = parse_args(["compare-gguf-types", "base.gguf", "cand.gguf", "--baseline-label", "q4", "--candidate-label", "dynamic", "--reference-map", "types.txt", "--json"])
 
     assert args.cmd == "compare-gguf-types"
     assert args.baseline == "base.gguf"
     assert args.candidate == "cand.gguf"
     assert args.baseline_label == "q4"
     assert args.candidate_label == "dynamic"
+    assert args.reference_map == "types.txt"
     assert args.json is True
 
 
@@ -963,6 +965,27 @@ def test_inspect_gguf_types_summarizes_layers_and_components(tmp_path: Path, mon
     assert summary["tensor_types"]["blk.0.attn_q.weight"] == "Q3_K"
 
 
+def test_read_tensor_type_map_accepts_exact_regex_lines(tmp_path: Path):
+    tensor_map = tmp_path / "types.txt"
+    tensor_map.write_text(
+        "\n".join(
+            [
+                "^blk\\.0\\.ffn_down\\.weight$=q5_K",
+                "^blk\\.0\\.attn_q\\.weight$=Q3_K",
+                "blk\\.0\\.not_exact\\.weight=q2_K",
+                "# comment",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    assert read_tensor_type_map(tensor_map) == {
+        "blk.0.ffn_down.weight": "Q5_K",
+        "blk.0.attn_q.weight": "Q3_K",
+    }
+
+
 def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, monkeypatch):
     baseline = tmp_path / "baseline.gguf"
     candidate = tmp_path / "candidate.gguf"
@@ -995,13 +1018,46 @@ def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, 
 
     monkeypatch.setitem(sys.modules, "gguf", types.SimpleNamespace(GGUFReader=Reader, GGMLQuantizationType=Quant))
 
-    report = compare_gguf_types(baseline, candidate, baseline_label="q4", candidate_label="dynamic")
+    reference_map = tmp_path / "types.txt"
+    reference_map.write_text(
+        "\n".join(
+            [
+                "^blk\\.0\\.ffn_down\\.weight$=q5_K",
+                "^blk\\.0\\.attn_q\\.weight$=q5_K",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = compare_gguf_types(baseline, candidate, baseline_label="q4", candidate_label="dynamic", reference_map=reference_map)
     markdown = compare_gguf_types_markdown(report)
 
     assert report["type_counts"]["Q4_K"]["delta"] == -2
     assert report["type_counts"]["Q3_K"]["delta"] == 1
     assert report["component_counts"]["ffn_down"]["Q5_K"]["delta"] == 1
     assert report["layer_counts"]["blk.0"]["Q4_K"]["delta"] == -2
+    assert report["dynamic_profile"]["changed_quantizable_tensors"] == 2
+    assert report["dynamic_profile"]["promoted"] == 1
+    assert report["dynamic_profile"]["demoted"] == 1
+    assert report["dynamic_profile"]["baseline_avg_bits"] == 4.0
+    assert report["dynamic_profile"]["candidate_avg_bits"] == 4.0
+    assert report["dynamic_profile"]["component_bias"]["attn_q"]["demoted"] == 1
+    assert report["dynamic_profile"]["component_bias"]["ffn_down"]["promoted"] == 1
+    assert report["reference_map"] == {"path": str(reference_map), "tensor_count": 2}
+    assert report["reference_mismatches"] == [
+        {
+            "tensor": "blk.0.attn_q.weight",
+            "layer": 0,
+            "component": "attn_q",
+            "baseline": "Q4_K",
+            "candidate": "Q3_K",
+            "reference": "Q5_K",
+            "matches_reference": False,
+            "status": "candidate_diverges_reference",
+            "quantizable": True,
+        }
+    ]
     assert report["tensor_type_changes"] == [
         {
             "tensor": "blk.0.attn_q.weight",
@@ -1009,6 +1065,8 @@ def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, 
             "component": "attn_q",
             "baseline": "Q4_K",
             "candidate": "Q3_K",
+            "reference": "Q5_K",
+            "matches_reference": False,
             "status": "changed",
             "quantizable": True,
         },
@@ -1018,12 +1076,19 @@ def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, 
             "component": "ffn_down",
             "baseline": "Q4_K",
             "candidate": "Q5_K",
+            "reference": "Q5_K",
+            "matches_reference": True,
             "status": "changed",
             "quantizable": True,
         },
     ]
     assert "candidate: `dynamic`" in markdown
     assert "| Q4_K | 3 | 1 | -2 |" in markdown
+    assert "## Dynamic Quant Profile" in markdown
+    assert "| promoted | 1 |" in markdown
+    assert "| demoted | 1 |" in markdown
+    assert "## Reference Map Mismatches" in markdown
+    assert "| blk.0.attn_q.weight | attn_q | Q4_K | Q3_K | Q5_K | candidate_diverges_reference |" in markdown
     assert "| blk.0.attn_q.weight | Q4_K | Q3_K | changed |" in markdown
 
 

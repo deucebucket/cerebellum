@@ -2328,6 +2328,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     compare_types.add_argument("candidate")
     compare_types.add_argument("--baseline-label", default="baseline")
     compare_types.add_argument("--candidate-label", default="candidate")
+    compare_types.add_argument("--reference-map", default=None, help="optional tensor-type file to compare the candidate against")
     compare_types.add_argument("--json", action="store_true")
 
     compare_locks = sub.add_parser("compare-locks", help="compare Cerebellum tensor locks between a run and an archive/state")
@@ -3830,21 +3831,140 @@ def compare_nested_count_maps(
     return {key: compare_count_maps(base.get(key, {}), candidate.get(key, {})) for key in keys}
 
 
+QUANT_TYPE_BITS = {
+    "F32": 32.0,
+    "F16": 16.0,
+    "BF16": 16.0,
+    "Q8_0": 8.0,
+    "Q6_K": 6.0,
+    "Q5_K": 5.0,
+    "Q4_K": 4.0,
+    "Q3_K": 3.0,
+    "Q2_K": 2.0,
+    "IQ4_NL": 4.0,
+    "IQ4_XS": 4.0,
+    "IQ3_S": 3.0,
+    "IQ3_XXS": 3.0,
+    "IQ2_XXS": 2.0,
+    "IQ2_XS": 2.0,
+    "IQ2_S": 2.0,
+    "IQ1_S": 1.5625,
+    "IQ1_M": 1.75,
+}
+
+
+def quant_type_bits(qtype: str | None) -> float | None:
+    if qtype is None:
+        return None
+    normalized = str(qtype).upper()
+    if normalized in QUANT_TYPE_BITS:
+        return QUANT_TYPE_BITS[normalized]
+    match = re.match(r"I?Q([0-9]+)", normalized)
+    if match:
+        return float(match.group(1))
+    return None
+
+
+def normalize_quant_type_name(qtype: str | None) -> str | None:
+    if qtype is None:
+        return None
+    return str(qtype).strip().upper()
+
+
+def exact_tensor_name_from_pattern(pattern: str) -> str | None:
+    pattern = pattern.strip()
+    if not pattern.startswith("^") or not pattern.endswith("$"):
+        return None
+    body = pattern[1:-1]
+    try:
+        return re.sub(r"\\(.)", r"\1", body)
+    except re.error:
+        return None
+
+
+def read_tensor_type_map(path: Path) -> dict[str, str]:
+    refs: dict[str, str] = {}
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        pattern, qtype = line.split("=", 1)
+        tensor = exact_tensor_name_from_pattern(pattern)
+        if tensor:
+            refs[tensor] = normalize_quant_type_name(qtype) or ""
+    return refs
+
+
+def dynamic_quant_profile(base_tensors: dict[str, str], cand_tensors: dict[str, str]) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    component_bias: dict[str, dict[str, int]] = {}
+    base_bits: list[float] = []
+    cand_bits: list[float] = []
+    for name in sorted(set(base_tensors) | set(cand_tensors)):
+        if not is_quantizable_tensor(name):
+            continue
+        baseline = base_tensors.get(name)
+        candidate = cand_tensors.get(name)
+        baseline_bits = quant_type_bits(baseline)
+        candidate_bits = quant_type_bits(candidate)
+        if baseline_bits is not None:
+            base_bits.append(baseline_bits)
+        if candidate_bits is not None:
+            cand_bits.append(candidate_bits)
+        if baseline == candidate:
+            continue
+        _layer, component = parse_tensor_name(name)
+        component_key = component or "other"
+        bucket = component_bias.setdefault(component_key, {"promoted": 0, "demoted": 0, "missing_baseline": 0, "missing_candidate": 0, "changed_unknown": 0})
+        if baseline is None:
+            status = "missing_baseline"
+        elif candidate is None:
+            status = "missing_candidate"
+        elif baseline_bits is None or candidate_bits is None:
+            status = "changed_unknown"
+        elif candidate_bits > baseline_bits:
+            status = "promoted"
+        elif candidate_bits < baseline_bits:
+            status = "demoted"
+        else:
+            status = "changed_unknown"
+        bucket[status] += 1
+        rows.append({"tensor": name, "component": component, "baseline": baseline, "candidate": candidate, "status": status})
+    counts = {"promoted": 0, "demoted": 0, "missing_baseline": 0, "missing_candidate": 0, "changed_unknown": 0}
+    for row in rows:
+        counts[row["status"]] += 1
+    return {
+        "changed_quantizable_tensors": len(rows),
+        **counts,
+        "baseline_avg_bits": None if not base_bits else sum(base_bits) / len(base_bits),
+        "candidate_avg_bits": None if not cand_bits else sum(cand_bits) / len(cand_bits),
+        "avg_bits_delta": None if not base_bits or not cand_bits else (sum(cand_bits) / len(cand_bits)) - (sum(base_bits) / len(base_bits)),
+        "component_bias": {key: value for key, value in sorted(component_bias.items())},
+    }
+
+
 def compare_gguf_types(
     baseline: Path,
     candidate: Path,
     baseline_label: str = "baseline",
     candidate_label: str = "candidate",
+    reference_map: Path | None = None,
 ) -> dict[str, Any]:
     base = inspect_gguf_types(baseline)
     cand = inspect_gguf_types(candidate)
     base_tensors = base["tensor_types"]
     cand_tensors = cand["tensor_types"]
+    reference_tensors = read_tensor_type_map(reference_map) if reference_map else {}
     tensor_type_changes = []
     for name in sorted(set(base_tensors) | set(cand_tensors)):
         baseline_type = base_tensors.get(name)
         candidate_type = cand_tensors.get(name)
-        if baseline_type == candidate_type:
+        reference_type = reference_tensors.get(name)
+        candidate_matches_reference = (
+            reference_type is not None
+            and normalize_quant_type_name(candidate_type) == normalize_quant_type_name(reference_type)
+        )
+        if baseline_type == candidate_type and (reference_type is None or candidate_matches_reference):
             continue
         layer, component = parse_tensor_name(name)
         tensor_type_changes.append(
@@ -3854,19 +3974,29 @@ def compare_gguf_types(
                 "component": component,
                 "baseline": baseline_type,
                 "candidate": candidate_type,
+                "reference": reference_type,
+                "matches_reference": candidate_matches_reference if reference_type is not None else None,
                 "status": "missing_baseline" if baseline_type is None else "missing_candidate" if candidate_type is None else "changed",
                 "quantizable": is_quantizable_tensor(name),
             }
         )
+    reference_mismatches = [
+        row | {"status": "candidate_diverges_reference"}
+        for row in tensor_type_changes
+        if row.get("reference") is not None and row.get("matches_reference") is False
+    ]
     return {
         "baseline": {"label": baseline_label, "gguf": str(baseline), "summary": base},
         "candidate": {"label": candidate_label, "gguf": str(candidate), "summary": cand},
+        "reference_map": None if reference_map is None else {"path": str(reference_map), "tensor_count": len(reference_tensors)},
         "tensor_count_delta": int(cand["tensor_count"]) - int(base["tensor_count"]),
         "quantizable_tensor_count_delta": int(cand["quantizable_tensor_count"]) - int(base["quantizable_tensor_count"]),
         "type_counts": compare_count_maps(base["type_counts"], cand["type_counts"]),
         "component_counts": compare_nested_count_maps(base["component_counts"], cand["component_counts"]),
         "layer_counts": compare_nested_count_maps(base["layer_counts"], cand["layer_counts"]),
         "tensor_type_changes": tensor_type_changes,
+        "reference_mismatches": reference_mismatches,
+        "dynamic_profile": dynamic_quant_profile(base_tensors, cand_tensors),
     }
 
 
@@ -3908,6 +4038,57 @@ def compare_gguf_types_markdown(report: dict[str, Any]) -> str:
     layer_rows = changed_nested_rows(report["layer_counts"])
     if layer_rows:
         parts.extend(["", "## Layer Deltas", "", markdown_table(["Layer", "Type", "Baseline", "Candidate", "Delta"], layer_rows)])
+    profile = report.get("dynamic_profile") or {}
+    if profile:
+        parts.extend(
+            [
+                "",
+                "## Dynamic Quant Profile",
+                "",
+                markdown_table(
+                    ["Metric", "Value"],
+                    [
+                        ["changed quantizable tensors", str(profile["changed_quantizable_tensors"])],
+                        ["promoted", str(profile["promoted"])],
+                        ["demoted", str(profile["demoted"])],
+                        ["missing baseline", str(profile["missing_baseline"])],
+                        ["missing candidate", str(profile["missing_candidate"])],
+                        ["baseline avg bits", "-" if profile["baseline_avg_bits"] is None else f"{profile['baseline_avg_bits']:.2f}"],
+                        ["candidate avg bits", "-" if profile["candidate_avg_bits"] is None else f"{profile['candidate_avg_bits']:.2f}"],
+                        ["avg bits delta", "-" if profile["avg_bits_delta"] is None else f"{profile['avg_bits_delta']:+.2f}"],
+                    ],
+                ),
+            ]
+        )
+        component_bias_rows = [
+            [component, str(values["promoted"]), str(values["demoted"]), str(values["missing_baseline"]), str(values["missing_candidate"])]
+            for component, values in profile.get("component_bias", {}).items()
+        ]
+        if component_bias_rows:
+            parts.extend(["", "## Dynamic Component Bias", "", markdown_table(["Component", "Promoted", "Demoted", "Missing baseline", "Missing candidate"], component_bias_rows)])
+    ref_rows = [
+        [
+            row["tensor"],
+            str(row.get("component") or "-"),
+            "-" if row.get("baseline") is None else str(row["baseline"]),
+            "-" if row.get("candidate") is None else str(row["candidate"]),
+            "-" if row.get("reference") is None else str(row["reference"]),
+            str(row["status"]),
+        ]
+        for row in report.get("reference_mismatches", [])[:80]
+    ]
+    if ref_rows:
+        ref = report.get("reference_map") or {}
+        parts.extend(
+            [
+                "",
+                "## Reference Map Mismatches",
+                "",
+                f"reference: `{ref.get('path', '-')}` ({ref.get('tensor_count', 0)} exact tensors)",
+                "",
+                markdown_table(["Tensor", "Component", "Baseline", "Candidate", "Reference", "Status"], ref_rows),
+            ]
+        )
     tensor_rows = [
         [
             row["tensor"],
@@ -3930,6 +4111,7 @@ def compare_gguf_types_cmd(args: argparse.Namespace) -> None:
         Path(args.candidate),
         baseline_label=args.baseline_label,
         candidate_label=args.candidate_label,
+        reference_map=Path(args.reference_map) if args.reference_map else None,
     )
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
