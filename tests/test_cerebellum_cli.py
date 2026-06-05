@@ -711,11 +711,13 @@ def test_pipeline_plan_task_profile_sets_variant_defaults(tmp_path: Path):
 
 
 def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path: Path):
+    source = tmp_path / "glm-5.1-f16.gguf"
+    source.write_bytes(b"gguf" * 1024)
     args = parse_args(
         [
             "pipeline-plan",
             "--source-gguf",
-            str(tmp_path / "glm-5.1-f16.gguf"),
+            str(source),
             "--output-dir",
             str(tmp_path / "glm51-cpu"),
             "--model-name",
@@ -734,10 +736,20 @@ def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path
     assert plan["benchmark_suite"] == "full"
     assert plan["low_space"] is True
     assert plan["resource_strategy"]["target"] == "large RAM hosts with optional GPU layer offload"
+    assert plan["cpu_offload_plan"]["model_hint"] == "glm"
+    assert plan["cpu_offload_plan"]["source_size_gib"] > 0
+    assert plan["cpu_offload_plan"]["streaming"]["full_model_ram_load_required"] is False
+    assert plan["cpu_offload_plan"]["streaming"]["imatrix"] == plan["imatrix"]
+    assert "cpu_tok_s" in plan["cpu_offload_plan"]["runtime_targets"]["record"]
+    assert "scripts/benchmark_perf.py" in plan["cpu_offload_plan"]["throughput_probe_command"]
+    assert "compare-gguf-types" in plan["cpu_offload_plan"]["dynamic_compare_command"]
+    assert "--reference-map" in plan["cpu_offload_plan"]["dynamic_compare_command"]
     assert plan["final_gguf"].endswith("glm-5.1-cpu-offload-cerebellum.gguf")
     assert "--low-space" in phases["ablate"]["command"]
     assert "--low-space" in phases["resume"]["command"]
     assert "## Resource Strategy" in markdown
+    assert "## CPU Offload Plan" in markdown
+    assert "full RAM load required" in markdown
 
 
 def test_task_profiles_command_outputs_catalog(capsys):

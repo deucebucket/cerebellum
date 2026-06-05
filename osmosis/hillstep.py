@@ -4608,6 +4608,11 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
             "outputs": [str(output_dir / "package_manifest.json")],
         },
     ]
+    cpu_offload = (
+        cpu_offload_pipeline_detail(source, output_dir, run_dir, imatrix, model_label, args)
+        if args.task_profile == "cpu-offload"
+        else None
+    )
     return {
         "pipeline": "cerebellum",
         "source_gguf": str(source),
@@ -4619,6 +4624,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         "task_profile": args.task_profile,
         "task_profile_detail": task_profile,
         "resource_strategy": task_profile.get("resource_strategy") if task_profile else None,
+        "cpu_offload_plan": cpu_offload,
         "low_space": effective_low_space,
         "ppl_profile": effective_profile,
         "phases": phases,
@@ -4649,6 +4655,29 @@ def pipeline_plan_markdown(plan: dict[str, Any]) -> str:
                 "## Resource Strategy",
                 "",
                 markdown_table(["Key", "Value"], [[str(key), str(value)] for key, value in strategy.items()]),
+            ]
+        )
+    if plan.get("cpu_offload_plan"):
+        offload = plan["cpu_offload_plan"]
+        runtime = offload["runtime_targets"]
+        streaming = offload["streaming"]
+        parts.extend(
+            [
+                "",
+                "## CPU Offload Plan",
+                "",
+                markdown_table(
+                    ["Key", "Value"],
+                    [
+                        ["model hint", str(offload.get("model_hint") or "-")],
+                        ["source GiB", "-" if offload.get("source_size_gib") is None else f"{offload['source_size_gib']:.2f}"],
+                        ["full RAM load required", str(streaming["full_model_ram_load_required"])],
+                        ["scratch mode", str(streaming["scratch_mode"])],
+                        ["gpu offload layers", str(runtime["gpu_offload_layers"])],
+                        ["throughput probe", str(offload["throughput_probe_command"])],
+                        ["dynamic compare", str(offload["dynamic_compare_command"])],
+                    ],
+                ),
             ]
         )
     if output_rows:
@@ -4740,6 +4769,82 @@ def pipeline_run_cmd(args: argparse.Namespace) -> None:
         print(pipeline_run_markdown(plan), end="")
     if plan["blocked"]:
         raise SystemExit(1)
+
+
+def cpu_offload_pipeline_detail(
+    source: Path,
+    output_dir: Path,
+    run_dir: Path,
+    imatrix: Path,
+    model_label: str,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    source_size_gib = path_size(source) / (1024**3) if source.exists() else None
+    final_types = run_dir / "artifacts" / "final_types.txt"
+    final_gguf = output_dir / f"{model_label}-cerebellum.gguf"
+    return {
+        "profile": "cpu-offload",
+        "model_hint": "glm" if "glm" in f"{source.name} {args.model_name}".lower() else None,
+        "source_size_gib": source_size_gib,
+        "streaming": {
+            "imatrix": str(imatrix),
+            "tensor_map": str(final_types),
+            "scratch_mode": "low-space streaming candidates; measured losers pruned",
+            "full_model_ram_load_required": False,
+        },
+        "runtime_targets": {
+            "primary": "large RAM host with optional GPU offload",
+            "record": ["cpu_tok_s", "ram_gib", "gpu_offload_layers", "size_gib", "score_per_gib"],
+            "gpu_offload_layers": args.gpu_layers,
+        },
+        "smoke_commands": [
+            shell_join(["cerebellum", "inspect-gguf-types", source, "--by-component", "--json"]),
+            shell_join(
+                [
+                    "cerebellum",
+                    "benchmark-plan",
+                    "--suite",
+                    "release",
+                    "--model",
+                    model_label,
+                    "--port",
+                    args.benchmark_port,
+                    "--results-dir",
+                    output_dir / "benchmark_results",
+                ]
+            ),
+        ],
+        "throughput_probe_command": shell_join(
+            [
+                "BENCH_MODEL=" + model_label,
+                "BENCH_PORT=" + str(args.benchmark_port),
+                "RESULTS_DIR=" + str(output_dir / "benchmark_results"),
+                "python",
+                "scripts/benchmark_perf.py",
+            ]
+        ),
+        "dynamic_compare_command": shell_join(
+            [
+                "cerebellum",
+                "compare-gguf-types",
+                source,
+                "UNSLOTH_DYNAMIC_GGUF",
+                "--baseline-label",
+                "f16",
+                "--candidate-label",
+                "unsloth-dynamic",
+                "--reference-map",
+                final_types,
+            ]
+        ),
+        "expected_outputs": [
+            str(final_gguf),
+            str(final_types),
+            str(output_dir / "benchmark_results"),
+            str(output_dir / "package_manifest.json"),
+        ],
+        "auth_blockers": ["HF access may be required for gated GLM/GPQA/HLE datasets; pipeline planning itself does not require auth."],
+    }
 
 
 def query_value(qs: dict[str, list[str]], key: str, default: Any = None) -> Any:
