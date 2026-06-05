@@ -101,6 +101,8 @@ from cerebellum import (
     public_audit,
     public_audit_cmd,
     public_audit_markdown,
+    public_history_audit,
+    public_history_audit_markdown,
     public_export_cmd,
     public_export_plan,
     public_export_plan_args_from_query,
@@ -3149,6 +3151,58 @@ def test_public_audit_command_parses():
     assert args.paths == ["README.md"]
     assert args.json is True
     assert args.max_bytes == 100
+
+
+def test_public_history_audit_command_parses():
+    args = parse_args(["public-history-audit", "--root", ".", "--ref", "origin/main", "--json"])
+
+    assert args.cmd == "public-history-audit"
+    assert args.root == "."
+    assert args.ref == ["origin/main"]
+    assert args.json is True
+
+
+def test_public_history_audit_plans_filter_repo_for_risky_paths(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(
+        hillstep,
+        "git_history_paths",
+        lambda root, refs=None: ["README.md", "scripts/build.sh", "cerebellum-dev/DEVLOG.md", "tensor_types.txt"],
+    )
+
+    report = public_history_audit(tmp_path, refs=["origin/main"])
+    markdown = public_history_audit_markdown(report)
+
+    assert report["schema"] == "cerebellum.public_history_audit.v1"
+    assert report["refs"] == ["origin/main"]
+    assert report["blocked"] is True
+    assert report["filter_paths"] == ["cerebellum-dev/DEVLOG.md", "scripts/build.sh", "tensor_types.txt"]
+    assert report["filter_repo_argv"][:4] == ["git", "filter-repo", "--force", "--invert-paths"]
+    assert "--path scripts/build.sh" in report["filter_repo_command"]
+    assert "Filter-Repo Plan" in markdown
+
+
+def test_public_history_audit_passes_clean_history(tmp_path: Path, monkeypatch):
+    monkeypatch.setattr(hillstep, "git_history_paths", lambda root, refs=None: ["README.md", "docs/public_release_scope.md"])
+
+    report = public_history_audit(tmp_path)
+
+    assert report["blocked"] is False
+    assert report["filter_repo_argv"] == []
+    assert public_history_audit_markdown(report).startswith("Public history audit passed")
+
+
+def test_public_history_audit_cmd_exits_on_findings(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.setattr(hillstep, "git_history_paths", lambda root, refs=None: ["scripts/factory.sh"])
+    args = parse_args(["public-history-audit", "--root", str(tmp_path)])
+
+    try:
+        hillstep.public_history_audit_cmd(args)
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        raise AssertionError("public history audit should exit non-zero when blocked")
+
+    assert "Filter-Repo Plan" in capsys.readouterr().out
 
 
 def test_public_audit_cmd_exits_on_findings(tmp_path: Path, capsys):

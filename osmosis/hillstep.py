@@ -2828,6 +2828,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     public_audit.add_argument("--json", action="store_true")
     public_audit.add_argument("--max-bytes", type=int, default=512_000, help="max bytes to read from each file")
 
+    public_history = sub.add_parser("public-history-audit", help="scan Git history paths for public-release safety risks")
+    public_history.add_argument("--root", default=".", help="git repository root to scan")
+    public_history.add_argument("--ref", action="append", help="git ref/range to scan; defaults to --all")
+    public_history.add_argument("--json", action="store_true")
+
     public_export = sub.add_parser("public-export", help="copy release-safe Cerebellum files into a sanitized public tree")
     public_export.add_argument("output_dir")
     public_export.add_argument("paths", nargs="*", help="files/directories to export; defaults to tracked public-safe files")
@@ -3149,7 +3154,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and sys.argv[1] not in {
             "run", "imatrix", "status", "events", "runs", "schedule", "db", "report",
             "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "inspect-gguf-types", "finalize", "package", "plan-space",
-            "public-audit", "public-export", "release-gate", "artifact-inventory",
+            "public-audit", "public-history-audit", "public-export", "release-gate", "artifact-inventory",
             "benchmark-plan", "benchmark-run", "benchmark-postprocess", "benchmark-ingest", "benchmark-status", "benchmark-rebench-plan", "benchmark-manifest", "benchmark-audit",
             "benchmark-report", "cpu-offload-smoke", "cpu-offload-build-plan", "compare-gguf-types", "compare-locks",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
@@ -8232,6 +8237,84 @@ def public_audit_cmd(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+def git_history_paths(root: Path, refs: list[str] | None = None) -> list[str]:
+    ref_args = refs or ["--all"]
+    cmd = ["git", "-C", str(root), "log", "--name-only", "--format=", *ref_args]
+    try:
+        proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"git history scan failed: {exc.stderr.strip() or exc}") from exc
+    paths = {line.strip() for line in proc.stdout.splitlines() if line.strip()}
+    return sorted(paths)
+
+
+def public_history_audit(root: Path, refs: list[str] | None = None) -> dict[str, Any]:
+    root = root.expanduser().resolve()
+    paths = git_history_paths(root, refs=refs)
+    risky: list[dict[str, Any]] = []
+    for path_text in paths:
+        reasons = []
+        for pattern, reason in PUBLIC_AUDIT_PATH_PATTERNS:
+            if pattern.search(path_text):
+                reasons.append(reason)
+        for reason in artifact_public_risks(path_text):
+            if reason not in reasons:
+                reasons.append(reason)
+        if reasons:
+            risky.append({"path": path_text, "reasons": reasons, "severity": "blocker"})
+    filter_paths = sorted({row["path"] for row in risky})
+    filter_repo_argv = ["git", "filter-repo", "--force", "--invert-paths"]
+    for path_text in filter_paths:
+        filter_repo_argv.extend(["--path", path_text])
+    return {
+        "schema": "cerebellum.public_history_audit.v1",
+        "root": str(root),
+        "refs": refs or ["--all"],
+        "paths_scanned": len(paths),
+        "risky_paths": risky,
+        "blocked": bool(risky),
+        "filter_paths": filter_paths,
+        "filter_repo_argv": filter_repo_argv if filter_paths else [],
+        "filter_repo_command": shell_join(filter_repo_argv) if filter_paths else "",
+        "notes": [
+            "Read-only history audit; this command does not rewrite history.",
+            "Run filter-repo only in a reviewed public clone/branch, then force-push the public remote intentionally.",
+            "Assume anything previously public may have been cached or cloned; rotate any exposed credentials.",
+            "This path scan does not inspect historical blob contents for secrets.",
+        ],
+    }
+
+
+def public_history_audit_markdown(report: dict[str, Any]) -> str:
+    if not report["blocked"]:
+        return f"Public history audit passed: scanned {report['paths_scanned']} historical paths.\n"
+    rows = [[row["severity"], row["path"], "; ".join(row["reasons"])] for row in report["risky_paths"]]
+    parts = [
+        f"Public history audit blocked: scanned {report['paths_scanned']} historical paths, found {len(rows)} risky paths.",
+        "",
+        markdown_table(["Severity", "Path", "Reasons"], rows),
+        "",
+        "## Filter-Repo Plan",
+        "",
+        f"`{report['filter_repo_command']}`",
+        "",
+        "## Notes",
+        "",
+        *[f"- {note}" for note in report["notes"]],
+    ]
+    return "\n".join(parts) + "\n"
+
+
+def public_history_audit_cmd(args: argparse.Namespace) -> None:
+    report = public_history_audit(Path(args.root), refs=args.ref)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print(public_history_audit_markdown(report), end="")
+    if report["blocked"]:
+        raise SystemExit(1)
+
+
 ARTIFACT_TYPE_PATTERNS = [
     ("gguf", re.compile(r"\.gguf$", re.IGNORECASE)),
     ("imatrix", re.compile(r"(imatrix).*\.(dat|gguf)$", re.IGNORECASE)),
@@ -10248,6 +10331,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "public-audit":
         public_audit_cmd(args)
+        return
+    if args.cmd == "public-history-audit":
+        public_history_audit_cmd(args)
         return
     if args.cmd == "public-export":
         public_export_cmd(args)
