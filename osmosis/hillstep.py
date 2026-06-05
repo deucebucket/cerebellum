@@ -3972,6 +3972,28 @@ def benchmark_size_gib(data: dict[str, Any]) -> float | None:
     return None
 
 
+def benchmark_release_metadata(data: dict[str, Any]) -> dict[str, Any]:
+    aliases = {
+        "bpw": ["bpw", "bits_per_weight"],
+        "quant_recipe": ["quant_recipe", "recipe", "quant", "quantization", "quant_type"],
+        "tensor_map": ["tensor_map", "tensor_types", "tensor_type_file"],
+        "gguf_sha256": ["gguf_sha256", "model_sha256", "sha256"],
+        "llama_cpp": ["llama_cpp", "llama_cpp_commit", "llama_cpp_version"],
+        "runtime": ["runtime", "server", "backend"],
+    }
+    metadata: dict[str, Any] = {}
+    size = benchmark_size_gib(data)
+    if size is not None:
+        metadata["size_gib"] = size
+    for out_key, keys in aliases.items():
+        for key in keys:
+            value = data.get(key)
+            if value not in (None, ""):
+                metadata[out_key] = value
+                break
+    return metadata
+
+
 def parse_size_specs(specs: list[str]) -> dict[str, float]:
     sizes: dict[str, float] = {}
     for spec in specs:
@@ -4541,6 +4563,7 @@ def benchmark_records(paths: list[Any]) -> list[dict[str, Any]]:
                 "correct": data.get("correct"),
                 "total": data.get("total") or data.get("total_problems"),
                 "size_gib": benchmark_size_gib(data),
+                "release_metadata": benchmark_release_metadata(data),
                 "path": str(path),
             }
         )
@@ -4627,6 +4650,12 @@ def benchmark_report(
     records = benchmark_records(paths)
     models = sorted({str(row["model"]) for row in records})
     benchmarks = sorted({str(row["benchmark"]) for row in records})
+    metadata_by_model: dict[str, dict[str, Any]] = {}
+    for row in records:
+        model = str(row["model"])
+        for key, value in row.get("release_metadata", {}).items():
+            if value not in (None, "") and key not in metadata_by_model.setdefault(model, {}):
+                metadata_by_model[model][key] = value
     by_key = {(row["benchmark"], row["model"]): row for row in records}
     deltas: list[dict[str, Any]] = []
     for benchmark in benchmarks:
@@ -4650,7 +4679,7 @@ def benchmark_report(
                     "baseline_value": baseline_row["value"],
                 }
             )
-    report: dict[str, Any] = {"models": models, "benchmarks": benchmarks, "records": records, "deltas": deltas}
+    report: dict[str, Any] = {"models": models, "benchmarks": benchmarks, "records": records, "deltas": deltas, "release_metadata": metadata_by_model}
     if leaderboard:
         weight_policy = leaderboard_weight_policy(suite, weights)
         report["suite"] = {"name": suite, "benchmarks": BENCHMARK_SUITES[suite], "weights": weight_policy}
@@ -4692,6 +4721,34 @@ def benchmark_report_markdown(report: dict[str, Any], include_bars: bool = True)
         metric = next((str(row["metric"]) for row in records if row["benchmark"] == benchmark), "-")
         rows.append([benchmark, metric, *[fmt_metric_value(by_key.get((benchmark, model))) for model in models]])
     parts = ["# Benchmark Comparison", "", markdown_table(["Benchmark", "Metric", *models], rows)]
+    release_metadata = report.get("release_metadata") or {}
+    if release_metadata:
+        metadata_rows = []
+        for model in models:
+            metadata = release_metadata.get(model, {})
+            if not metadata:
+                continue
+            size = "-" if metadata.get("size_gib") is None else f"{float(metadata['size_gib']):.2f}"
+            metadata_rows.append(
+                [
+                    model,
+                    size,
+                    "-" if metadata.get("bpw") is None else str(metadata["bpw"]),
+                    "-" if metadata.get("quant_recipe") is None else str(metadata["quant_recipe"]),
+                    "-" if metadata.get("tensor_map") is None else str(metadata["tensor_map"]),
+                    "-" if metadata.get("gguf_sha256") is None else str(metadata["gguf_sha256"]),
+                    "-" if metadata.get("runtime") is None else str(metadata["runtime"]),
+                ]
+            )
+        if metadata_rows:
+            parts.extend(
+                [
+                    "",
+                    "## Release Metadata",
+                    "",
+                    markdown_table(["Model", "Size GiB", "BPW", "Quant recipe", "Tensor map", "GGUF SHA256", "Runtime"], metadata_rows),
+                ]
+            )
     if report["deltas"]:
         delta_rows = [
             [row["benchmark"], row["model"], str(row["baseline"]), f"{row['delta']:+.2f}"]

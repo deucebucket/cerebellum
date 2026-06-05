@@ -367,7 +367,9 @@ percentage metrics only. Default weight is `1.0` per benchmark; use
 `--weight BENCHMARK=WEIGHT` to make the suite weighting explicit. PPL and speed
 stay in the comparison table, but they do not get mixed into the average score.
 Use `--size MODEL=GiB` or include `size_gib` / `gguf_size_bytes` in result JSONs
-to populate the score-per-GiB column.
+to populate the score-per-GiB column. Result JSONs can also include `bpw`,
+`quant_recipe`, `tensor_map`, `gguf_sha256`, and `runtime`; `benchmark-report`
+will surface those in a model-card-ready release metadata table.
 
 Use `benchmark-plan` before a release run. It prints implemented runner
 commands, expected summary/detail artifacts, and audit commands. Benchmarks

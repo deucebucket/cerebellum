@@ -220,7 +220,19 @@ def test_benchmark_report_leaderboard_scores_size_density(tmp_path: Path):
     gpqa = tmp_path / "cerebellum_gpqa_diamond_results.json"
     lcb = tmp_path / "baseline_livecodebench_v6_results.json"
     mmlu_pro.write_text(
-        json.dumps({"benchmark": "mmlu_pro", "model": "cerebellum", "accuracy": 0.72, "size_gib": 8.0}),
+        json.dumps(
+            {
+                "benchmark": "mmlu_pro",
+                "model": "cerebellum",
+                "accuracy": 0.72,
+                "size_gib": 8.0,
+                "bpw": 4.25,
+                "quant_recipe": "Cerebellum-Q4CPU",
+                "tensor_map": "tensor_types.txt",
+                "gguf_sha256": "abc123",
+                "runtime": "llama-server",
+            }
+        ),
         encoding="utf-8",
     )
     gpqa.write_text(
@@ -247,7 +259,10 @@ def test_benchmark_report_leaderboard_scores_size_density(tmp_path: Path):
     assert report["leaderboard"][0]["average_score"] == 69.0
     assert report["leaderboard"][0]["score_per_gib"] == 8.625
     assert report["leaderboard"][0]["total_weight"] == 2.0
+    assert report["release_metadata"]["cerebellum"]["bpw"] == 4.25
+    assert report["release_metadata"]["cerebellum"]["quant_recipe"] == "Cerebellum-Q4CPU"
     assert "| cerebellum | 69.00% | 2 | 8.00 | 8.62 |" in markdown
+    assert "| cerebellum | 8.00 | 4.25 | Cerebellum-Q4CPU | tensor_types.txt | abc123 | llama-server |" in markdown
     assert "| baseline | 50.00% | 1 | 10.00 | 5.00 |" in markdown
     assert "Average: weighted mean of measured quality-percentage benchmarks only" in markdown
     assert "Weights: mmlu_pro=1" in markdown
