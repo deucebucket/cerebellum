@@ -4824,6 +4824,7 @@ def pipeline_plan_markdown(plan: dict[str, Any]) -> str:
         offload = plan["cpu_offload_plan"]
         runtime = offload["runtime_targets"]
         streaming = offload["streaming"]
+        dry_run = offload.get("streaming_quant_dry_run") or {}
         parts.extend(
             [
                 "",
@@ -4843,6 +4844,27 @@ def pipeline_plan_markdown(plan: dict[str, Any]) -> str:
                 ),
             ]
         )
+        disk_rows = [
+            [
+                str(row["phase"]),
+                str(row["requirement"]),
+                "-" if row.get("additional_gib") is None else str(row["additional_gib"]),
+                str(row["note"]),
+            ]
+            for row in dry_run.get("disk_requirements", [])
+        ]
+        flow_rows = [
+            [
+                str(row["phase"]),
+                ", ".join(str(item) for item in row.get("inputs", [])),
+                ", ".join(str(item) for item in row.get("outputs", [])),
+            ]
+            for row in dry_run.get("artifact_flow", [])
+        ]
+        if disk_rows:
+            parts.extend(["", "### Streaming Disk Dry Run", "", markdown_table(["Phase", "Requirement", "Add GiB", "Note"], disk_rows)])
+        if flow_rows:
+            parts.extend(["", "### Streaming Artifact Flow", "", markdown_table(["Phase", "Inputs", "Outputs"], flow_rows)])
     if output_rows:
         parts.extend(["", "## Outputs", "", markdown_table(["Phase", "Path"], output_rows)])
     return "\n".join(parts) + "\n"
@@ -4945,6 +4967,7 @@ def cpu_offload_pipeline_detail(
     source_size_gib = path_size(source) / (1024**3) if source.exists() else None
     final_types = run_dir / "artifacts" / "final_types.txt"
     final_gguf = output_dir / f"{model_label}-cerebellum.gguf"
+    streaming_dry_run = cpu_offload_streaming_quant_dry_run(source, output_dir, run_dir, imatrix, final_types, final_gguf, source_size_gib, args)
     return {
         "profile": "cpu-offload",
         "model_hint": "glm" if "glm" in f"{source.name} {args.model_name}".lower() else None,
@@ -4955,6 +4978,7 @@ def cpu_offload_pipeline_detail(
             "scratch_mode": "low-space streaming candidates; measured losers pruned",
             "full_model_ram_load_required": False,
         },
+        "streaming_quant_dry_run": streaming_dry_run,
         "runtime_targets": {
             "primary": "large RAM host with optional GPU offload",
             "record": ["cpu_tok_s", "ram_gib", "gpu_offload_layers", "size_gib", "score_per_gib"],
@@ -5007,6 +5031,62 @@ def cpu_offload_pipeline_detail(
             str(output_dir / "package_manifest.json"),
         ],
         "auth_blockers": ["HF access may be required for gated GLM/GPQA/HLE datasets; pipeline planning itself does not require auth."],
+    }
+
+
+def disk_requirement_row(phase: str, requirement: str, additional_gib: float | None, note: str) -> dict[str, Any]:
+    return {
+        "phase": phase,
+        "requirement": requirement,
+        "additional_gib": None if additional_gib is None else round(additional_gib, 3),
+        "note": note,
+    }
+
+
+def cpu_offload_streaming_quant_dry_run(
+    source: Path,
+    output_dir: Path,
+    run_dir: Path,
+    imatrix: Path,
+    final_types: Path,
+    final_gguf: Path,
+    source_size_gib: float | None,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    candidate_upper = source_size_gib
+    final_upper = source_size_gib
+    disk_requirements = [
+        disk_requirement_row("inspect-source", "read GGUF metadata and tensor types", 0.0, "stat/metadata only; does not load model weights into RAM"),
+        disk_requirement_row("stream-imatrix", "write calibration imatrix", 0.3, "streaming imatrix target is roughly 300 MiB"),
+        disk_requirement_row("ablate", "one active candidate GGUF plus temp files", candidate_upper, "low-space mode prunes measured non-winners before the next candidate"),
+        disk_requirement_row("write-final-map", "write tensor type map", 0.001, "text sidecar under run artifacts"),
+        disk_requirement_row("build-final-gguf", "write final optimized GGUF", final_upper, "upper bound equals source size until the tensor map is known"),
+        disk_requirement_row("benchmark", "write benchmark JSON/JSONL artifacts", 2.0, "suite-dependent; HumanEval+/frontier artifacts may be larger"),
+    ]
+    artifact_flow = [
+        {"phase": "inspect-source", "inputs": [str(source)], "outputs": [str(output_dir / "gguf_type_inspect.json")]},
+        {"phase": "stream-imatrix", "inputs": [str(source)], "outputs": [str(imatrix)]},
+        {"phase": "ablate", "inputs": [str(source), str(imatrix)], "outputs": [str(run_dir / "state.json"), str(final_types)]},
+        {"phase": "build-final-gguf", "inputs": [str(source), str(imatrix), str(final_types)], "outputs": [str(final_gguf)]},
+        {"phase": "benchmark", "inputs": [str(final_gguf)], "outputs": [str(output_dir / "benchmark_results")]},
+        {"phase": "dynamic-compare", "inputs": [str(final_types), str(final_gguf), "UNSLOTH_DYNAMIC_GGUF"], "outputs": [str(output_dir / "dynamic_gguf_compare.json")]},
+    ]
+    return {
+        "schema": "cerebellum.cpu_offload_streaming_quant_dry_run.v1",
+        "dry_run": True,
+        "model_load": "metadata/stat only; no full-model RAM load required for this plan",
+        "source": str(source),
+        "source_size_gib": source_size_gib,
+        "low_space": True,
+        "scratch_root": args.scratch_root,
+        "disk_requirements": disk_requirements,
+        "artifact_flow": artifact_flow,
+        "preflight_commands": [
+            shell_join(["cerebellum", "system"]),
+            shell_join(["cerebellum", "space", "--source-gguf", source, "--scratch", output_dir, "--margin-gb", "20"]),
+            shell_join(["cerebellum", "inspect-gguf-types", source, "--by-component", "--json"]),
+        ],
+        "execution_guard": "plan only; actual streaming quant build must be launched separately and monitored",
     }
 
 

@@ -847,6 +847,13 @@ def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path
     assert plan["cpu_offload_plan"]["source_size_gib"] > 0
     assert plan["cpu_offload_plan"]["streaming"]["full_model_ram_load_required"] is False
     assert plan["cpu_offload_plan"]["streaming"]["imatrix"] == plan["imatrix"]
+    dry_run = plan["cpu_offload_plan"]["streaming_quant_dry_run"]
+    assert dry_run["schema"] == "cerebellum.cpu_offload_streaming_quant_dry_run.v1"
+    assert dry_run["dry_run"] is True
+    assert "no full-model RAM load" in dry_run["model_load"]
+    assert {row["phase"] for row in dry_run["disk_requirements"]} >= {"inspect-source", "ablate", "build-final-gguf"}
+    assert {row["phase"] for row in dry_run["artifact_flow"]} >= {"stream-imatrix", "build-final-gguf", "dynamic-compare"}
+    assert "inspect-gguf-types" in " ".join(dry_run["preflight_commands"])
     assert "cpu_tok_s" in plan["cpu_offload_plan"]["runtime_targets"]["record"]
     assert "scripts/benchmark_perf.py" in plan["cpu_offload_plan"]["throughput_probe_command"]
     assert "compare-gguf-types" in plan["cpu_offload_plan"]["dynamic_compare_command"]
@@ -856,6 +863,8 @@ def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path
     assert "--low-space" in phases["resume"]["command"]
     assert "## Resource Strategy" in markdown
     assert "## CPU Offload Plan" in markdown
+    assert "### Streaming Disk Dry Run" in markdown
+    assert "### Streaming Artifact Flow" in markdown
     assert "full RAM load required" in markdown
 
 
