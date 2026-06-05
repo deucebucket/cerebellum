@@ -168,6 +168,7 @@ cerebellum queue retry 1 --priority 10
 cerebellum queue run-next --execute
 cerebellum pipeline-status --manifest /path/to/pipeline.json
 cerebellum benchmark-status --results-dir benchmark_results
+cerebellum benchmark-ingest benchmark_results --db db/cerebellum.db --suite release --model Cerebellum --require-complete
 cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir out --skip-inspect --json
 cerebellum hf-stats --author deucebucket --snapshot db/hf_downloads.jsonl
 ```
@@ -454,6 +455,17 @@ Postprocess writes `postprocess/benchmark_manifest.json`,
 `postprocess/benchmark_audit.json`, and `postprocess/benchmark_report.json`.
 `--require-complete` fails the run if the selected suite is missing measured
 summary JSONs, and audit failures are reported as benchmark-run blockers.
+Use `benchmark-ingest` after a benchmark or postprocess run to persist the same
+publishability evidence into the local Cerebellum SQLite DB:
+
+```bash
+cerebellum benchmark-ingest benchmark_results --db db/cerebellum.db --suite release --model Cerebellum --require-complete --leaderboard --size Cerebellum=7.6
+```
+
+The ingest stores the manifest, audit, report, per-result records, and a
+`ready` verdict with explicit blockers for missing suite results or audit
+failures. `cerebellum db benchmarks --db db/cerebellum.db` then summarizes the
+durable benchmark rows.
 Use `benchmark-manifest` after a run to hash summary/detail artifacts, record
 which suite benchmarks have measured JSON, and produce a HF/model-card bundle
 manifest. Add `--require-complete` for release automation so missing suite

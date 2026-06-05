@@ -1357,6 +1357,39 @@ def ensure_hill_tables(conn: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_cerebellum_jobs_status ON cerebellum_jobs(status, priority, id);
         CREATE INDEX IF NOT EXISTS idx_cerebellum_jobs_kind ON cerebellum_jobs(kind, status);
+
+        CREATE TABLE IF NOT EXISTS cerebellum_benchmark_ingests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            model TEXT NOT NULL,
+            suite TEXT NOT NULL,
+            results_dir TEXT NOT NULL,
+            ready INTEGER NOT NULL DEFAULT 0,
+            blockers_json TEXT NOT NULL,
+            manifest_json TEXT NOT NULL,
+            audit_json TEXT NOT NULL,
+            report_json TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            UNIQUE(model, suite, results_dir)
+        );
+
+        CREATE TABLE IF NOT EXISTS cerebellum_benchmark_results (
+            ingest_id INTEGER NOT NULL,
+            model TEXT NOT NULL,
+            suite TEXT NOT NULL,
+            benchmark_key TEXT NOT NULL,
+            benchmark TEXT NOT NULL,
+            metric TEXT NOT NULL,
+            value REAL NOT NULL,
+            path TEXT NOT NULL,
+            size_gib REAL,
+            release_metadata_json TEXT NOT NULL,
+            PRIMARY KEY(ingest_id, benchmark_key, metric, path),
+            FOREIGN KEY(ingest_id) REFERENCES cerebellum_benchmark_ingests(id) ON DELETE CASCADE
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_cerebellum_benchmark_results_suite ON cerebellum_benchmark_results(suite, benchmark_key);
+        CREATE INDEX IF NOT EXISTS idx_cerebellum_benchmark_results_model ON cerebellum_benchmark_results(model);
         """
     )
     existing = {row[1] for row in conn.execute("PRAGMA table_info(cerebellum_jobs)").fetchall()}
@@ -2950,6 +2983,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_run_parser.add_argument("--weight", action="append", default=[], help="with --postprocess --leaderboard, benchmark weight as BENCHMARK=WEIGHT")
     benchmark_run_parser.add_argument("--json", action="store_true")
 
+    benchmark_ingest_parser = sub.add_parser("benchmark-ingest", help="ingest benchmark artifacts into the Cerebellum SQLite DB and report publishability")
+    benchmark_ingest_parser.add_argument("results_dir", help="directory containing benchmark summary/detail artifacts")
+    benchmark_ingest_parser.add_argument("--db", default=DEFAULT_DB)
+    benchmark_ingest_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    benchmark_ingest_parser.add_argument("--model", default="cerebellum")
+    benchmark_ingest_parser.add_argument("--require-complete", action="store_true", help="exit non-zero when selected suite summary JSONs are missing")
+    benchmark_ingest_parser.add_argument("--leaderboard", action="store_true", help="store leaderboard rows in the persisted report JSON")
+    benchmark_ingest_parser.add_argument("--size", action="append", default=[], help="model size as MODEL=GiB for score/GiB leaderboard")
+    benchmark_ingest_parser.add_argument("--size-json", help="JSON file with per-model size metadata")
+    benchmark_ingest_parser.add_argument("--weight", action="append", default=[], help="leaderboard benchmark weight as BENCHMARK=WEIGHT")
+    benchmark_ingest_parser.add_argument("--json", action="store_true")
+
     benchmark_status_parser = sub.add_parser("benchmark-status", help="summarize benchmark-run event logs and resume point")
     benchmark_status_parser.add_argument("--results-dir", default="benchmark_results", help="directory containing benchmark_run_events.jsonl")
     benchmark_status_parser.add_argument("--events", default=None, help="benchmark_run_events.jsonl path; defaults under --results-dir")
@@ -4093,12 +4138,18 @@ def db_cmd(args: argparse.Namespace) -> None:
             """,
         )
     elif args.db_cmd == "benchmarks":
+        conn = sqlite3.connect(db)
+        try:
+            ensure_hill_tables(conn)
+        finally:
+            conn.close()
         rows = sqlite_rows(
             db,
             """
-            SELECT benchmark, COUNT(*) AS runs, ROUND(MAX(score), 3) AS best,
-                   ROUND(AVG(score), 3) AS avg
-            FROM benchmarks GROUP BY benchmark ORDER BY benchmark
+            SELECT benchmark_key AS benchmark, COUNT(*) AS runs,
+                   ROUND(MAX(value), 3) AS best, ROUND(AVG(value), 3) AS avg
+            FROM cerebellum_benchmark_results
+            GROUP BY benchmark_key ORDER BY benchmark_key
             """,
         )
     elif args.db_cmd in {"runs", "hill-runs"}:
@@ -5178,6 +5229,157 @@ def benchmark_run_postprocess(
         "blocked": bool(blockers),
         "blockers": blockers,
     }
+
+
+def benchmark_ingest(
+    db: Path,
+    results_dir: Path,
+    *,
+    suite: str = "release",
+    model: str = "cerebellum",
+    require_complete: bool = False,
+    leaderboard: bool = False,
+    sizes: dict[str, float] | None = None,
+    weights: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    manifest = benchmark_manifest([results_dir], suite=suite, model=model)
+    audit = benchmark_audit([str(results_dir)])
+    report = benchmark_report([results_dir], suite=suite, leaderboard=leaderboard, sizes=sizes, weights=weights)
+    blockers: list[dict[str, Any]] = []
+    if require_complete and manifest["missing_measured"]:
+        blockers.append(
+            {
+                "status": "missing",
+                "benchmark": ",".join(manifest["missing_measured"]),
+                "reason": "missing measured benchmark artifacts",
+            }
+        )
+    if audit["blocked"]:
+        blockers.extend(
+            {
+                "status": "audit_failed",
+                "benchmark": Path(str(item["path"])).stem,
+                "reason": str(item["reason"]),
+            }
+            for item in audit["failures"]
+        )
+    ready = not blockers
+    now = utc_now()
+    db.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db)
+    try:
+        ensure_hill_tables(conn)
+        with conn:
+            cur = conn.execute(
+                """
+                INSERT INTO cerebellum_benchmark_ingests
+                  (model, suite, results_dir, ready, blockers_json, manifest_json,
+                   audit_json, report_json, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(model, suite, results_dir) DO UPDATE SET
+                    ready = excluded.ready,
+                    blockers_json = excluded.blockers_json,
+                    manifest_json = excluded.manifest_json,
+                    audit_json = excluded.audit_json,
+                    report_json = excluded.report_json,
+                    updated_at = excluded.updated_at
+                RETURNING id
+                """,
+                (
+                    model,
+                    suite,
+                    str(results_dir),
+                    1 if ready else 0,
+                    json.dumps(blockers, sort_keys=True),
+                    json.dumps(manifest, sort_keys=True),
+                    json.dumps(audit, sort_keys=True),
+                    json.dumps(report, sort_keys=True),
+                    now,
+                    now,
+                ),
+            )
+            ingest_id = int(cur.fetchone()[0])
+            conn.execute("DELETE FROM cerebellum_benchmark_results WHERE ingest_id = ?", (ingest_id,))
+            for row in report.get("records", []):
+                conn.execute(
+                    """
+                    INSERT OR REPLACE INTO cerebellum_benchmark_results
+                      (ingest_id, model, suite, benchmark_key, benchmark, metric,
+                       value, path, size_gib, release_metadata_json)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """,
+                    (
+                        ingest_id,
+                        str(row["model"]),
+                        suite,
+                        str(row["benchmark_key"]),
+                        str(row["benchmark"]),
+                        str(row["metric"]),
+                        float(row["value"]),
+                        str(row["path"]),
+                        row.get("size_gib"),
+                        json.dumps(row.get("release_metadata", {}), sort_keys=True),
+                    ),
+                )
+    finally:
+        conn.close()
+    return {
+        "schema": "cerebellum.benchmark_ingest.v1",
+        "db": str(db),
+        "ingest_id": ingest_id,
+        "model": model,
+        "suite": suite,
+        "results_dir": str(results_dir),
+        "ready": ready,
+        "blockers": blockers,
+        "missing_measured": manifest["missing_measured"],
+        "audit_failures": audit["failures"],
+        "records": len(report.get("records", [])),
+        "leaderboard_rows": len(report.get("leaderboard", [])),
+        "measured_benchmarks": manifest["measured_benchmarks"],
+    }
+
+
+def benchmark_ingest_markdown(payload: dict[str, Any]) -> str:
+    lines = [
+        "# Benchmark Ingest",
+        "",
+        f"db: `{payload['db']}`",
+        f"ingest: `{payload['ingest_id']}`",
+        f"model: `{payload['model']}`",
+        f"suite: `{payload['suite']}`",
+        f"ready: `{'yes' if payload['ready'] else 'no'}`",
+        f"records: `{payload['records']}`",
+        f"leaderboard rows: `{payload['leaderboard_rows']}`",
+    ]
+    if payload.get("missing_measured"):
+        lines.append(f"missing: `{', '.join(payload['missing_measured'])}`")
+    if payload.get("blockers"):
+        rows = [[row["status"], row["benchmark"], row["reason"]] for row in payload["blockers"]]
+        lines.extend(["", "## Blockers", "", markdown_table(["Status", "Benchmark", "Reason"], rows)])
+    return "\n".join(lines) + "\n"
+
+
+def benchmark_ingest_cmd(args: argparse.Namespace) -> None:
+    sizes = read_size_json(args.size_json)
+    sizes.update(parse_size_specs(args.size))
+    weights = parse_weight_specs(args.weight)
+    payload = benchmark_ingest(
+        Path(args.db),
+        Path(args.results_dir),
+        suite=args.suite,
+        model=args.model,
+        require_complete=args.require_complete,
+        leaderboard=args.leaderboard,
+        sizes=sizes,
+        weights=weights,
+    )
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(benchmark_ingest_markdown(payload), end="")
+    if not payload["ready"]:
+        raise SystemExit(1)
 
 
 def benchmark_run_cmd(args: argparse.Namespace) -> None:
@@ -9180,6 +9382,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "queue_retry": "cerebellum queue retry JOB_ID --priority 10",
                         "queue_run_next": "cerebellum queue run-next --execute",
                         "benchmark_run": "cerebellum benchmark-run --suite frontier --model MODEL --results-dir benchmark_results --execute",
+                        "benchmark_ingest": "cerebellum benchmark-ingest benchmark_results --db db/cerebellum.db --suite release --model MODEL --require-complete",
                         "cpu_offload_smoke": "cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir OUT --json",
                         "finalize": "cerebellum finalize --run-dir RUN_DIR --gguf MODEL.gguf",
                     },
@@ -9518,6 +9721,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-run":
         benchmark_run_cmd(args)
+        return
+    if args.cmd == "benchmark-ingest":
+        benchmark_ingest_cmd(args)
         return
     if args.cmd == "benchmark-status":
         benchmark_status_cmd(args)

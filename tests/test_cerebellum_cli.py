@@ -19,6 +19,9 @@ from cerebellum import (
     benchmark_audit_args_from_query,
     benchmark_audit_cmd,
     benchmark_audit_markdown,
+    benchmark_ingest,
+    benchmark_ingest_cmd,
+    benchmark_ingest_markdown,
     benchmark_manifest,
     benchmark_manifest_args_from_query,
     benchmark_manifest_cmd,
@@ -681,6 +684,103 @@ def test_benchmark_run_postprocess_blocks_missing_complete_suite(tmp_path: Path,
     assert postprocess["blocked"] is True
     assert postprocess["missing_measured"] == ["missing"]
     assert postprocess["blockers"][0]["status"] == "missing"
+
+
+def test_benchmark_ingest_persists_ready_results(tmp_path: Path, monkeypatch):
+    db = tmp_path / "cerebellum.db"
+    summary = tmp_path / "unit-model_unit_smoke_results.json"
+    detail = tmp_path / "unit-model_unit_smoke_detailed.jsonl"
+    summary.write_text(
+        json.dumps({"benchmark": "unit_smoke", "model": "unit-model", "accuracy": 0.75, "size_gib": 4.0}),
+        encoding="utf-8",
+    )
+    detail.write_text(json.dumps({"correct": True, "predicted": "A", "raw_response": "A"}) + "\n", encoding="utf-8")
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_ingest", ["unit_smoke"])
+
+    payload = benchmark_ingest(
+        db,
+        tmp_path,
+        suite="unit_ingest",
+        model="unit-model",
+        require_complete=True,
+        leaderboard=True,
+        sizes={"unit-model": 4.0},
+    )
+    markdown = benchmark_ingest_markdown(payload)
+    ingests = hillstep.sqlite_rows(db, "SELECT model, suite, ready FROM cerebellum_benchmark_ingests")
+    results = hillstep.sqlite_rows(db, "SELECT model, benchmark_key, metric, value FROM cerebellum_benchmark_results")
+
+    assert payload["schema"] == "cerebellum.benchmark_ingest.v1"
+    assert payload["ready"] is True
+    assert payload["records"] == 1
+    assert payload["leaderboard_rows"] == 1
+    assert ingests == [{"model": "unit-model", "suite": "unit_ingest", "ready": 1}]
+    assert results == [{"model": "unit-model", "benchmark_key": "unit_smoke", "metric": "accuracy", "value": 75.0}]
+    assert "# Benchmark Ingest" in markdown
+
+
+def test_benchmark_ingest_cmd_blocks_missing_complete_suite(tmp_path: Path, capsys, monkeypatch):
+    db = tmp_path / "cerebellum.db"
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_ingest_missing", ["missing"])
+    args = parse_args(
+        [
+            "benchmark-ingest",
+            str(tmp_path),
+            "--db",
+            str(db),
+            "--suite",
+            "unit_ingest_missing",
+            "--model",
+            "unit-model",
+            "--require-complete",
+            "--json",
+        ]
+    )
+
+    try:
+        benchmark_ingest_cmd(args)
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        raise AssertionError("benchmark-ingest should fail when require-complete is missing results")
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["ready"] is False
+    assert payload["missing_measured"] == ["missing"]
+    assert payload["blockers"][0]["status"] == "missing"
+    assert hillstep.sqlite_rows(db, "SELECT ready FROM cerebellum_benchmark_ingests") == [{"ready": 0}]
+
+
+def test_benchmark_ingest_command_parses():
+    args = parse_args(
+        [
+            "benchmark-ingest",
+            "benchmark_results",
+            "--db",
+            "db/cerebellum.db",
+            "--suite",
+            "frontier",
+            "--model",
+            "gemma4",
+            "--require-complete",
+            "--leaderboard",
+            "--size",
+            "gemma4=7.6",
+            "--weight",
+            "gpqa_diamond=2",
+            "--json",
+        ]
+    )
+
+    assert args.cmd == "benchmark-ingest"
+    assert args.results_dir == "benchmark_results"
+    assert args.db == "db/cerebellum.db"
+    assert args.suite == "frontier"
+    assert args.model == "gemma4"
+    assert args.require_complete is True
+    assert args.leaderboard is True
+    assert args.size == ["gemma4=7.6"]
+    assert args.weight == ["gpqa_diamond=2"]
 
 
 def test_benchmark_run_execute_stops_on_failure(tmp_path: Path, monkeypatch):
