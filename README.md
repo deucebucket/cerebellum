@@ -161,6 +161,7 @@ cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
 cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_results/ --clean
 cerebellum artifact-inventory . --output cerebellum-dev/artifact_inventory.json --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
 cerebellum pipeline-status --manifest /path/to/pipeline.json
+cerebellum benchmark-status --results-dir benchmark_results
 cerebellum hf-stats --author deucebucket --snapshot db/hf_downloads.jsonl
 ```
 
@@ -191,6 +192,9 @@ reports. The command is preservation-first; it never deletes files.
 Use `pipeline-status` after `pipeline-run --execute` to read
 `pipeline_run_events.jsonl`, summarize complete/running/failed phases, and print
 the resume command for the failed or next pending phase.
+Use `benchmark-status` after `benchmark-run --execute` to read
+`benchmark_run_events.jsonl`, summarize finished/running/failed benchmarks, and
+print the exact logged command for a failed or interrupted benchmark.
 Use `hf-stats` for release telemetry. The default public Hugging Face model API
 reports rolling/recent downloads, not lifetime totals, so Cerebellum labels
 those fields as `downloads_recent`. True all-time totals require Hugging Face

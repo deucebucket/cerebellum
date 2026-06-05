@@ -2523,6 +2523,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_run_parser.add_argument("--execute", action="store_true", help="actually run benchmark commands; dry-run is default")
     benchmark_run_parser.add_argument("--json", action="store_true")
 
+    benchmark_status_parser = sub.add_parser("benchmark-status", help="summarize benchmark-run event logs and resume point")
+    benchmark_status_parser.add_argument("--results-dir", default="benchmark_results", help="directory containing benchmark_run_events.jsonl")
+    benchmark_status_parser.add_argument("--events", default=None, help="benchmark_run_events.jsonl path; defaults under --results-dir")
+    benchmark_status_parser.add_argument("--json", action="store_true")
+
     rebench_plan_parser = sub.add_parser("benchmark-rebench-plan", help="plan corrected HumanEval+/release reruns for published models")
     rebench_plan_parser.add_argument("--suite", choices=["humaneval", "release"], default="humaneval")
     rebench_plan_parser.add_argument("--results-root", default="benchmark_results/rebench_20260605")
@@ -4686,6 +4691,115 @@ def benchmark_run_cmd(args: argparse.Namespace) -> None:
         print(benchmark_run_markdown(plan), end="")
     if plan["blocked"]:
         raise SystemExit(1)
+
+
+def benchmark_status(results_dir: Path, events_path: Path | None = None) -> dict[str, Any]:
+    event_log = events_path or results_dir / "benchmark_run_events.jsonl"
+    events = read_jsonl(event_log)
+    rows: list[dict[str, Any]] = []
+    by_name: dict[str, dict[str, Any]] = {}
+    for event in events:
+        benchmark = str(event.get("benchmark") or "")
+        if not benchmark:
+            continue
+        row = by_name.get(benchmark)
+        if row is None:
+            row = {
+                "benchmark": benchmark,
+                "status": "pending",
+                "command": None,
+                "started_at": None,
+                "finished_at": None,
+                "returncode": None,
+                "elapsed_seconds": None,
+                "log": None,
+            }
+            rows.append(row)
+            by_name[benchmark] = row
+        kind = event.get("event")
+        if kind == "benchmark_start":
+            row["status"] = "running"
+            row["started_at"] = event.get("time")
+            row["command"] = event.get("command") or row.get("command")
+        elif kind == "benchmark_finish":
+            returncode = int(event.get("returncode", 0))
+            row["status"] = "complete" if returncode == 0 else "failed"
+            row["finished_at"] = event.get("time")
+            row["returncode"] = returncode
+            row["elapsed_seconds"] = event.get("elapsed_seconds")
+            row["log"] = event.get("log")
+            row["command"] = event.get("command") or row.get("command")
+    failed = next((row for row in rows if row["status"] == "failed"), None)
+    running = next((row for row in rows if row["status"] == "running"), None)
+    if failed:
+        status = "failed"
+        rerun_benchmark = failed["benchmark"]
+    elif running:
+        status = "running"
+        rerun_benchmark = running["benchmark"]
+    elif not events:
+        status = "not-started"
+        rerun_benchmark = None
+    else:
+        status = "complete"
+        rerun_benchmark = None
+    rerun_command = None
+    if rerun_benchmark:
+        source_row = failed or running
+        rerun_command = source_row.get("command") if source_row else None
+    return {
+        "schema": "cerebellum.benchmark_status.v1",
+        "results_dir": str(results_dir),
+        "event_log": str(event_log),
+        "event_count": len(events),
+        "status": status,
+        "completed_benchmarks": sum(1 for row in rows if row["status"] == "complete"),
+        "failed_benchmark": failed["benchmark"] if failed else None,
+        "running_benchmark": running["benchmark"] if running else None,
+        "rerun_benchmark": rerun_benchmark,
+        "rerun_command": rerun_command,
+        "last_event": events[-1] if events else None,
+        "benchmarks": rows,
+    }
+
+
+def benchmark_status_markdown(status: dict[str, Any]) -> str:
+    rows = [
+        [
+            str(row["benchmark"]),
+            str(row["status"]),
+            "-" if row.get("returncode") is None else str(row["returncode"]),
+            str(row.get("log") or "-"),
+        ]
+        for row in status["benchmarks"]
+    ]
+    parts = [
+        "# Benchmark Status",
+        "",
+        f"results_dir: `{status['results_dir']}`",
+        f"status: `{status['status']}`",
+        f"events: `{status['event_count']}`",
+        f"completed: `{status['completed_benchmarks']}/{len(status['benchmarks'])}`",
+    ]
+    if status.get("rerun_command"):
+        parts.append(f"rerun: `{status['rerun_command']}`")
+    parts.extend(["", markdown_table(["Benchmark", "Status", "Return", "Log"], rows)])
+    return "\n".join(parts) + "\n"
+
+
+def benchmark_status_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    return argparse.Namespace(
+        results_dir=query_value(qs, "results_dir", "benchmark_results"),
+        events=query_value(qs, "events"),
+    )
+
+
+def benchmark_status_cmd(args: argparse.Namespace) -> None:
+    result = benchmark_status(Path(args.results_dir), Path(args.events) if args.events else None)
+    if args.json:
+        print(json.dumps(result, indent=2, sort_keys=True))
+    else:
+        print(benchmark_status_markdown(result), end="")
 
 
 def benchmark_plan_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
@@ -8358,6 +8472,12 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 self._json(benchmark_plan(args.suite, args.model, args.port, args.results_dir))
             except ValueError as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/benchmark-status":
+            try:
+                args = benchmark_status_args_from_query(qs)
+                self._json(benchmark_status(Path(args.results_dir), Path(args.events) if args.events else None))
+            except (ValueError, OSError, json.JSONDecodeError) as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/benchmark-manifest":
             try:
                 args = benchmark_manifest_args_from_query(qs)
@@ -8468,6 +8588,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "pipeline_run": "cerebellum pipeline-run --manifest pipeline.json --json",
                         "pipeline_status": "cerebellum pipeline-status --manifest pipeline.json --json",
                         "benchmark_plan": "cerebellum benchmark-plan --suite release --model MODEL --json",
+                        "benchmark_status": "cerebellum benchmark-status --results-dir benchmark_results --json",
                         "benchmark_manifest": "cerebellum benchmark-manifest benchmark_results --suite release --model MODEL --json",
                         "benchmark_audit": "cerebellum benchmark-audit benchmark_results --json",
                         "benchmark_report": "cerebellum benchmark-report benchmark_results --leaderboard --suite frontier --json",
@@ -8497,6 +8618,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "pipeline_run": "/pipeline-run?manifest=pipeline.json",
                         "pipeline_status": "/pipeline-status?manifest=pipeline.json",
                         "benchmark_plan": "/benchmark-plan?suite=release&model=MODEL",
+                        "benchmark_status": "/benchmark-status?results_dir=benchmark_results",
                         "benchmark_manifest": "/benchmark-manifest?path=benchmark_results&suite=release&model=MODEL",
                         "benchmark_audit": "/benchmark-audit?path=benchmark_results",
                         "benchmark_report": "/benchmark-report?path=benchmark_results&leaderboard=true&suite=frontier",
@@ -8533,6 +8655,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/pipeline-run", "params": ["manifest", "from_phase?", "until_phase?"], "returns": "pipeline dry-run phase validation"},
                         {"path": "/pipeline-status", "params": ["manifest", "events?"], "returns": "pipeline execution status and resume command from event logs"},
                         {"path": "/benchmark-plan", "params": ["suite?", "model?", "port?", "results_dir?"], "returns": "benchmark suite command/artifact readiness plan"},
+                        {"path": "/benchmark-status", "params": ["results_dir?", "events?"], "returns": "benchmark execution status and rerun command from event logs"},
                         {"path": "/benchmark-manifest", "params": ["path", "suite?", "model?", "require_complete?"], "returns": "hashed benchmark artifact manifest"},
                         {"path": "/benchmark-audit", "params": ["path", "fail_empty_pct?", "fail_unknown_pct?", "fail_pass_only_pct?"], "returns": "benchmark detailed-artifact quality audit"},
                         {"path": "/benchmark-report", "params": ["path", "baseline?", "leaderboard?", "suite?", "size?", "size_json?", "weight?", "list_suites?"], "returns": "benchmark aggregate comparison and leaderboard report"},
@@ -8563,7 +8686,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-status /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
@@ -8812,6 +8935,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-run":
         benchmark_run_cmd(args)
+        return
+    if args.cmd == "benchmark-status":
+        benchmark_status_cmd(args)
         return
     if args.cmd == "benchmark-rebench-plan":
         benchmark_rebench_plan_cmd(args)

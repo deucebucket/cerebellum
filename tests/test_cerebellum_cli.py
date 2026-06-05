@@ -31,6 +31,9 @@ from cerebellum import (
     benchmark_run_execute,
     benchmark_run_markdown,
     benchmark_run_plan,
+    benchmark_status,
+    benchmark_status_args_from_query,
+    benchmark_status_markdown,
     benchmark_rebench_plan,
     benchmark_rebench_plan_args_from_query,
     benchmark_rebench_plan_markdown,
@@ -594,6 +597,67 @@ def test_benchmark_run_execute_stops_on_failure(tmp_path: Path, monkeypatch):
     assert result["blockers"] == [{"benchmark": "fail", "status": "implemented", "reason": "command exited 6"}]
     assert [row["benchmark"] for row in result["executions"]] == ["fail"]
     assert not skipped.exists()
+
+
+def test_benchmark_status_command_parses():
+    args = parse_args(["benchmark-status", "--results-dir", "out", "--events", "events.jsonl", "--json"])
+
+    assert args.cmd == "benchmark-status"
+    assert args.results_dir == "out"
+    assert args.events == "events.jsonl"
+    assert args.json is True
+
+
+def test_benchmark_status_reports_complete_run(tmp_path: Path, monkeypatch):
+    output = tmp_path / "bench.out"
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_status", ["unit_smoke"])
+    monkeypatch.setitem(
+        hillstep.BENCHMARK_CATALOG,
+        "unit_smoke",
+        {
+            "name": "Unit smoke",
+            "status": "implemented",
+            "script": "-c",
+            "workers": 1,
+            "args": [f"from pathlib import Path; Path({str(output)!r}).write_text('ok')"],
+        },
+    )
+    benchmark_run_execute(benchmark_run_plan("unit_status", model="unit-model", port=18080, results_dir=str(tmp_path)))
+
+    status = benchmark_status(tmp_path)
+    markdown = benchmark_status_markdown(status)
+
+    assert status["schema"] == "cerebellum.benchmark_status.v1"
+    assert status["status"] == "complete"
+    assert status["completed_benchmarks"] == 1
+    assert status["rerun_command"] is None
+    assert status["benchmarks"][0]["status"] == "complete"
+    assert "# Benchmark Status" in markdown
+
+
+def test_benchmark_status_reports_failed_rerun_command(tmp_path: Path, monkeypatch):
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_status_fail", ["fail"])
+    monkeypatch.setitem(
+        hillstep.BENCHMARK_CATALOG,
+        "fail",
+        {"name": "Fail", "status": "implemented", "script": "-c", "args": ["raise SystemExit(6)"]},
+    )
+    benchmark_run_execute(benchmark_run_plan("unit_status_fail", model="unit-model", port=18080, results_dir=str(tmp_path)))
+
+    status = benchmark_status(tmp_path)
+
+    assert status["status"] == "failed"
+    assert status["failed_benchmark"] == "fail"
+    assert status["rerun_benchmark"] == "fail"
+    assert "raise SystemExit(6)" in status["rerun_command"]
+    assert status["benchmarks"][0]["returncode"] == 6
+
+
+def test_benchmark_status_api_query_args_default_results_dir():
+    args = benchmark_status_args_from_query({"events": ["events.jsonl"]})
+
+    assert args.results_dir == "benchmark_results"
+    assert args.events == "events.jsonl"
 
 
 def test_benchmark_plan_api_query_args_validate():
