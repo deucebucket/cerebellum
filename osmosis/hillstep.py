@@ -6622,6 +6622,17 @@ def public_export_plan(paths: list[str] | None = None, max_bytes: int = 512_000)
     }
 
 
+def public_export_plan_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    try:
+        max_bytes = int(query_value(qs, "max_bytes", 512_000))
+    except ValueError as exc:
+        raise ValueError("max_bytes must be an integer") from exc
+    if max_bytes < 1:
+        raise ValueError("max_bytes must be at least 1")
+    paths = qs.get("path") or qs.get("paths") or []
+    return argparse.Namespace(paths=paths, max_bytes=max_bytes)
+
+
 def public_export_cmd(args: argparse.Namespace) -> None:
     output_dir = Path(args.output_dir)
     plan = public_export_plan(args.paths, max_bytes=args.max_bytes)
@@ -7597,6 +7608,12 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 self._json(artifact_inventory(Path(args.root), top=args.top))
             except ValueError as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/public-export-plan":
+            try:
+                args = public_export_plan_args_from_query(qs)
+                self._json(public_export_plan(args.paths, max_bytes=args.max_bytes))
+            except ValueError as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/hf-stats":
             try:
                 self._json(hf_model_stats(hf_stats_args_from_query(qs)))
@@ -7630,6 +7647,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
                         "pipeline_plan": "cerebellum pipeline-plan --source-gguf MODEL.gguf --output-dir OUT --json",
                         "artifact_inventory": "cerebellum artifact-inventory ROOT --json",
+                        "public_export_plan": "cerebellum public-export OUT --dry-run --json",
                         "benchmark_rebench_plan": "cerebellum benchmark-rebench-plan --suite humaneval --json",
                         "hf_stats": "cerebellum hf-stats --author deucebucket --json",
                     },
@@ -7648,6 +7666,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "recover": "/recover?run_dir=RUN_DIR",
                         "pipeline_plan": "/pipeline-plan?source_gguf=MODEL.gguf&output_dir=OUT",
                         "artifact_inventory": "/artifact-inventory?root=ROOT&top=25",
+                        "public_export_plan": "/public-export-plan?path=README.md&path=docs",
                         "benchmark_rebench_plan": "/benchmark-rebench-plan?suite=humaneval",
                         "hf_stats": "/hf-stats?author=deucebucket",
                         "tutorial": "/tutorial?topic=overview",
@@ -7675,6 +7694,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
                         {"path": "/pipeline-plan", "params": ["source_gguf", "output_dir", "task_profile?", "benchmark_suite?"], "returns": "pipeline phase manifest"},
                         {"path": "/artifact-inventory", "params": ["root", "top?", "allow_broad?"], "returns": "preservation-first legacy artifact inventory"},
+                        {"path": "/public-export-plan", "params": ["path?", "paths?", "max_bytes?"], "returns": "sanitized public export dry-run manifest"},
                         {"path": "/benchmark-rebench-plan", "params": ["suite=humaneval|release?", "results_root?", "port?", "model?", "correction_issue?"], "returns": "published-model corrected rebench queue"},
                         {"path": "/hf-stats", "params": ["author?", "period=recent|all-time?", "publisher_org?", "limit?"], "returns": "HF model release telemetry"},
                         {"path": "/tutorial", "params": ["topic"], "returns": "tutorial lines"},
@@ -7698,7 +7718,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /artifact-inventory /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 

@@ -62,6 +62,7 @@ from cerebellum import (
     public_audit_markdown,
     public_export_cmd,
     public_export_plan,
+    public_export_plan_args_from_query,
     public_export_markdown,
     read_tensor_type_map,
     task_profiles_cmd,
@@ -1746,6 +1747,32 @@ def test_public_export_plan_selects_safe_files_and_skips_risks(tmp_path: Path, m
     assert "scripts/factory.sh" not in exported
     assert plan["blocked"] is True
     assert "Public export blocked" in markdown
+
+
+def test_public_export_plan_api_query_args_validate():
+    args = public_export_plan_args_from_query(
+        {
+            "path": ["README.md", "docs"],
+            "max_bytes": ["100"],
+        }
+    )
+
+    assert args.paths == ["README.md", "docs"]
+    assert args.max_bytes == 100
+
+    try:
+        public_export_plan_args_from_query({"max_bytes": ["many"]})
+    except ValueError as exc:
+        assert "max_bytes must be an integer" in str(exc)
+    else:
+        raise AssertionError("invalid public export max_bytes should fail")
+
+    try:
+        public_export_plan_args_from_query({"max_bytes": ["0"]})
+    except ValueError as exc:
+        assert "max_bytes must be at least 1" in str(exc)
+    else:
+        raise AssertionError("zero public export max_bytes should fail")
 
 
 def test_public_export_cmd_copies_manifest_and_files(tmp_path: Path, monkeypatch, capsys):
