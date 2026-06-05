@@ -1490,6 +1490,10 @@ def queue_payload_from_args(args: argparse.Namespace) -> dict[str, Any]:
         payload["pipeline"] = manifest.get("pipeline")
         payload["run_dir"] = manifest.get("run_dir")
         payload["phases"] = [row.get("name") for row in manifest.get("phases", []) if isinstance(row, dict)]
+    if getattr(args, "from_phase", None):
+        payload["from_phase"] = args.from_phase
+    if getattr(args, "until_phase", None):
+        payload["until_phase"] = args.until_phase
     if args.command:
         payload["command"] = args.command
     if args.payload_json:
@@ -1723,7 +1727,13 @@ def queue_run_job(db: Path, job: dict[str, Any], execute: bool = False) -> dict[
             manifest = payload.get("manifest")
             if not manifest:
                 raise RuntimeError("pipeline queue job missing manifest")
-            result = pipeline_run_execute(pipeline_run_plan(Path(str(manifest))))
+            result = pipeline_run_execute(
+                pipeline_run_plan(
+                    Path(str(manifest)),
+                    from_phase=payload.get("from_phase"),
+                    until_phase=payload.get("until_phase"),
+                )
+            )
             returncode = 1 if result.get("blocked") else 0
             result["returncode"] = returncode
         else:
@@ -2842,6 +2852,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     queue_add.add_argument("--label", default=None)
     queue_add.add_argument("--manifest", default=None, help="pipeline-plan JSON manifest for pipeline jobs")
     queue_add.add_argument("--command", default=None, help="explicit command for benchmark/run jobs")
+    queue_add.add_argument("--from-phase", default=None, help="for pipeline jobs, start execution at this phase")
+    queue_add.add_argument("--until-phase", default=None, help="for pipeline jobs, stop execution after this phase")
     queue_add.add_argument("--payload-json", default=None, help="extra JSON object merged into the queued payload")
     queue_add.add_argument("--priority", type=int, default=100)
     queue_add.add_argument("--status", default="queued")

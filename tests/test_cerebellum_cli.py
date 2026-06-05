@@ -1457,12 +1457,32 @@ def test_pipeline_run_command_parses():
 
 
 def test_queue_command_parses():
-    args = parse_args(["queue", "--db", "queue.db", "--json", "add", "--kind", "pipeline", "--manifest", "pipeline.json", "--priority", "10"])
+    args = parse_args(
+        [
+            "queue",
+            "--db",
+            "queue.db",
+            "--json",
+            "add",
+            "--kind",
+            "pipeline",
+            "--manifest",
+            "pipeline.json",
+            "--from-phase",
+            "ablate",
+            "--until-phase",
+            "benchmark",
+            "--priority",
+            "10",
+        ]
+    )
 
     assert args.cmd == "queue"
     assert args.queue_cmd == "add"
     assert args.db == "queue.db"
     assert args.kind == "pipeline"
+    assert args.from_phase == "ablate"
+    assert args.until_phase == "benchmark"
     assert args.manifest == "pipeline.json"
     assert args.priority == 10
     assert args.json is True
@@ -1505,6 +1525,54 @@ def test_queue_add_list_get_pipeline_manifest(tmp_path: Path):
     assert fetched["id"] == job["id"]
     assert [row["id"] for row in jobs] == [job["id"]]
     assert "# Cerebellum Queue" in markdown
+
+
+def test_queue_run_next_executes_pipeline_phase_slice(tmp_path: Path, capsys):
+    db = tmp_path / "queue.db"
+    manifest = tmp_path / "pipeline.json"
+    first = tmp_path / "first.out"
+    second = tmp_path / "second.out"
+    manifest.write_text(
+        json.dumps(
+            {
+                "pipeline": "cerebellum",
+                "phases": [
+                    {"name": "first", "status": "planned", "command": f"{sys.executable} -c \"from pathlib import Path; Path('first.out').write_text('bad')\""},
+                    {"name": "second", "status": "planned", "command": f"{sys.executable} -c \"from pathlib import Path; Path('second.out').write_text('ok')\""},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    add_args = parse_args(
+        [
+            "queue",
+            "--db",
+            str(db),
+            "--json",
+            "add",
+            "--kind",
+            "pipeline",
+            "--manifest",
+            str(manifest),
+            "--from-phase",
+            "second",
+        ]
+    )
+    queue_cmd(add_args)
+    capsys.readouterr()
+    run_args = parse_args(["queue", "--db", str(db), "--json", "run-next", "--kind", "pipeline", "--execute"])
+
+    queue_cmd(run_args)
+    payload = json.loads(capsys.readouterr().out)
+    job = queue_get_job(db, payload["job"]["id"])
+
+    assert payload["dry_run"] is False
+    assert payload["result"]["returncode"] == 0
+    assert payload["result"]["executions"][0]["phase"] == "second"
+    assert job["status"] == "completed"
+    assert not first.exists()
+    assert second.read_text(encoding="utf-8") == "ok"
 
 
 def test_queue_cmd_lists_json(tmp_path: Path, capsys):
