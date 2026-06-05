@@ -185,6 +185,20 @@ TASK_PROFILES = {
         "variant_suffix": "tools",
         "note": "Protect function calling and structured JSON behavior; harness adapters are pending.",
     },
+    "cpu-offload": {
+        "label": "Cerebellum-CPU-Offload",
+        "ppl_profile": "all-around",
+        "benchmark_suite": "full",
+        "metrics": ["ppl", "speed", "score_per_gib", "cpu_tok_s", "gpu_offload_layers"],
+        "variant_suffix": "cpu-offload",
+        "low_space_default": True,
+        "resource_strategy": {
+            "target": "large RAM hosts with optional GPU layer offload",
+            "scratch": "streaming/low-space artifacts preferred for huge GGUFs",
+            "benchmark": "record CPU/RAM tok/s, GPU-offload layer count, size GiB, and quality score",
+        },
+        "note": "Plan huge-model maps such as GLM-5.1 for CPU-offload speed/quality instead of VRAM-only fit.",
+    },
 }
 LEGACY_PROFILE_ROOTS = [
     Path("/var/home/deucebucket/games/osmosis-quants"),
@@ -4099,6 +4113,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
     task_profile = TASK_PROFILES.get(args.task_profile) if args.task_profile else None
     effective_profile = str(task_profile["ppl_profile"]) if task_profile and args.profile == "custom" else args.profile
     effective_suite = str(task_profile["benchmark_suite"]) if task_profile and args.benchmark_suite == "release" else args.benchmark_suite
+    effective_low_space = bool(args.low_space or (task_profile and task_profile.get("low_space_default")))
     variant_suffix = f"-{task_profile['variant_suffix']}" if task_profile and task_profile.get("variant_suffix") != "general" else ""
     model_label = f"{slug(args.model_name or source.stem).lower()}{variant_suffix}"
     final_gguf = output_dir / f"{model_label}-cerebellum.gguf"
@@ -4139,7 +4154,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
     optional_flag(run_parts, "--scratch-root", args.scratch_root)
     optional_flag(run_parts, "--chunks", args.chunks)
     optional_flag(run_parts, "--distrobox", args.distrobox)
-    bool_flag(run_parts, "--low-space", args.low_space)
+    bool_flag(run_parts, "--low-space", effective_low_space)
 
     final_quant_parts = [
         args.quantize_bin,
@@ -4185,7 +4200,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         {
             "name": "resume",
             "status": "available",
-            "command": shell_join(["cerebellum", "resume", run_dir, "--low-space"] if args.low_space else ["cerebellum", "resume", run_dir]),
+            "command": shell_join(["cerebellum", "resume", run_dir, "--low-space"] if effective_low_space else ["cerebellum", "resume", run_dir]),
             "outputs": [str(run_dir / "COMPLETE")],
         },
         {
@@ -4236,6 +4251,8 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         "benchmark_suite": effective_suite,
         "task_profile": args.task_profile,
         "task_profile_detail": task_profile,
+        "resource_strategy": task_profile.get("resource_strategy") if task_profile else None,
+        "low_space": effective_low_space,
         "ppl_profile": effective_profile,
         "phases": phases,
     }
@@ -4253,9 +4270,20 @@ def pipeline_plan_markdown(plan: dict[str, Any]) -> str:
         f"source: `{plan['source_gguf']}`",
         f"run: `{plan['run_dir']}`",
         f"final: `{plan['final_gguf']}`",
+        f"low-space: `{plan.get('low_space')}`",
         "",
         markdown_table(["Phase", "Status", "Command"], rows),
     ]
+    if plan.get("resource_strategy"):
+        strategy = plan["resource_strategy"]
+        parts.extend(
+            [
+                "",
+                "## Resource Strategy",
+                "",
+                markdown_table(["Key", "Value"], [[str(key), str(value)] for key, value in strategy.items()]),
+            ]
+        )
     if output_rows:
         parts.extend(["", "## Outputs", "", markdown_table(["Phase", "Path"], output_rows)])
     return "\n".join(parts) + "\n"

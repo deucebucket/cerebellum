@@ -517,6 +517,36 @@ def test_pipeline_plan_task_profile_sets_variant_defaults(tmp_path: Path):
     assert "benchmark-plan --suite full --model model-x-code" in phases["benchmark"]["command"]
 
 
+def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path: Path):
+    args = parse_args(
+        [
+            "pipeline-plan",
+            "--source-gguf",
+            str(tmp_path / "glm-5.1-f16.gguf"),
+            "--output-dir",
+            str(tmp_path / "glm51-cpu"),
+            "--model-name",
+            "GLM 5.1",
+            "--task-profile",
+            "cpu-offload",
+        ]
+    )
+
+    plan = pipeline_plan(args)
+    phases = {row["name"]: row for row in plan["phases"]}
+    markdown = pipeline_plan_markdown(plan)
+
+    assert plan["task_profile"] == "cpu-offload"
+    assert plan["ppl_profile"] == "all-around"
+    assert plan["benchmark_suite"] == "full"
+    assert plan["low_space"] is True
+    assert plan["resource_strategy"]["target"] == "large RAM hosts with optional GPU layer offload"
+    assert plan["final_gguf"].endswith("glm-5.1-cpu-offload-cerebellum.gguf")
+    assert "--low-space" in phases["ablate"]["command"]
+    assert "--low-space" in phases["resume"]["command"]
+    assert "## Resource Strategy" in markdown
+
+
 def test_task_profiles_command_outputs_catalog(capsys):
     markdown = task_profiles_markdown()
     args = parse_args(["task-profiles", "--json"])
@@ -526,7 +556,9 @@ def test_task_profiles_command_outputs_catalog(capsys):
     data = json.loads(capsys.readouterr().out)
     assert "code" in data["profiles"]
     assert data["profiles"]["tools"]["ppl_profile"] == "agentic"
+    assert data["profiles"]["cpu-offload"]["low_space_default"] is True
     assert "| code | code | full | humaneval, evalplus, livecodebench_v6 |" in markdown
+    assert "| cpu-offload | all-around | full | ppl, speed, score_per_gib, cpu_tok_s, gpu_offload_layers |" in markdown
 
 
 def test_task_profiles_command_parses():

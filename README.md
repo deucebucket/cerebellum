@@ -399,11 +399,14 @@ Task-specific variants can be planned with named profiles:
 ```bash
 cerebellum task-profiles
 cerebellum pipeline-plan --source-gguf f16.gguf --output-dir ./code-results --task-profile code
+cerebellum pipeline-plan --source-gguf glm-5.1-f16.gguf --output-dir ./glm51-cpu --task-profile cpu-offload
 ```
 
-Current profiles are `general`, `code`, `reason`, `chat`, and `tools`. They
-record the intended PPL profile, benchmark suite, metrics, and variant suffix
-for task-specific Cerebellum maps.
+Current profiles are `general`, `code`, `reason`, `chat`, `tools`, and
+`cpu-offload`. They record the intended PPL profile, benchmark suite, metrics,
+variant suffix, and when relevant a resource strategy. `cpu-offload` is for
+huge models such as GLM-5.1 where size, CPU/RAM throughput, and optional GPU
+layer offload matter as much as raw VRAM fit.
 
 For each released model, keep a reproducibility bundle next to the benchmark
 artifacts when practical:
