@@ -140,6 +140,7 @@ cerebellum compare-gguf-types baseline.gguf candidate.gguf --baseline-label Q4 -
 cerebellum finalize --run-dir /path/to/run --gguf model.gguf
 cerebellum package /path/to/run
 cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
+cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_results/ --clean
 ```
 
 Cerebellum provenance uses visible `cerebellum.*` GGUF metadata keys and report
@@ -155,6 +156,10 @@ events, candidates, decisions, or tensor maps.
 Run `public-audit` before anything is staged for `origin`; it exits non-zero
 when it sees private paths, raw factory artifacts, local machine paths, or
 token-like content.
+Use `public-export` to assemble a clean public tree from allowlisted docs, model
+cards, benchmark artifacts, and release assets. It audits every selected file,
+skips blocked content, writes `cerebellum_public_export_manifest.json`, and does
+not rewrite Git history by itself.
 
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,

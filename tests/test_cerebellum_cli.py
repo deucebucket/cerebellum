@@ -40,6 +40,9 @@ from cerebellum import (
     public_audit,
     public_audit_cmd,
     public_audit_markdown,
+    public_export_cmd,
+    public_export_plan,
+    public_export_markdown,
     task_profiles_cmd,
     task_profiles_markdown,
     rollback_cmd,
@@ -1192,6 +1195,59 @@ def test_public_audit_cmd_exits_on_findings(tmp_path: Path, capsys):
         raise AssertionError("public audit should exit non-zero when blocked")
 
     assert "Public audit blocked" in capsys.readouterr().out
+
+
+def test_public_export_command_parses():
+    args = parse_args(["public-export", "out", "README.md", "--clean", "--dry-run", "--json", "--max-bytes", "100"])
+
+    assert args.cmd == "public-export"
+    assert args.output_dir == "out"
+    assert args.paths == ["README.md"]
+    assert args.clean is True
+    assert args.dry_run is True
+    assert args.json is True
+    assert args.max_bytes == 100
+
+
+def test_public_export_plan_selects_safe_files_and_skips_risks(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    docs = tmp_path / "docs"
+    benches = tmp_path / "benchmark_results"
+    scripts = tmp_path / "scripts"
+    docs.mkdir()
+    benches.mkdir()
+    scripts.mkdir()
+    (tmp_path / "README.md").write_text("Cerebellum public card\n", encoding="utf-8")
+    (docs / "benchmark_protocol.md").write_text("release benchmark protocol\n", encoding="utf-8")
+    (benches / "summary.json").write_text('{"benchmark":"arc","accuracy":0.8}\n', encoding="utf-8")
+    (docs / "devlog.md").write_text("devlog raw ablation\n", encoding="utf-8")
+    (scripts / "factory.sh").write_text("HF_TOKEN=secret\n", encoding="utf-8")
+
+    plan = public_export_plan(["."], max_bytes=1000)
+    markdown = public_export_markdown(plan)
+
+    exported = {item["path"] for item in plan["files"]}
+    skipped = {item["path"] for item in plan["skipped"]}
+    assert exported == {"README.md", "docs/benchmark_protocol.md", "benchmark_results/summary.json"}
+    assert "docs/devlog.md" in skipped
+    assert "scripts/factory.sh" not in exported
+    assert plan["blocked"] is True
+    assert "Public export blocked" in markdown
+
+
+def test_public_export_cmd_copies_manifest_and_files(tmp_path: Path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "README.md").write_text("Cerebellum public card\n", encoding="utf-8")
+    out = tmp_path / "public"
+    args = parse_args(["public-export", str(out), "README.md", "--clean"])
+
+    public_export_cmd(args)
+
+    manifest = json.loads((out / "cerebellum_public_export_manifest.json").read_text(encoding="utf-8"))
+    assert (out / "README.md").read_text(encoding="utf-8") == "Cerebellum public card\n"
+    assert manifest["schema"] == "cerebellum.public_export.v1"
+    assert manifest["files"][0]["path"] == "README.md"
+    assert "manifest:" in capsys.readouterr().out
 
 
 def test_public_report_summary_strips_factory_fields():

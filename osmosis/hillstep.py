@@ -2272,6 +2272,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     public_audit.add_argument("--json", action="store_true")
     public_audit.add_argument("--max-bytes", type=int, default=512_000, help="max bytes to read from each file")
 
+    public_export = sub.add_parser("public-export", help="copy release-safe Cerebellum files into a sanitized public tree")
+    public_export.add_argument("output_dir")
+    public_export.add_argument("paths", nargs="*", help="files/directories to export; defaults to tracked public-safe files")
+    public_export.add_argument("--clean", action="store_true", help="remove output_dir before writing")
+    public_export.add_argument("--dry-run", action="store_true")
+    public_export.add_argument("--json", action="store_true")
+    public_export.add_argument("--max-bytes", type=int, default=512_000, help="max bytes to audit from each file")
+
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
     schedule.add_argument("--file", default=None)
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
@@ -5186,6 +5194,21 @@ PUBLIC_AUDIT_CONTENT_PATTERNS = [
     (re.compile(r"tensor-selection|selection heuristics|raw ablation|streaming quant internals", re.IGNORECASE), "private method detail"),
 ]
 
+PUBLIC_EXPORT_ALLOWED_PATTERNS = [
+    re.compile(r"^README(\.[A-Za-z0-9_-]+)?\.md$"),
+    re.compile(r"^LICENSE(\.[A-Za-z0-9_-]+)?$"),
+    re.compile(r"^docs/(?!devlog/).+"),
+    re.compile(r"^benchmark_results/.+"),
+    re.compile(r"^[^/]+/benchmark_results/.+"),
+    re.compile(r"^[^/]+/README(\.[A-Za-z0-9_-]+)?\.md$"),
+    re.compile(r"^[^/]+/MODEL_CARD(\.[A-Za-z0-9_-]+)?\.md$"),
+    re.compile(r"^[^/]+/model_card(\.[A-Za-z0-9_-]+)?\.md$"),
+    re.compile(r"^spaces/[^/]+/(README\.md|requirements\.txt)$"),
+    re.compile(r"^[^/]+\.(png|jpg|jpeg|webp)$", re.IGNORECASE),
+]
+
+PUBLIC_EXPORT_ALLOWED_SUFFIXES = {".md", ".json", ".jsonl", ".csv", ".txt", ".png", ".jpg", ".jpeg", ".webp"}
+
 
 def tracked_files() -> list[Path]:
     try:
@@ -5282,6 +5305,105 @@ def public_audit_cmd(args: argparse.Namespace) -> None:
         print(public_audit_markdown(report), end="")
     if report["blocked"]:
         raise SystemExit(1)
+
+
+def repo_relative_path(path: Path) -> Path:
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve())
+    except ValueError:
+        return Path(path.name)
+
+
+def public_export_allowed(path: Path) -> bool:
+    rel = repo_relative_path(path).as_posix()
+    if path.suffix.lower() not in PUBLIC_EXPORT_ALLOWED_SUFFIXES:
+        return False
+    return any(pattern.search(rel) for pattern in PUBLIC_EXPORT_ALLOWED_PATTERNS)
+
+
+def public_export_candidates(paths: list[str] | None = None) -> list[Path]:
+    if paths:
+        candidates = expand_audit_paths(paths)
+    else:
+        candidates = [path for path in tracked_files() if path.is_file()]
+    return [path for path in candidates if public_export_allowed(path)]
+
+
+def public_export_plan(paths: list[str] | None = None, max_bytes: int = 512_000) -> dict[str, Any]:
+    exported: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    for path in public_export_candidates(paths or []):
+        rel = repo_relative_path(path)
+        audit = public_audit([str(path)], max_bytes=max_bytes)
+        if audit["blocked"]:
+            skipped.append({"path": rel.as_posix(), "findings": audit["findings"]})
+            continue
+        size = path_size(path)
+        exported.append(
+            {
+                "path": rel.as_posix(),
+                "size_bytes": size,
+                "sha256": sha256_file(path) if size < 128 * 1024 * 1024 else None,
+            }
+        )
+    exported.sort(key=lambda item: item["path"])
+    skipped.sort(key=lambda item: item["path"])
+    return {
+        "schema": "cerebellum.public_export.v1",
+        "mode": "public",
+        "files": exported,
+        "skipped": skipped,
+        "blocked": bool(skipped),
+        "notes": [
+            "Exports only allowlisted public docs, model cards, benchmark artifacts, and release assets.",
+            "This does not rewrite Git history; run from a clean branch/tree after history filtering or unrelated-history rebuild.",
+        ],
+    }
+
+
+def public_export_cmd(args: argparse.Namespace) -> None:
+    output_dir = Path(args.output_dir)
+    plan = public_export_plan(args.paths, max_bytes=args.max_bytes)
+    if args.dry_run:
+        if args.json:
+            print(json.dumps(plan, indent=2, sort_keys=True))
+        else:
+            print(public_export_markdown(plan), end="")
+        if plan["blocked"]:
+            raise SystemExit(1)
+        return
+    if args.clean and output_dir.exists():
+        shutil.rmtree(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    for item in plan["files"]:
+        rel = Path(item["path"])
+        dest = output_dir / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(rel, dest)
+    manifest_path = output_dir / "cerebellum_public_export_manifest.json"
+    atomic_write_json(manifest_path, plan)
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+    else:
+        print(public_export_markdown(plan), end="")
+        print(f"manifest: {manifest_path}")
+    if plan["blocked"]:
+        raise SystemExit(1)
+
+
+def public_export_markdown(plan: dict[str, Any]) -> str:
+    status = "blocked" if plan["blocked"] else "ready"
+    lines = [f"Public export {status}: {len(plan['files'])} files selected, {len(plan['skipped'])} skipped."]
+    if plan["files"]:
+        rows = [[item["path"], fmt_bytes(item["size_bytes"])] for item in plan["files"]]
+        lines.extend(["", markdown_table(["Path", "Size"], rows)])
+    if plan["skipped"]:
+        rows = []
+        for item in plan["skipped"]:
+            reasons = sorted({finding["reason"] for finding in item["findings"]})
+            rows.append([item["path"], "; ".join(reasons)])
+        lines.extend(["", "## Skipped", "", markdown_table(["Path", "Reasons"], rows)])
+    return "\n".join(lines) + "\n"
 
 
 def system_info() -> dict[str, Any]:
@@ -6330,6 +6452,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "public-audit":
         public_audit_cmd(args)
+        return
+    if args.cmd == "public-export":
+        public_export_cmd(args)
         return
     if args.cmd == "schedule":
         schedule_cmd(args)
