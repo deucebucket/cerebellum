@@ -14,6 +14,7 @@ from cerebellum import (
     benchmark_audit_cmd,
     benchmark_audit_markdown,
     benchmark_plan,
+    benchmark_plan_cmd,
     benchmark_plan_markdown,
     benchmark_report,
     benchmark_report_markdown,
@@ -305,19 +306,38 @@ def test_benchmark_plan_lists_commands_and_pending_frontier():
         "hle_no_tools": "pending",
         "livecodebench_v6": "pending",
     }
+    assert release["readiness"]["ready"] is False
+    assert frontier["readiness"]["ready"] is False
+    assert frontier["readiness"]["implemented"] == 0
+    assert len(frontier["readiness"]["blockers"]) == 5
+    assert "readiness: `blocked`" in markdown
     assert "| arc | implemented | 4 |" in markdown
     assert "out/gemma4_12b_arc_results.json" in markdown
 
 
 def test_benchmark_plan_command_parses():
-    args = parse_args(["benchmark-plan", "--suite", "frontier", "--model", "m", "--port", "18080", "--results-dir", "out", "--json"])
+    args = parse_args(["benchmark-plan", "--suite", "frontier", "--model", "m", "--port", "18080", "--results-dir", "out", "--require-ready", "--json"])
 
     assert args.cmd == "benchmark-plan"
     assert args.suite == "frontier"
     assert args.model == "m"
     assert args.port == 18080
     assert args.results_dir == "out"
+    assert args.require_ready is True
     assert args.json is True
+
+
+def test_benchmark_plan_cmd_exits_when_required_suite_not_ready(capsys):
+    args = parse_args(["benchmark-plan", "--suite", "frontier", "--require-ready"])
+
+    try:
+        benchmark_plan_cmd(args)
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        raise AssertionError("benchmark-plan --require-ready should fail for pending frontier adapters")
+
+    assert "Readiness Blockers" in capsys.readouterr().out
 
 
 def test_benchmark_audit_flags_mcq_empty_and_unknown(tmp_path: Path):

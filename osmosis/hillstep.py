@@ -2394,6 +2394,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_plan_parser.add_argument("--model", default="cerebellum", help="BENCH_MODEL label for generated commands")
     benchmark_plan_parser.add_argument("--port", type=int, default=8084, help="llama-server port used by generated commands")
     benchmark_plan_parser.add_argument("--results-dir", default="benchmark_results", help="directory for benchmark artifacts")
+    benchmark_plan_parser.add_argument("--require-ready", action="store_true", help="exit non-zero if any suite benchmark lacks an implemented runner")
     benchmark_plan_parser.add_argument("--json", action="store_true")
 
     benchmark_audit_parser = sub.add_parser("benchmark-audit", help="audit benchmark detailed artifacts before publishing")
@@ -4052,12 +4053,27 @@ def benchmark_plan(suite: str, model: str, port: int, results_dir: str) -> dict[
                 "note": entry.get("note"),
             }
         )
+    blockers = [
+        {
+            "benchmark": row["benchmark"],
+            "status": row["status"],
+            "reason": row.get("note") or "runner not implemented",
+        }
+        for row in rows
+        if row["status"] != "implemented"
+    ]
     return {
         "suite": suite,
         "model": model,
         "port": port,
         "results_dir": results_dir,
         "rows": rows,
+        "readiness": {
+            "ready": not blockers,
+            "implemented": sum(1 for row in rows if row["status"] == "implemented"),
+            "total": len(rows),
+            "blockers": blockers,
+        },
     }
 
 
@@ -4069,8 +4085,21 @@ def benchmark_plan_markdown(plan: dict[str, Any]) -> str:
     parts = [
         f"# Benchmark Plan ({plan['suite']})",
         "",
+        f"readiness: `{'ready' if plan.get('readiness', {}).get('ready') else 'blocked'}` "
+        f"({plan.get('readiness', {}).get('implemented', 0)}/{plan.get('readiness', {}).get('total', 0)} implemented)",
+        "",
         markdown_table(["Benchmark", "Status", "Workers", "Command / note"], table_rows),
     ]
+    blockers = plan.get("readiness", {}).get("blockers") or []
+    if blockers:
+        parts.extend(
+            [
+                "",
+                "## Readiness Blockers",
+                "",
+                markdown_table(["Benchmark", "Status", "Reason"], [[row["benchmark"], row["status"], row["reason"]] for row in blockers]),
+            ]
+        )
     artifact_rows = []
     for row in plan["rows"]:
         for artifact in row["artifacts"]:
@@ -4087,8 +4116,10 @@ def benchmark_plan_cmd(args: argparse.Namespace) -> None:
     plan = benchmark_plan(args.suite, args.model, args.port, args.results_dir)
     if args.json:
         print(json.dumps(plan, indent=2, sort_keys=True))
-        return
-    print(benchmark_plan_markdown(plan), end="")
+    else:
+        print(benchmark_plan_markdown(plan), end="")
+    if args.require_ready and not plan["readiness"]["ready"]:
+        raise SystemExit(1)
 
 
 def shell_join(parts: list[Any]) -> str:
