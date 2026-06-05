@@ -102,6 +102,20 @@ BENCHMARK_SUITE_PURPOSES = {
     "capability": "expanded capability board: frontier core plus math, instruction following, tools, SWE, and coding agent checks",
     "full": "complete Cerebellum report: release, frontier/capability checks, speed, and PPL reporting",
 }
+HUMANEVAL_REBENCH_MODELS = [
+    {"repo": "deucebucket/Qwen3.5-122B-A10B-Cerebellum-GGUF", "published": "2026-05-02"},
+    {"repo": "deucebucket/Gemma-4-E2B-it-Cerebellum-v2-GGUF", "published": "2026-05-03"},
+    {"repo": "deucebucket/Qwen3.6-27B-Cerebellum-GGUF", "published": "2026-04-29"},
+    {"repo": "deucebucket/Qwen3-14B-Cerebellum-GGUF", "published": "2026-05-02"},
+    {"repo": "deucebucket/Qwen3-32B-Cerebellum-GGUF", "published": "2026-05-02"},
+    {"repo": "deucebucket/Qwen3-30B-A3B-Cerebellum-GGUF", "published": "2026-05-02"},
+    {"repo": "deucebucket/Granite-4.1-30B-Cerebellum-GGUF", "published": "2026-05-02"},
+    {"repo": "deucebucket/Granite-4.0-H-Small-Cerebellum-GGUF", "published": "2026-05-02"},
+    {"repo": "deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF", "published": "2026-05-02"},
+    {"repo": "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF", "published": "2026-05-01"},
+    {"repo": "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-GGUF", "published": "2026-05-01"},
+    {"repo": "deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF", "published": "2026-04-30"},
+]
 BENCHMARK_CATALOG = {
     "arc": {
         "name": "ARC-Challenge",
@@ -2484,6 +2498,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_plan_parser.add_argument("--require-ready", action="store_true", help="exit non-zero if any suite benchmark lacks an implemented runner")
     benchmark_plan_parser.add_argument("--json", action="store_true")
 
+    rebench_plan_parser = sub.add_parser("benchmark-rebench-plan", help="plan corrected HumanEval+/release reruns for published models")
+    rebench_plan_parser.add_argument("--suite", choices=["humaneval", "release"], default="humaneval")
+    rebench_plan_parser.add_argument("--results-root", default="benchmark_results/rebench_20260605")
+    rebench_plan_parser.add_argument("--port", type=int, default=8084)
+    rebench_plan_parser.add_argument("--model", action="append", help="override affected HF repo list; may be repeated")
+    rebench_plan_parser.add_argument("--correction-issue", default="#35")
+    rebench_plan_parser.add_argument("--json", action="store_true")
+
     benchmark_manifest_parser = sub.add_parser("benchmark-manifest", help="write a hashed manifest for benchmark artifacts")
     benchmark_manifest_parser.add_argument("paths", nargs="+", help="benchmark result files/directories")
     benchmark_manifest_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="release")
@@ -4471,6 +4493,115 @@ def benchmark_plan_cmd(args: argparse.Namespace) -> None:
         print(benchmark_plan_markdown(plan), end="")
     if args.require_ready and not plan["readiness"]["ready"]:
         raise SystemExit(1)
+
+
+def rebench_model_label(repo: str) -> str:
+    return slug(repo.split("/", 1)[-1]).lower()
+
+
+def benchmark_rebench_plan(
+    suite: str = "humaneval",
+    results_root: str = "benchmark_results/rebench_20260605",
+    port: int = 8084,
+    models: list[str] | None = None,
+    correction_issue: str = "#35",
+) -> dict[str, Any]:
+    repos = models or [row["repo"] for row in HUMANEVAL_REBENCH_MODELS]
+    published = {row["repo"]: row.get("published") for row in HUMANEVAL_REBENCH_MODELS}
+    benchmarks = ["humaneval"] if suite == "humaneval" else ["arc", "hellaswag", "mmlu_redux", "humaneval"]
+    jobs = []
+    for repo in repos:
+        model = rebench_model_label(repo)
+        results_dir = str(Path(results_root) / model)
+        rows = []
+        for key in benchmarks:
+            entry = BENCHMARK_CATALOG[key]
+            artifacts = [str(Path(results_dir) / format_artifact_template(template, model, results_dir)) for template in entry.get("artifacts", [])]
+            audit = entry.get("audit")
+            rows.append(
+                {
+                    "benchmark": key,
+                    "command": benchmark_command(entry, model, port, results_dir),
+                    "artifacts": artifacts,
+                    "audit": str(audit).format(model=model, results_dir=results_dir) if audit else None,
+                }
+            )
+        jobs.append(
+            {
+                "repo": repo,
+                "model": model,
+                "published": published.get(repo),
+                "results_dir": results_dir,
+                "server_note": "serve this model with llama-server before running commands; use fixed chat/EvalPlus pipeline and thinking-disabled release settings where supported",
+                "benchmarks": rows,
+                "post_run": {
+                    "audit": shell_join(["cerebellum", "benchmark-audit", results_dir]),
+                    "manifest": shell_join(["cerebellum", "benchmark-manifest", results_dir, "--suite", "release", "--model", model, "--require-complete"]),
+                    "model_card_note": f"scores corrected on 2026-06-05 after HumanEval+/benchmark parser fixes; see {correction_issue}",
+                },
+            }
+        )
+    return {
+        "schema": "cerebellum.benchmark_rebench_plan.v1",
+        "suite": suite,
+        "reason": "published model cards before the fixed HumanEval+/benchmark parser pipeline may carry false-low scores",
+        "correction_issue": correction_issue,
+        "model_count": len(jobs),
+        "results_root": results_root,
+        "port": port,
+        "jobs": jobs,
+        "notes": [
+            "This is a plan only; it does not download models, start llama-server, or run benchmarks.",
+            "Run HumanEval+/EvalPlus sequentially with one worker.",
+            "Audit detailed artifacts before updating any model card.",
+            "Preserve old scores in commit history and add the correction note to each card.",
+        ],
+    }
+
+
+def benchmark_rebench_plan_markdown(plan: dict[str, Any]) -> str:
+    rows = [
+        [
+            str(index),
+            job["repo"],
+            job["model"],
+            job.get("published") or "-",
+            job["results_dir"],
+        ]
+        for index, job in enumerate(plan["jobs"], 1)
+    ]
+    command_rows = []
+    for job in plan["jobs"]:
+        for row in job["benchmarks"]:
+            command_rows.append([job["model"], row["benchmark"], row["command"] or "-"])
+        command_rows.append([job["model"], "audit", job["post_run"]["audit"]])
+        command_rows.append([job["model"], "manifest", job["post_run"]["manifest"]])
+    parts = [
+        "# Benchmark Rebench Plan",
+        "",
+        f"suite: `{plan['suite']}`",
+        f"models: `{plan['model_count']}`",
+        f"reason: {plan['reason']}",
+        "",
+        markdown_table(["#", "Repo", "Model label", "Published", "Results"], rows),
+        "",
+        "## Commands",
+        "",
+        markdown_table(["Model", "Step", "Command"], command_rows),
+        "",
+        "## Notes",
+        "",
+        *[f"- {note}" for note in plan["notes"]],
+    ]
+    return "\n".join(parts) + "\n"
+
+
+def benchmark_rebench_plan_cmd(args: argparse.Namespace) -> None:
+    plan = benchmark_rebench_plan(args.suite, args.results_root, args.port, args.model, args.correction_issue)
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+        return
+    print(benchmark_rebench_plan_markdown(plan), end="")
 
 
 def shell_join(parts: list[Any]) -> str:
@@ -7750,6 +7881,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-plan":
         benchmark_plan_cmd(args)
+        return
+    if args.cmd == "benchmark-rebench-plan":
+        benchmark_rebench_plan_cmd(args)
         return
     if args.cmd == "benchmark-manifest":
         benchmark_manifest_cmd(args)

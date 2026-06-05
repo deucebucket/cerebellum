@@ -23,6 +23,8 @@ from cerebellum import (
     benchmark_plan,
     benchmark_plan_cmd,
     benchmark_plan_markdown,
+    benchmark_rebench_plan,
+    benchmark_rebench_plan_markdown,
     benchmark_report,
     benchmark_report_markdown,
     cerebellum_metadata_block,
@@ -389,6 +391,69 @@ def test_benchmark_plan_command_parses():
     assert args.port == 18080
     assert args.results_dir == "out"
     assert args.require_ready is True
+    assert args.json is True
+
+
+def test_benchmark_rebench_plan_lists_affected_models_and_audits():
+    plan = benchmark_rebench_plan("humaneval", "rebench", 18080, None, "#35")
+    markdown = benchmark_rebench_plan_markdown(plan)
+
+    assert plan["schema"] == "cerebellum.benchmark_rebench_plan.v1"
+    assert plan["model_count"] == 12
+    first = plan["jobs"][0]
+    assert first["repo"] == "deucebucket/Qwen3.5-122B-A10B-Cerebellum-GGUF"
+    assert first["published"] == "2026-05-02"
+    assert {row["benchmark"] for row in first["benchmarks"]} == {"humaneval"}
+    assert "BENCH_WORKERS=1" in first["benchmarks"][0]["command"]
+    assert "BENCH_MAX_TOKENS=4096" in first["benchmarks"][0]["command"]
+    assert "benchmark-audit" in first["post_run"]["audit"]
+    assert "scores corrected on 2026-06-05" in first["post_run"]["model_card_note"]
+    assert "# Benchmark Rebench Plan" in markdown
+    assert "Qwen3.5-122B-A10B-Cerebellum-GGUF" in markdown
+
+
+def test_benchmark_rebench_plan_custom_release_suite():
+    plan = benchmark_rebench_plan(
+        "release",
+        "out",
+        19000,
+        ["deucebucket/Custom-Cerebellum-GGUF"],
+        "#99",
+    )
+    job = plan["jobs"][0]
+    benchmarks = {row["benchmark"] for row in job["benchmarks"]}
+
+    assert plan["model_count"] == 1
+    assert job["model"] == "custom-cerebellum-gguf"
+    assert {"arc", "hellaswag", "mmlu_redux", "humaneval"} == benchmarks
+    assert "BENCH_PORT=19000" in job["benchmarks"][0]["command"]
+    assert "see #99" in job["post_run"]["model_card_note"]
+
+
+def test_benchmark_rebench_plan_command_parses():
+    args = parse_args(
+        [
+            "benchmark-rebench-plan",
+            "--suite",
+            "release",
+            "--results-root",
+            "out",
+            "--port",
+            "19000",
+            "--model",
+            "deucebucket/custom",
+            "--correction-issue",
+            "#99",
+            "--json",
+        ]
+    )
+
+    assert args.cmd == "benchmark-rebench-plan"
+    assert args.suite == "release"
+    assert args.results_root == "out"
+    assert args.port == 19000
+    assert args.model == ["deucebucket/custom"]
+    assert args.correction_issue == "#99"
     assert args.json is True
 
 
