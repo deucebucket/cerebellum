@@ -180,12 +180,12 @@ def test_tensor_type_map_uses_exact_patterns_without_source(tmp_path: Path):
     assert path.read_text(encoding="utf-8") == r"^blk\.0\.ffn_up\.weight$=q5_K" + "\n"
 
 
-def test_tensor_type_map_omits_start_type_to_preserve_mixed_preset(tmp_path: Path):
+def test_tensor_type_map_keeps_start_type_as_explicit_baseline(tmp_path: Path):
     path = tmp_path / "types.txt"
 
     write_tensor_types_map(None, {"blk.0.ffn_down.weight": "q4_K"}, "q4_K", path)
 
-    assert path.read_text(encoding="utf-8") == ""
+    assert path.read_text(encoding="utf-8") == r"^blk\.0\.ffn_down\.weight$=q4_K" + "\n"
 
 
 def test_tensor_type_map_skips_noop_source_tensors(tmp_path: Path, monkeypatch):

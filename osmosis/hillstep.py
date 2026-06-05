@@ -709,13 +709,22 @@ def backup_run_metadata(run_dir: Path, backup_root: Path) -> dict[str, Any]:
 
 
 def write_tensor_types_map(source_gguf: Path | None, locked: dict[str, str], start_type: str, path: Path) -> None:
-    del source_gguf
-    lines = [tensor_type_line(name, qtype) for name, qtype in sorted(locked.items()) if qtype != start_type and is_quantizable_tensor(name)]
+    names: list[str] = []
+    if source_gguf:
+        try:
+            from gguf import GGUFReader
+
+            reader = GGUFReader(str(source_gguf))
+            names = quantizable_tensor_names([t.name for t in reader.tensors])
+        except Exception:
+            names = []
+    if not names:
+        names = sorted(quantizable_tensor_names(set(locked)))
+    lines = [tensor_type_line(name, locked.get(name, start_type)) for name in names]
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
-        if lines:
-            f.write("\n".join(lines) + "\n")
+        f.write("\n".join(lines) + ("\n" if lines else ""))
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp, path)
@@ -1484,18 +1493,26 @@ class HillStepper:
 
     def write_types(self, locked: dict[str, str], path: Path, extra: dict[str, str] | None = None) -> None:
         extra = extra or {}
+        if self.cfg.tensor_file:
+            names = [line.strip() for line in self.cfg.tensor_file.read_text().splitlines() if line.strip()]
+            names = sorted(quantizable_tensor_names(set(names) | set(locked) | set(extra)))
+        else:
+            try:
+                from gguf import GGUFReader
+
+                reader = GGUFReader(str(self.cfg.source_gguf))
+                names = quantizable_tensor_names([t.name for t in reader.tensors])
+            except Exception:
+                names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
+        if not names:
+            names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
         merged = dict(locked)
         merged.update(extra)
-        lines = [
-            tensor_type_line(name, qtype)
-            for name, qtype in sorted(merged.items())
-            if qtype != self.cfg.start_type and is_quantizable_tensor(name)
-        ]
+        lines = [tensor_type_line(name, merged.get(name, self.cfg.start_type)) for name in names]
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
-            if lines:
-                f.write("\n".join(lines) + "\n")
+            f.write("\n".join(lines) + ("\n" if lines else ""))
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)
@@ -1506,18 +1523,20 @@ class HillStepper:
         Kept separate from write_types() so tests and explicit tensor-file runs
         can operate without parsing the GGUF.
         """
+        try:
+            from gguf import GGUFReader
+
+            reader = GGUFReader(str(self.cfg.source_gguf))
+            names = quantizable_tensor_names([t.name for t in reader.tensors])
+        except Exception:
+            names = sorted(quantizable_tensor_names(set(locked) | set(extra or {})))
         merged = dict(locked)
         merged.update(extra or {})
-        lines = [
-            tensor_type_line(name, qtype)
-            for name, qtype in sorted(merged.items())
-            if qtype != self.cfg.start_type and is_quantizable_tensor(name)
-        ]
+        lines = [tensor_type_line(name, merged.get(name, self.cfg.start_type)) for name in names]
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
-            if lines:
-                f.write("\n".join(lines) + "\n")
+            f.write("\n".join(lines) + ("\n" if lines else ""))
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)

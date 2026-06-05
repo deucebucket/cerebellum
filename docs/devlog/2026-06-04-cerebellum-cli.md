@@ -174,23 +174,21 @@ building the F16 GGUF. A valid converted source should report
 ## Q4_K_M manual override incident
 
 The live Gemma 4 12B run showed impossible-looking sensitivity after the norm
-rollback. Inspection of `current_baseline.gguf` exposed a semantics mismatch:
-Cerebellum was treating `start_type=q4_K` as a full explicit type map while
-also using `base_type=Q4_K_M`.
+rollback. Inspection of `current_baseline.gguf` exposed a tensor-map truth
+problem: Cerebellum's intended experiment starts from an explicit all-`q4_K`
+baseline and then accumulates locked tensor overrides, but llama.cpp's quantizer
+was not treating explicit `q4_K` entries as manual under the `Q4_K_M` preset.
 
-There were two separate fixes:
+Root cause: llama.cpp's quantizer only marked a tensor-type-file match as
+manual when the requested type differed from the preset default. Under
+`Q4_K_M`, the default starts as `Q4_K`; an explicit `q4_K` line therefore did
+not set the manual flag, and the mixed-preset logic later promoted sensitive
+tensors like `attn_v` and `ffn_down` to `Q6_K`.
 
-- llama.cpp's quantizer only marked a tensor-type-file match as manual when the
-  requested type differed from the preset default. A real explicit `q4_K`
-  override must count as manual.
-- Cerebellum should not write `start_type` for every tensor when the intended
-  baseline is a mixed preset. `start_type` means baseline/no override; only
-  real tensor overrides belong in the type file.
-
-Forcing all tensors to explicit `q4_K` produced a `7.603 GiB` baseline with PPL
-`5033.7461`, which was a different experiment. After omitting baseline entries
-from the type map, the rebuilt stock `Q4_K_M` baseline returned to `7.980 GiB`
-with PPL `2504.2787`.
+The fix is to keep Cerebellum's full explicit type map and patch llama.cpp so
+any matching tensor-type-file pattern counts as manual. That makes the starting
+baseline genuinely q4 across the board, then Cerebellum progresses by replacing
+entries with locked tensor winners.
 
 Action taken:
 
@@ -201,7 +199,7 @@ Action taken:
   `checkpoints/rollback-before-20260604-223755.json`.
 - Patched local llama.cpp so any matching tensor-type-file pattern counts as a
   manual override, even when the requested type equals the preset default.
-- Patched Cerebellum tensor-type writing so baseline/no-override tensors are
-  omitted from the map and only actual overrides are written.
+- Kept Cerebellum tensor-type writing explicit for the starting q4 baseline and
+  accumulated locked overrides.
 - Added Cerebellum guardrails for active-run rollback, public TUI leakage,
   scratch-root recovery sizing, and Gemma 4 prefix validation.
