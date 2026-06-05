@@ -69,6 +69,11 @@ from cerebellum import (
     package_files,
     package_manifest,
     parse_args,
+    queue_add_job,
+    queue_cmd,
+    queue_get_job,
+    queue_list_jobs,
+    queue_markdown,
     pipeline_plan,
     pipeline_plan_args_from_query,
     pipeline_plan_markdown,
@@ -1072,6 +1077,65 @@ def test_pipeline_run_command_parses():
 
     execute_args = parse_args(["pipeline-run", "--manifest", "pipeline.json", "--execute"])
     assert execute_args.execute is True
+
+
+def test_queue_command_parses():
+    args = parse_args(["queue", "--db", "queue.db", "--json", "add", "--kind", "pipeline", "--manifest", "pipeline.json", "--priority", "10"])
+
+    assert args.cmd == "queue"
+    assert args.queue_cmd == "add"
+    assert args.db == "queue.db"
+    assert args.kind == "pipeline"
+    assert args.manifest == "pipeline.json"
+    assert args.priority == 10
+    assert args.json is True
+
+
+def test_queue_add_list_get_pipeline_manifest(tmp_path: Path):
+    db = tmp_path / "queue.db"
+    manifest = tmp_path / "pipeline.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "pipeline": "cerebellum",
+                "run_dir": "run",
+                "phases": [
+                    {"name": "imatrix", "command": "cerebellum imatrix"},
+                    {"name": "ablate", "command": "cerebellum run"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    args = parse_args(["queue", "--db", str(db), "add", "--kind", "pipeline", "--manifest", str(manifest), "--priority", "5", "--label", "gemma"])
+
+    job = queue_add_job(args)
+    jobs = queue_list_jobs(db)
+    fetched = queue_get_job(db, job["id"])
+    markdown = queue_markdown({"schema": "cerebellum.queue.v1", "db": str(db), "jobs": jobs})
+
+    assert job["kind"] == "pipeline"
+    assert job["status"] == "queued"
+    assert job["priority"] == 5
+    assert job["payload"]["manifest"] == str(manifest)
+    assert job["payload"]["phases"] == ["imatrix", "ablate"]
+    assert fetched["id"] == job["id"]
+    assert [row["id"] for row in jobs] == [job["id"]]
+    assert "# Cerebellum Queue" in markdown
+
+
+def test_queue_cmd_lists_json(tmp_path: Path, capsys):
+    db = tmp_path / "queue.db"
+    add_args = parse_args(["queue", "--db", str(db), "--json", "add", "--kind", "benchmark", "--command", "cerebellum benchmark-run --suite release"])
+    queue_cmd(add_args)
+    added = json.loads(capsys.readouterr().out)
+    list_args = parse_args(["queue", "--db", str(db), "--json", "list", "--kind", "benchmark", "--status", "queued"])
+
+    queue_cmd(list_args)
+    listed = json.loads(capsys.readouterr().out)
+
+    assert added["schema"] == "cerebellum.queue.v1"
+    assert listed["jobs"][0]["payload"]["command"] == "cerebellum benchmark-run --suite release"
 
 
 def test_pipeline_run_plan_slices_manifest(tmp_path: Path):

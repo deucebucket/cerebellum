@@ -160,6 +160,8 @@ cerebellum package /path/to/run
 cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
 cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_results/ --clean
 cerebellum artifact-inventory . --output cerebellum-dev/artifact_inventory.json --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
+cerebellum queue add --kind pipeline --manifest /path/to/pipeline.json
+cerebellum queue list
 cerebellum pipeline-status --manifest /path/to/pipeline.json
 cerebellum benchmark-status --results-dir benchmark_results
 cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir out --skip-inspect --json
@@ -190,6 +192,9 @@ Use `artifact-inventory` before cleanup. It scans file paths and sizes without
 reading log contents, groups legacy model trees and private artifacts into
 storage categories, flags public-risk paths, and writes JSON/Markdown inventory
 reports. The command is preservation-first; it never deletes files.
+Use `queue add/list/get` to persist planned pipeline, benchmark, or run jobs in
+the Cerebellum SQLite DB before launching execution. The API exposes read-only
+`/queue` and `/queue/job` endpoints for dashboard orchestration.
 Use `pipeline-status` after `pipeline-run --execute` to read
 `pipeline_run_events.jsonl`, summarize complete/running/failed phases, and print
 the resume command for the failed or next pending phase.

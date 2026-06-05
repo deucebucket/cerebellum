@@ -1337,6 +1337,21 @@ def ensure_hill_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_hill_candidates_tensor ON hill_candidates(tensor_name);
         CREATE INDEX IF NOT EXISTS idx_hill_candidates_component ON hill_candidates(component);
         CREATE INDEX IF NOT EXISTS idx_hill_runs_model ON hill_runs(model_family, model_name);
+
+        CREATE TABLE IF NOT EXISTS cerebellum_jobs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            kind TEXT NOT NULL,
+            label TEXT,
+            status TEXT NOT NULL DEFAULT 'queued',
+            priority INTEGER NOT NULL DEFAULT 100,
+            payload_json TEXT NOT NULL,
+            notes TEXT,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_cerebellum_jobs_status ON cerebellum_jobs(status, priority, id);
+        CREATE INDEX IF NOT EXISTS idx_cerebellum_jobs_kind ON cerebellum_jobs(kind, status);
         """
     )
 
@@ -1405,6 +1420,134 @@ def import_run_to_db(db: Path, run_dir: Path) -> dict[str, Any]:
         return {"run_id": report["run_id"], "candidates": len(candidates)}
     finally:
         conn.close()
+
+
+def queue_payload_from_args(args: argparse.Namespace) -> dict[str, Any]:
+    payload: dict[str, Any] = {"kind": args.kind}
+    if args.manifest:
+        manifest_path = Path(args.manifest)
+        payload["manifest"] = str(manifest_path)
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise SystemExit(f"failed to read queue manifest {manifest_path}: {exc}") from exc
+        payload["pipeline"] = manifest.get("pipeline")
+        payload["run_dir"] = manifest.get("run_dir")
+        payload["phases"] = [row.get("name") for row in manifest.get("phases", []) if isinstance(row, dict)]
+    if args.command:
+        payload["command"] = args.command
+    if args.payload_json:
+        try:
+            extra = json.loads(args.payload_json)
+        except json.JSONDecodeError as exc:
+            raise SystemExit(f"--payload-json must be a JSON object: {exc}") from exc
+        if not isinstance(extra, dict):
+            raise SystemExit("--payload-json must be a JSON object")
+        payload.update(extra)
+    if args.kind == "pipeline" and not payload.get("manifest"):
+        raise SystemExit("queue add --kind pipeline requires --manifest")
+    if args.kind in {"benchmark", "run"} and not payload.get("command"):
+        raise SystemExit(f"queue add --kind {args.kind} requires --command")
+    return payload
+
+
+def decode_queue_row(row: dict[str, Any]) -> dict[str, Any]:
+    payload = row.pop("payload_json", "{}")
+    try:
+        row["payload"] = json.loads(payload)
+    except json.JSONDecodeError:
+        row["payload"] = {"_decode_error": True, "raw": payload}
+    return row
+
+
+def queue_get_job(db: Path, job_id: int) -> dict[str, Any]:
+    rows = sqlite_rows(db, "SELECT * FROM cerebellum_jobs WHERE id = ?", (job_id,))
+    if not rows:
+        raise SystemExit(f"queue job {job_id} not found")
+    return decode_queue_row(rows[0])
+
+
+def queue_add_job(args: argparse.Namespace) -> dict[str, Any]:
+    db = Path(args.db)
+    payload = queue_payload_from_args(args)
+    now = utc_now()
+    label = args.label or payload.get("run_dir") or payload.get("manifest") or payload.get("command")
+    db.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(db)
+    try:
+        ensure_hill_tables(conn)
+        with conn:
+            cur = conn.execute(
+                """
+                INSERT INTO cerebellum_jobs
+                  (kind, label, status, priority, payload_json, notes, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    args.kind,
+                    str(label) if label else None,
+                    args.status,
+                    int(args.priority),
+                    json.dumps(payload, sort_keys=True),
+                    args.notes,
+                    now,
+                    now,
+                ),
+            )
+            job_id = int(cur.lastrowid)
+    finally:
+        conn.close()
+    return queue_get_job(db, job_id)
+
+
+def queue_list_jobs(db: Path, status: str | None = None, kind: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    where = []
+    params: list[Any] = []
+    if status:
+        where.append("status = ?")
+        params.append(status)
+    if kind:
+        where.append("kind = ?")
+        params.append(kind)
+    sql = "SELECT * FROM cerebellum_jobs"
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+    sql += " ORDER BY priority ASC, id ASC LIMIT ?"
+    params.append(max(1, int(limit)))
+    return [decode_queue_row(row) for row in sqlite_rows(db, sql, tuple(params))]
+
+
+def queue_markdown(payload: dict[str, Any]) -> str:
+    rows = [
+        [str(row["id"]), str(row["kind"]), str(row["status"]), str(row["priority"]), str(row.get("label") or "-")]
+        for row in payload["jobs"]
+    ]
+    return "\n".join(
+        [
+            "# Cerebellum Queue",
+            "",
+            f"db: `{payload['db']}`",
+            f"jobs: `{len(payload['jobs'])}`",
+            "",
+            markdown_table(["ID", "Kind", "Status", "Priority", "Label"], rows),
+        ]
+    ) + "\n"
+
+
+def queue_cmd(args: argparse.Namespace) -> None:
+    db = Path(args.db)
+    if args.queue_cmd == "add":
+        payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": [queue_add_job(args)]}
+    elif args.queue_cmd == "list":
+        payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": queue_list_jobs(db, status=args.status, kind=args.kind, limit=args.limit)}
+    elif args.queue_cmd == "get":
+        payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": [queue_get_job(db, args.id)]}
+    else:
+        raise SystemExit(f"unknown queue command: {args.queue_cmd}")
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(queue_markdown(payload), end="")
 
 
 def parse_tensor_name(tensor: str) -> tuple[int | None, str | None]:
@@ -2392,6 +2535,26 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     schedule.add_argument("--file", default=None)
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
     schedule.add_argument("--dry-run", action="store_true", help="validate and print jobs without running them")
+
+    queue_parser = sub.add_parser("queue", help="manage queued Cerebellum jobs")
+    queue_parser.add_argument("--db", default=DEFAULT_DB)
+    queue_parser.add_argument("--json", action="store_true")
+    queue_sub = queue_parser.add_subparsers(dest="queue_cmd", required=True)
+    queue_add = queue_sub.add_parser("add")
+    queue_add.add_argument("--kind", choices=["pipeline", "benchmark", "run"], required=True)
+    queue_add.add_argument("--label", default=None)
+    queue_add.add_argument("--manifest", default=None, help="pipeline-plan JSON manifest for pipeline jobs")
+    queue_add.add_argument("--command", default=None, help="explicit command for benchmark/run jobs")
+    queue_add.add_argument("--payload-json", default=None, help="extra JSON object merged into the queued payload")
+    queue_add.add_argument("--priority", type=int, default=100)
+    queue_add.add_argument("--status", default="queued")
+    queue_add.add_argument("--notes", default=None)
+    queue_list = queue_sub.add_parser("list")
+    queue_list.add_argument("--status", default=None)
+    queue_list.add_argument("--kind", choices=["pipeline", "benchmark", "run"], default=None)
+    queue_list.add_argument("--limit", type=int, default=50)
+    queue_get = queue_sub.add_parser("get")
+    queue_get.add_argument("id", type=int)
 
     pipeline_plan_parser = sub.add_parser("pipeline-plan", help="write a full Cerebellum pipeline command manifest")
     pipeline_plan_parser.add_argument("--source-gguf", required=True)
@@ -8424,6 +8587,24 @@ class CerebellumAPI(BaseHTTPRequestHandler):
         elif parsed.path == "/db/families":
             rows = sqlite_rows(self.db_path, "SELECT * FROM model_families ORDER BY name")
             self._json({"rows": rows})
+        elif parsed.path == "/queue":
+            try:
+                limit = int(qs.get("limit", ["50"])[0])
+                self._json(
+                    {
+                        "schema": "cerebellum.queue.v1",
+                        "db": str(self.db_path),
+                        "jobs": queue_list_jobs(self.db_path, status=qs.get("status", [None])[0], kind=qs.get("kind", [None])[0], limit=limit),
+                    }
+                )
+            except (ValueError, OSError, sqlite3.Error) as exc:
+                self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/queue/job":
+            try:
+                job_id = int(qs.get("id", ["0"])[0])
+                self._json({"schema": "cerebellum.queue.v1", "db": str(self.db_path), "jobs": [queue_get_job(self.db_path, job_id)]})
+            except (ValueError, SystemExit, OSError, sqlite3.Error) as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/report":
             run_dir = qs.get("run_dir", [None])[0]
             if not run_dir:
@@ -8618,6 +8799,8 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "export_ai": "cerebellum export RUN_DIR --kind ai",
                         "imatrix": "cerebellum imatrix --model HF_OR_PATH --family FAMILY --model-name MODEL --source-name SOURCE",
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
+                        "queue_list": "cerebellum queue list --json",
+                        "queue_get": "cerebellum queue get JOB_ID --json",
                         "pipeline_plan": "cerebellum pipeline-plan --source-gguf MODEL.gguf --output-dir OUT --json",
                         "pipeline_run": "cerebellum pipeline-run --manifest pipeline.json --json",
                         "pipeline_status": "cerebellum pipeline-status --manifest pipeline.json --json",
@@ -8640,6 +8823,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "cleanup_partials": "cerebellum cleanup RUN_DIR --partials --yes",
                         "rollback_layer": "cerebellum rollback RUN_DIR --last-completed-layer --yes",
                         "backup": "cerebellum backup RUN_DIR --to BACKUP_ROOT",
+                        "queue_add": "cerebellum queue add --kind pipeline --manifest pipeline.json",
                         "benchmark_run": "cerebellum benchmark-run --suite frontier --model MODEL --results-dir benchmark_results --execute",
                         "cpu_offload_smoke": "cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir OUT --json",
                         "finalize": "cerebellum finalize --run-dir RUN_DIR --gguf MODEL.gguf",
@@ -8649,6 +8833,8 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "runs": "/runs",
                         "run": "/run?run_dir=RUN_DIR",
                         "recover": "/recover?run_dir=RUN_DIR",
+                        "queue": "/queue?status=queued",
+                        "queue_job": "/queue/job?id=1",
                         "pipeline_plan": "/pipeline-plan?source_gguf=MODEL.gguf&output_dir=OUT",
                         "pipeline_run": "/pipeline-run?manifest=pipeline.json",
                         "pipeline_status": "/pipeline-status?manifest=pipeline.json",
@@ -8685,6 +8871,8 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/recover", "params": ["run_dir"], "returns": "crash recovery plan and safe commands"},
                         {"path": "/provenance", "params": ["run_dir?", "gguf?"], "returns": "generated/existing cerebellum metadata"},
                         {"path": "/package", "params": ["run_dir"], "returns": "package/upload manifest"},
+                        {"path": "/queue", "params": ["status?", "kind?", "limit?"], "returns": "queued Cerebellum jobs"},
+                        {"path": "/queue/job", "params": ["id"], "returns": "single queued Cerebellum job"},
                         {"path": "/system", "params": [], "returns": "host resources and tool availability"},
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
                         {"path": "/pipeline-plan", "params": ["source_gguf", "output_dir", "task_profile?", "benchmark_suite?"], "returns": "pipeline phase manifest"},
@@ -8723,7 +8911,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-status /cpu-offload-smoke /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /queue /queue/job /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-status /cpu-offload-smoke /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
@@ -8924,6 +9112,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "schedule":
         schedule_cmd(args)
+        return
+    if args.cmd == "queue":
+        queue_cmd(args)
         return
     if args.cmd == "pipeline-plan":
         pipeline_plan_cmd(args)
