@@ -24,6 +24,7 @@ from cerebellum import (
     benchmark_plan_cmd,
     benchmark_plan_markdown,
     benchmark_rebench_plan,
+    benchmark_rebench_plan_args_from_query,
     benchmark_rebench_plan_markdown,
     benchmark_report,
     benchmark_report_markdown,
@@ -455,6 +456,38 @@ def test_benchmark_rebench_plan_command_parses():
     assert args.model == ["deucebucket/custom"]
     assert args.correction_issue == "#99"
     assert args.json is True
+
+
+def test_benchmark_rebench_plan_api_query_args_validate():
+    args = benchmark_rebench_plan_args_from_query(
+        {
+            "suite": ["release"],
+            "results_root": ["out"],
+            "port": ["19000"],
+            "model": ["deucebucket/a", "deucebucket/b"],
+            "correction_issue": ["#99"],
+        }
+    )
+
+    assert args.suite == "release"
+    assert args.results_root == "out"
+    assert args.port == 19000
+    assert args.model == ["deucebucket/a", "deucebucket/b"]
+    assert args.correction_issue == "#99"
+
+    try:
+        benchmark_rebench_plan_args_from_query({"suite": ["frontier"]})
+    except ValueError as exc:
+        assert "suite must be humaneval or release" in str(exc)
+    else:
+        raise AssertionError("invalid rebench suite should fail")
+
+    try:
+        benchmark_rebench_plan_args_from_query({"port": ["many"]})
+    except ValueError as exc:
+        assert "port must be an integer" in str(exc)
+    else:
+        raise AssertionError("invalid rebench port should fail")
 
 
 def test_provenance_and_finalize_private_flags_parse():
