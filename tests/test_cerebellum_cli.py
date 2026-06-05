@@ -40,6 +40,7 @@ from cerebellum import (
     grid_watch_cmd,
     hf_model_stats,
     hf_model_stats_markdown,
+    hf_stats_args_from_query,
     inspect_gguf_types,
     is_quantizable_tensor,
     locked_layer_lines,
@@ -1803,6 +1804,28 @@ def test_hf_stats_command_parses():
     assert args.period == "recent"
     assert args.limit == 10
     assert args.json is True
+
+
+def test_hf_stats_api_query_args_validate_period_and_limit():
+    args = hf_stats_args_from_query({"author": ["deucebucket"], "period": ["recent"], "limit": ["25"]})
+
+    assert args.author == "deucebucket"
+    assert args.period == "recent"
+    assert args.limit == 25
+
+    try:
+        hf_stats_args_from_query({"period": ["forever"]})
+    except ValueError as exc:
+        assert "period must be recent or all-time" in str(exc)
+    else:
+        raise AssertionError("invalid hf-stats period should fail")
+
+    try:
+        hf_stats_args_from_query({"limit": ["many"]})
+    except ValueError as exc:
+        assert "limit must be an integer" in str(exc)
+    else:
+        raise AssertionError("invalid hf-stats limit should fail")
 
 
 def test_public_report_summary_strips_factory_fields():

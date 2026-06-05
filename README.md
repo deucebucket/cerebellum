@@ -192,7 +192,8 @@ reports rolling/recent downloads, not lifetime totals, so Cerebellum labels
 those fields as `downloads_recent`. True all-time totals require Hugging Face
 Publisher Analytics access and can be requested with
 `hf-stats --period all-time --publisher-org ORG` when the account has that
-authorized org analytics endpoint.
+authorized org analytics endpoint. The read-only local API exposes the same
+payload at `/hf-stats?author=deucebucket`.
 
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,

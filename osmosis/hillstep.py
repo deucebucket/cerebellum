@@ -7070,6 +7070,22 @@ def hf_model_stats(args: argparse.Namespace) -> dict[str, Any]:
     return hf_recent_model_stats(args.author, limit=max(1, args.limit))
 
 
+def hf_stats_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    period = qs.get("period", ["recent"])[0]
+    if period not in {"recent", "all-time"}:
+        raise ValueError("period must be recent or all-time")
+    try:
+        limit = int(qs.get("limit", ["1000"])[0])
+    except ValueError as exc:
+        raise ValueError("limit must be an integer") from exc
+    return argparse.Namespace(
+        author=qs.get("author", ["deucebucket"])[0],
+        period=period,
+        publisher_org=qs.get("publisher_org", [None])[0],
+        limit=limit,
+    )
+
+
 def hf_model_stats_markdown(report: dict[str, Any]) -> str:
     period = report["period"]
     if period == "all-time":
@@ -7405,6 +7421,11 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 self._json(pipeline_plan(pipeline_plan_args_from_query(qs)))
             except ValueError as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/hf-stats":
+            try:
+                self._json(hf_model_stats(hf_stats_args_from_query(qs)))
+            except (ValueError, SystemExit) as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/tutorial":
             topic = qs.get("topic", ["overview"])[0]
             if topic == "list":
@@ -7426,6 +7447,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "imatrix": "cerebellum imatrix --model HF_OR_PATH --family FAMILY --model-name MODEL --source-name SOURCE",
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
                         "pipeline_plan": "cerebellum pipeline-plan --source-gguf MODEL.gguf --output-dir OUT --json",
+                        "hf_stats": "cerebellum hf-stats --author deucebucket --json",
                     },
                     "state_changing_cli_only": {
                         "run": "cerebellum run --source-gguf MODEL.gguf --profile wiki --family FAMILY --model-name MODEL",
@@ -7441,6 +7463,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "run": "/run?run_dir=RUN_DIR",
                         "recover": "/recover?run_dir=RUN_DIR",
                         "pipeline_plan": "/pipeline-plan?source_gguf=MODEL.gguf&output_dir=OUT",
+                        "hf_stats": "/hf-stats?author=deucebucket",
                         "tutorial": "/tutorial?topic=overview",
                     },
                 }
@@ -7465,6 +7488,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/system", "params": [], "returns": "host resources and tool availability"},
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
                         {"path": "/pipeline-plan", "params": ["source_gguf", "output_dir", "task_profile?", "benchmark_suite?"], "returns": "pipeline phase manifest"},
+                        {"path": "/hf-stats", "params": ["author?", "period=recent|all-time?", "publisher_org?", "limit?"], "returns": "HF model release telemetry"},
                         {"path": "/tutorial", "params": ["topic"], "returns": "tutorial lines"},
                         {"path": "/self-test", "params": ["run_dir?"], "returns": "read-only CLI/API smoke-check payload"},
                         {"path": "/commands", "params": [], "returns": "CLI command templates"},
