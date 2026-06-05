@@ -32,6 +32,7 @@ from cerebellum import (
     benchmark_plan_args_from_query,
     benchmark_plan_cmd,
     benchmark_plan_markdown,
+    benchmark_postprocess_cmd,
     benchmark_run_cmd,
     benchmark_run_execute,
     benchmark_run_markdown,
@@ -692,6 +693,89 @@ def test_benchmark_run_postprocess_blocks_missing_complete_suite(tmp_path: Path,
     assert postprocess["blocked"] is True
     assert postprocess["missing_measured"] == ["missing"]
     assert postprocess["blockers"][0]["status"] == "missing"
+
+
+def test_benchmark_postprocess_command_parses():
+    args = parse_args(
+        [
+            "benchmark-postprocess",
+            "benchmark_results",
+            "--suite",
+            "frontier",
+            "--model",
+            "gemma4",
+            "--require-complete",
+            "--leaderboard",
+            "--size",
+            "gemma4=7.6",
+            "--weight",
+            "gpqa_diamond=2",
+            "--json",
+        ]
+    )
+
+    assert args.cmd == "benchmark-postprocess"
+    assert args.results_dir == "benchmark_results"
+    assert args.suite == "frontier"
+    assert args.model == "gemma4"
+    assert args.require_complete is True
+    assert args.leaderboard is True
+    assert args.size == ["gemma4=7.6"]
+    assert args.weight == ["gpqa_diamond=2"]
+    assert args.json is True
+
+
+def test_benchmark_postprocess_cmd_writes_sidecars_for_existing_artifacts(tmp_path: Path, capsys, monkeypatch):
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_post_cli", ["unit_smoke"])
+    (tmp_path / "unit-model_unit_smoke_results.json").write_text(
+        json.dumps({"benchmark": "unit_smoke", "model": "unit-model", "accuracy": 0.75, "size_gib": 4.0}),
+        encoding="utf-8",
+    )
+    (tmp_path / "unit-model_unit_smoke_detailed.jsonl").write_text(
+        json.dumps({"correct": True, "predicted": "A", "raw_response": "A"}) + "\n",
+        encoding="utf-8",
+    )
+    args = parse_args(
+        [
+            "benchmark-postprocess",
+            str(tmp_path),
+            "--suite",
+            "unit_post_cli",
+            "--model",
+            "unit-model",
+            "--require-complete",
+            "--leaderboard",
+            "--size",
+            "unit-model=4.0",
+            "--json",
+        ]
+    )
+
+    benchmark_postprocess_cmd(args)
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["schema"] == "cerebellum.benchmark_postprocess.v1"
+    assert payload["blocked"] is False
+    assert payload["leaderboard_rows"] == 1
+    assert Path(payload["manifest"]).is_file()
+    assert Path(payload["audit"]).is_file()
+    assert Path(payload["report"]).is_file()
+
+
+def test_benchmark_postprocess_cmd_blocks_missing_complete_suite(tmp_path: Path, capsys, monkeypatch):
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_post_missing", ["missing"])
+    args = parse_args(["benchmark-postprocess", str(tmp_path), "--suite", "unit_post_missing", "--require-complete", "--json"])
+
+    try:
+        benchmark_postprocess_cmd(args)
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        raise AssertionError("benchmark-postprocess should fail when require-complete is missing results")
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["blocked"] is True
+    assert payload["missing_measured"] == ["missing"]
 
 
 def test_benchmark_ingest_persists_ready_results(tmp_path: Path, monkeypatch):

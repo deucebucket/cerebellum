@@ -3010,6 +3010,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_run_parser.add_argument("--weight", action="append", default=[], help="with --postprocess --leaderboard, benchmark weight as BENCHMARK=WEIGHT")
     benchmark_run_parser.add_argument("--json", action="store_true")
 
+    benchmark_postprocess_parser = sub.add_parser("benchmark-postprocess", help="write manifest/audit/report sidecars for existing benchmark artifacts")
+    benchmark_postprocess_parser.add_argument("results_dir", help="directory containing benchmark summary/detail artifacts")
+    benchmark_postprocess_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    benchmark_postprocess_parser.add_argument("--model", default="cerebellum")
+    benchmark_postprocess_parser.add_argument("--require-complete", action="store_true", help="fail if suite result JSONs are missing")
+    benchmark_postprocess_parser.add_argument("--leaderboard", action="store_true", help="include leaderboard rows in benchmark_report.json")
+    benchmark_postprocess_parser.add_argument("--size", action="append", default=[], help="model size as MODEL=GiB")
+    benchmark_postprocess_parser.add_argument("--size-json", help="JSON file with per-model size metadata")
+    benchmark_postprocess_parser.add_argument("--weight", action="append", default=[], help="benchmark weight as BENCHMARK=WEIGHT")
+    benchmark_postprocess_parser.add_argument("--json", action="store_true")
+
     benchmark_ingest_parser = sub.add_parser("benchmark-ingest", help="ingest benchmark artifacts into the Cerebellum SQLite DB and report publishability")
     benchmark_ingest_parser.add_argument("results_dir", help="directory containing benchmark summary/detail artifacts")
     benchmark_ingest_parser.add_argument("--db", default=DEFAULT_DB)
@@ -3098,7 +3109,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "run", "imatrix", "status", "events", "runs", "schedule", "db", "report",
             "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "inspect-gguf-types", "finalize", "package", "plan-space",
             "public-audit", "public-export", "release-gate", "artifact-inventory",
-            "benchmark-plan", "benchmark-run", "benchmark-ingest", "benchmark-status", "benchmark-rebench-plan", "benchmark-manifest", "benchmark-audit",
+            "benchmark-plan", "benchmark-run", "benchmark-postprocess", "benchmark-ingest", "benchmark-status", "benchmark-rebench-plan", "benchmark-manifest", "benchmark-audit",
             "benchmark-report", "cpu-offload-smoke", "cpu-offload-build-plan", "compare-gguf-types", "compare-locks",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
             "cleanup", "rollback",
@@ -5352,6 +5363,43 @@ def benchmark_run_postprocess(
         "blocked": bool(blockers),
         "blockers": blockers,
     }
+
+
+def benchmark_postprocess_markdown(payload: dict[str, Any]) -> str:
+    rows = [
+        ["manifest", payload["manifest"]],
+        ["audit", payload["audit"]],
+        ["report", payload["report"]],
+    ]
+    parts = [
+        "# Benchmark Postprocess",
+        "",
+        f"status: `{'blocked' if payload['blocked'] else 'ready'}`",
+        f"results_dir: `{payload['results_dir']}`",
+        f"leaderboard rows: `{payload['leaderboard_rows']}`",
+        "",
+        markdown_table(["Artifact", "Path"], rows),
+    ]
+    if payload.get("blockers"):
+        parts.extend(["", "## Blockers", "", markdown_table(["Status", "Reason"], [[row["status"], row["reason"]] for row in payload["blockers"]])])
+    return "\n".join(parts) + "\n"
+
+
+def benchmark_postprocess_cmd(args: argparse.Namespace) -> None:
+    plan = {"suite": args.suite, "model": args.model, "results_dir": args.results_dir}
+    payload = benchmark_run_postprocess(
+        plan,
+        require_complete=args.require_complete,
+        leaderboard=args.leaderboard,
+        sizes={**read_size_json(args.size_json), **parse_size_specs(args.size)},
+        weights=parse_weight_specs(args.weight),
+    )
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(benchmark_postprocess_markdown(payload), end="")
+    if payload["blocked"]:
+        raise SystemExit(1)
 
 
 def benchmark_ingest(
@@ -10157,6 +10205,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-run":
         benchmark_run_cmd(args)
+        return
+    if args.cmd == "benchmark-postprocess":
+        benchmark_postprocess_cmd(args)
         return
     if args.cmd == "benchmark-ingest":
         benchmark_ingest_cmd(args)

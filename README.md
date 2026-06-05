@@ -457,12 +457,15 @@ should produce sidecars immediately after the benchmark commands succeed:
 
 ```bash
 cerebellum benchmark-run --suite release --model Cerebellum --results-dir benchmark_results --execute --postprocess --require-complete --leaderboard --size Cerebellum=7.6
+cerebellum benchmark-postprocess benchmark_results --suite release --model Cerebellum --require-complete --leaderboard --size Cerebellum=7.6
 ```
 
 Postprocess writes `postprocess/benchmark_manifest.json`,
 `postprocess/benchmark_audit.json`, and `postprocess/benchmark_report.json`.
 `--require-complete` fails the run if the selected suite is missing measured
 summary JSONs, and audit failures are reported as benchmark-run blockers.
+Use standalone `benchmark-postprocess` for already-finished or manually collected
+benchmark artifacts that need the same manifest/audit/report sidecars.
 Use `benchmark-ingest` after a benchmark or postprocess run to persist the same
 publishability evidence into the local Cerebellum SQLite DB:
 
