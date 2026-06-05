@@ -16,6 +16,7 @@ from cerebellum import (
     artifact_inventory_cmd,
     artifact_inventory_markdown,
     benchmark_audit,
+    benchmark_audit_args_from_query,
     benchmark_audit_cmd,
     benchmark_audit_markdown,
     benchmark_manifest,
@@ -694,6 +695,36 @@ def test_benchmark_audit_command_parses():
     assert args.paths == ["results"]
     assert args.json is True
     assert args.fail_empty_pct == 1.5
+
+
+def test_benchmark_audit_api_query_args_validate():
+    args = benchmark_audit_args_from_query(
+        {
+            "path": ["results", "extra.jsonl"],
+            "fail_empty_pct": ["1.5"],
+            "fail_unknown_pct": ["2.5"],
+            "fail_pass_only_pct": ["3.5"],
+        }
+    )
+
+    assert args.paths == ["results", "extra.jsonl"]
+    assert args.fail_empty_pct == 1.5
+    assert args.fail_unknown_pct == 2.5
+    assert args.fail_pass_only_pct == 3.5
+
+    try:
+        benchmark_audit_args_from_query({})
+    except ValueError as exc:
+        assert "path query param required" in str(exc)
+    else:
+        raise AssertionError("benchmark-audit API query should require path")
+
+    try:
+        benchmark_audit_args_from_query({"path": ["results"], "fail_empty_pct": ["many"]})
+    except ValueError as exc:
+        assert "audit thresholds must be numbers" in str(exc)
+    else:
+        raise AssertionError("invalid benchmark audit threshold should fail")
 
 
 def test_pipeline_plan_builds_full_manifest(tmp_path: Path):
