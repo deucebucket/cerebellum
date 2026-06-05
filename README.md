@@ -160,7 +160,7 @@ cerebellum package /path/to/run
 cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
 cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_results/ --clean
 cerebellum artifact-inventory . --output cerebellum-dev/artifact_inventory.json --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
-cerebellum hf-stats --author deucebucket
+cerebellum hf-stats --author deucebucket --snapshot db/hf_downloads.jsonl
 ```
 
 Cerebellum provenance uses visible `cerebellum.*` GGUF metadata keys and report
@@ -194,6 +194,10 @@ Publisher Analytics access and can be requested with
 `hf-stats --period all-time --publisher-org ORG` when the account has that
 authorized org analytics endpoint. The read-only local API exposes the same
 payload at `/hf-stats?author=deucebucket`.
+Add `--snapshot db/hf_downloads.jsonl` to append a local JSONL ledger with the
+current totals and the delta from the previous matching author/period snapshot.
+This preserves trend history even when Hugging Face's public rolling counts age
+out.
 
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,

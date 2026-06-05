@@ -57,6 +57,7 @@ from cerebellum import (
     hf_model_stats,
     hf_model_stats_markdown,
     hf_stats_args_from_query,
+    write_hf_stats_snapshot,
     inspect_gguf_types,
     inspect_gguf_types_args_from_query,
     is_quantizable_tensor,
@@ -2383,6 +2384,66 @@ def test_hf_stats_command_parses():
     assert args.period == "recent"
     assert args.limit == 10
     assert args.json is True
+
+
+def test_hf_stats_command_parses_snapshot_path():
+    args = parse_args(["hf-stats", "--author", "deucebucket", "--snapshot", "db/hf_downloads.jsonl"])
+
+    assert args.cmd == "hf-stats"
+    assert args.snapshot == "db/hf_downloads.jsonl"
+
+
+def test_hf_stats_snapshot_appends_recent_ledger(tmp_path):
+    path = tmp_path / "hf_downloads.jsonl"
+    report = {
+        "schema": "cerebellum.hf_model_stats.v1",
+        "author": "deucebucket",
+        "period": "recent",
+        "metric_note": "recent rolling counts",
+        "source": "https://huggingface.co/api/models",
+        "count": 2,
+        "total_downloads_recent": 15,
+        "models": [
+            {"modelId": "deucebucket/a", "downloads_recent": 10, "likes": 2},
+            {"modelId": "deucebucket/b", "downloads_recent": 5, "likes": 1},
+        ],
+    }
+
+    summary = write_hf_stats_snapshot(report, path)
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+
+    assert summary["path"] == str(path)
+    assert summary["delta_since_previous"] is None
+    assert rows[0]["schema"] == "cerebellum.hf_model_stats_snapshot.v1"
+    assert rows[0]["total_downloads_recent"] == 15
+    assert rows[0]["models"][0]["downloads_recent"] == 10
+
+
+def test_hf_stats_snapshot_records_delta_from_previous(tmp_path):
+    path = tmp_path / "hf_downloads.jsonl"
+    first = {
+        "author": "deucebucket",
+        "period": "recent",
+        "metric_note": "recent rolling counts",
+        "source": "https://huggingface.co/api/models",
+        "count": 1,
+        "total_downloads_recent": 10,
+        "models": [{"modelId": "deucebucket/a", "downloads_recent": 10, "likes": 2}],
+    }
+    second = {
+        **first,
+        "total_downloads_recent": 14,
+        "models": [{"modelId": "deucebucket/a", "downloads_recent": 14, "likes": 3}],
+    }
+
+    write_hf_stats_snapshot(first, path)
+    summary = write_hf_stats_snapshot(second, path)
+    rows = [json.loads(line) for line in path.read_text().splitlines()]
+
+    assert summary["delta_since_previous"] == 4
+    assert len(rows) == 2
+    assert rows[1]["delta_since_previous"] == 4
+    assert rows[1]["model_deltas_since_previous"] == [{"modelId": "deucebucket/a", "delta": 4}]
 
 
 def test_hf_stats_api_query_args_validate_period_and_limit():

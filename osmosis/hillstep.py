@@ -2564,6 +2564,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     hf_stats.add_argument("--period", choices=["recent", "all-time"], default="recent", help="recent uses public rolling downloads; all-time requires --publisher-org")
     hf_stats.add_argument("--publisher-org", default=None, help="HF Publisher Analytics org for all-time stats")
     hf_stats.add_argument("--limit", type=int, default=1000)
+    hf_stats.add_argument("--snapshot", default=None, help="append the stats payload to a local JSONL ledger")
     hf_stats.add_argument("--json", action="store_true")
 
     upload = sub.add_parser("upload", help="upload Cerebellum artifacts to HF/GitHub")
@@ -7796,38 +7797,109 @@ def hf_stats_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
         period=period,
         publisher_org=qs.get("publisher_org", [None])[0],
         limit=limit,
+        snapshot=None,
     )
+
+
+def hf_stats_total_key(period: str) -> str:
+    return "total_downloads_all_time" if period == "all-time" else "total_downloads_recent"
+
+
+def hf_stats_download_key(period: str) -> str:
+    return "downloads_all_time" if period == "all-time" else "downloads_recent"
+
+
+def write_hf_stats_snapshot(report: dict[str, Any], path: Path) -> dict[str, Any]:
+    period = str(report["period"])
+    total_key = hf_stats_total_key(period)
+    download_key = hf_stats_download_key(period)
+    captured_at = utc_now()
+    prior_rows = read_jsonl(path)
+    previous = next(
+        (
+            row
+            for row in reversed(prior_rows)
+            if row.get("period") == period and row.get("author") == report.get("author")
+        ),
+        None,
+    )
+    models = [
+        {
+            "modelId": row["modelId"],
+            download_key: int(row.get(download_key, 0)),
+            "likes": row.get("likes"),
+        }
+        for row in report.get("models", [])
+    ]
+    total = int(report.get(total_key, 0))
+    record: dict[str, Any] = {
+        "schema": "cerebellum.hf_model_stats_snapshot.v1",
+        "captured_at": captured_at,
+        "author": report.get("author"),
+        "period": period,
+        "source": report.get("source"),
+        "metric_note": report.get("metric_note"),
+        "model_count": int(report.get("count", len(models))),
+        total_key: total,
+        "models": models,
+    }
+    if previous is not None:
+        previous_total = int(previous.get(total_key, 0))
+        record["previous_captured_at"] = previous.get("captured_at")
+        record["delta_since_previous"] = total - previous_total
+        previous_models = {
+            str(row.get("modelId")): int(row.get(download_key, 0))
+            for row in previous.get("models", [])
+            if row.get("modelId")
+        }
+        record["model_deltas_since_previous"] = [
+            {
+                "modelId": row["modelId"],
+                "delta": int(row.get(download_key, 0)) - previous_models.get(row["modelId"], 0),
+            }
+            for row in models
+            if int(row.get(download_key, 0)) - previous_models.get(row["modelId"], 0) != 0
+        ]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps(record, sort_keys=True) + "\n")
+    return {
+        "path": str(path),
+        "captured_at": captured_at,
+        "previous_captured_at": record.get("previous_captured_at"),
+        "delta_since_previous": record.get("delta_since_previous"),
+    }
 
 
 def hf_model_stats_markdown(report: dict[str, Any]) -> str:
     period = report["period"]
-    if period == "all-time":
-        total_key = "total_downloads_all_time"
-        download_key = "downloads_all_time"
-        heading = "HF model stats: all-time downloads"
-    else:
-        total_key = "total_downloads_recent"
-        download_key = "downloads_recent"
-        heading = "HF model stats: recent rolling downloads"
+    total_key = hf_stats_total_key(period)
+    download_key = hf_stats_download_key(period)
+    heading = "HF model stats: all-time downloads" if period == "all-time" else "HF model stats: recent rolling downloads"
     rows = [
         [row["modelId"], str(row.get(download_key, 0)), str(row.get("likes", "-"))]
         for row in report["models"]
     ]
-    return "\n".join(
-        [
-            heading,
-            f"author: `{report['author']}`",
-            f"models: `{report['count']}`",
-            f"downloads: `{report.get(total_key, 0)}`",
-            f"note: {report['metric_note']}",
-            "",
-            markdown_table(["Model", "Downloads", "Likes"], rows),
-        ]
-    ) + "\n"
+    lines = [
+        heading,
+        f"author: `{report['author']}`",
+        f"models: `{report['count']}`",
+        f"downloads: `{report.get(total_key, 0)}`",
+        f"note: {report['metric_note']}",
+    ]
+    snapshot = report.get("snapshot")
+    if snapshot:
+        lines.append(f"snapshot: `{snapshot['path']}`")
+        if snapshot.get("delta_since_previous") is not None:
+            lines.append(f"delta since previous snapshot: `{snapshot['delta_since_previous']}`")
+    lines.extend(["", markdown_table(["Model", "Downloads", "Likes"], rows)])
+    return "\n".join(lines) + "\n"
 
 
 def hf_stats_cmd(args: argparse.Namespace) -> None:
     report = hf_model_stats(args)
+    if args.snapshot:
+        report["snapshot"] = write_hf_stats_snapshot(report, Path(args.snapshot))
     if args.json:
         print(json.dumps(report, indent=2, sort_keys=True))
         return
