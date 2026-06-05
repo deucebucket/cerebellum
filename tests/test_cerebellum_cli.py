@@ -8,6 +8,8 @@ from pathlib import Path
 from cerebellum import (
     EventLog,
     active_work_status,
+    ablation_analyze_cmd,
+    analyze_ablation_input,
     benchmark_report,
     benchmark_report_markdown,
     clear_terminal_markers,
@@ -187,6 +189,56 @@ def test_benchmark_report_command_parses():
     assert args.paths == ["benchmarks/qwen36-27b"]
     assert args.baseline == "q4"
     assert args.json is True
+
+
+def test_ablation_analyze_json_classifies_and_writes_overrides(tmp_path: Path):
+    ablation = tmp_path / "ablation_results.json"
+    output = tmp_path / "types.txt"
+    ablation.write_text(
+        json.dumps(
+            {
+                "baseline_ppl": 100.0,
+                "tests": {
+                    "down": {"ppl": 94.0, "gguf_tensor": "blk.0.ffn_down.weight"},
+                    "up": {"ppl": 100.5, "gguf_tensor": "blk.0.ffn_up.weight"},
+                    "gate": {"ppl": 108.0, "gguf_tensor": "blk.0.ffn_gate.weight"},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report = analyze_ablation_input(ablation)
+    args = parse_args(["ablation-analyze", str(ablation), "--output", str(output), "--target-type", "q2_K"])
+    ablation_analyze_cmd(args)
+
+    classes = {row["tensor"]: row["classification"] for row in report["rows"]}
+    assert classes["blk.0.ffn_down.weight"] == "demotable"
+    assert classes["blk.0.ffn_up.weight"] == "tolerant"
+    assert classes["blk.0.ffn_gate.weight"] == "critical"
+    assert "^blk\\.0\\.ffn_down\\.weight$=q2_K" in output.read_text(encoding="utf-8")
+    assert "^blk\\.0\\.ffn_up\\.weight$=q2_K" in output.read_text(encoding="utf-8")
+    assert "ffn_gate" not in output.read_text(encoding="utf-8")
+
+
+def test_ablation_analyze_log_dir_uses_tensor_group(tmp_path: Path):
+    log_dir = tmp_path / "logs"
+    log_dir.mkdir()
+    (log_dir / "ppl_layer_7.log").write_text("Final estimate: PPL = 98.0 +/- 1.0\n", encoding="utf-8")
+
+    report = analyze_ablation_input(log_dir, baseline_ppl=100.0, tensor_group="attn_q")
+
+    assert report["rows"][0]["tensor"] == "blk.7.attn_q.weight"
+    assert report["rows"][0]["classification"] == "beneficial"
+
+
+def test_ablation_analyze_command_parses():
+    args = parse_args(["ablation-analyze", "logs", "--baseline-ppl", "10.0", "--tensor-group", "ffn_up"])
+
+    assert args.cmd == "ablation-analyze"
+    assert args.input == "logs"
+    assert args.baseline_ppl == 10.0
+    assert args.tensor_group == "ffn_up"
 
 
 def test_eta_grid_values_includes_wall_clock_completion():

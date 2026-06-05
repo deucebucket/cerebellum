@@ -2174,6 +2174,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_report_parser.add_argument("--json", action="store_true", help="emit machine-readable JSON instead of Markdown")
     benchmark_report_parser.add_argument("--no-bars", action="store_true", help="omit ASCII bar chart section")
 
+    ablation_analyze = sub.add_parser("ablation-analyze", help="analyze ablation PPL JSON/logs and write tensor overrides")
+    ablation_analyze.add_argument("input", help="ablation_results.json, log file, or directory of PPL logs")
+    ablation_analyze.add_argument("--baseline-ppl", type=float, help="baseline PPL; required for raw log input")
+    ablation_analyze.add_argument("--tensor-group", help="tensor group for ppl_layer_N.log input, e.g. attn_q or ffn_up")
+    ablation_analyze.add_argument("--target-type", default="q2_K", help="override quant type for selected classes")
+    ablation_analyze.add_argument("--override-classes", default="demotable,beneficial,tolerant", help="comma-separated classes to write to --output")
+    ablation_analyze.add_argument("--output", help="write llama-quantize tensor-type override file")
+    ablation_analyze.add_argument("--json-output", help="write JSON analysis sidecar")
+    ablation_analyze.add_argument("--json", action="store_true", help="print JSON instead of a table")
+
     export = sub.add_parser("export", help="export run data for AI, infographic, or automation")
     export.add_argument("run_dir")
     export.add_argument("--kind", choices=["raw", "ai", "infographic"], default="ai")
@@ -3730,6 +3740,126 @@ def benchmark_report_cmd(args: argparse.Namespace) -> None:
     print(text, end="" if text.endswith("\n") else "\n")
 
 
+PPL_RE = re.compile(r"Final estimate:\s*PPL\s*=\s*([0-9]+(?:\.[0-9]+)?)")
+
+
+def classify_ablation_pct(pct_delta: float) -> str:
+    if pct_delta <= -5.0:
+        return "demotable"
+    if pct_delta <= -1.0:
+        return "beneficial"
+    if abs(pct_delta) < 1.0:
+        return "tolerant"
+    if pct_delta < 5.0:
+        return "sensitive"
+    return "critical"
+
+
+def ppl_from_log(path: Path) -> float | None:
+    try:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return None
+    matches = PPL_RE.findall(text)
+    return float(matches[-1]) if matches else None
+
+
+def tensor_from_layer_log(path: Path, tensor_group: str | None) -> str | None:
+    layer_match = re.search(r"(?:ppl|ablation)_layer_(\d+)", path.name)
+    if not layer_match:
+        return None
+    layer = layer_match.group(1)
+    group = tensor_group
+    if not group:
+        group_match = re.search(r"ablation_layer_\d+\.([^/]+)\.log$", path.name)
+        group = group_match.group(1) if group_match else None
+    if not group:
+        return None
+    group = group.replace(".log", "")
+    if group.startswith("blk."):
+        return group if group.endswith(".weight") else f"{group}.weight"
+    return f"blk.{layer}.{group}.weight" if not group.endswith(".weight") else f"blk.{layer}.{group}"
+
+
+def ablation_rows_from_json(path: Path) -> tuple[float | None, list[dict[str, Any]]]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    baseline = data.get("baseline_ppl")
+    tests = data.get("tests", {})
+    rows: list[dict[str, Any]] = []
+    if not isinstance(tests, dict):
+        return float(baseline) if baseline is not None else None, rows
+    for key, value in tests.items():
+        if not isinstance(value, dict) or value.get("ppl") is None:
+            continue
+        rows.append({"name": str(key), "tensor": str(value.get("gguf_tensor") or key), "ppl": float(value["ppl"]), "source": str(path)})
+    return float(baseline) if baseline is not None else None, rows
+
+
+def ablation_rows_from_logs(path: Path, tensor_group: str | None) -> list[dict[str, Any]]:
+    files = sorted(path.rglob("*.log")) if path.is_dir() else [path]
+    rows: list[dict[str, Any]] = []
+    for file in files:
+        ppl = ppl_from_log(file)
+        tensor = tensor_from_layer_log(file, tensor_group)
+        if ppl is None or tensor is None:
+            continue
+        rows.append({"name": file.stem, "tensor": tensor, "ppl": ppl, "source": str(file)})
+    return rows
+
+
+def analyze_ablation_input(path: Path, baseline_ppl: float | None = None, tensor_group: str | None = None) -> dict[str, Any]:
+    rows: list[dict[str, Any]]
+    detected_baseline: float | None = None
+    if path.is_file() and path.suffix == ".json":
+        detected_baseline, rows = ablation_rows_from_json(path)
+    else:
+        rows = ablation_rows_from_logs(path, tensor_group)
+    baseline = baseline_ppl if baseline_ppl is not None else detected_baseline
+    if baseline is None:
+        raise SystemExit("baseline PPL is required for log input; pass --baseline-ppl")
+    analyzed: list[dict[str, Any]] = []
+    for row in rows:
+        delta = row["ppl"] - baseline
+        pct_delta = (delta / baseline) * 100.0 if baseline else 0.0
+        analyzed.append({**row, "baseline_ppl": baseline, "delta": delta, "pct_delta": pct_delta, "classification": classify_ablation_pct(pct_delta)})
+    analyzed.sort(key=lambda row: (row["classification"], row["pct_delta"], row["tensor"]))
+    counts: dict[str, int] = {}
+    for row in analyzed:
+        counts[row["classification"]] = counts.get(row["classification"], 0) + 1
+    return {"baseline_ppl": baseline, "count": len(analyzed), "class_counts": counts, "rows": analyzed}
+
+
+def ablation_analyze_text(report: dict[str, Any]) -> str:
+    lines = [f"Baseline PPL: {report['baseline_ppl']}", f"Ablation tests: {report['count']}", ""]
+    for name in ["demotable", "beneficial", "tolerant", "sensitive", "critical"]:
+        if report["class_counts"].get(name):
+            lines.append(f"{name}: {report['class_counts'][name]}")
+    lines.extend(["", "classification  ppl        delta      pct       tensor", "-" * 78])
+    for row in report["rows"]:
+        lines.append(
+            f"{row['classification']:<14} {row['ppl']:<10.4f} {row['delta']:+10.4f} "
+            f"{row['pct_delta']:+.2f}%   {row['tensor']}"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def ablation_analyze_cmd(args: argparse.Namespace) -> None:
+    report = analyze_ablation_input(Path(args.input), baseline_ppl=args.baseline_ppl, tensor_group=args.tensor_group)
+    override_classes = {item.strip() for item in args.override_classes.split(",") if item.strip()}
+    overrides = [row for row in report["rows"] if row["classification"] in override_classes]
+    if args.output:
+        lines = [tensor_type_line(row["tensor"], args.target_type) for row in overrides]
+        Path(args.output).write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    if args.json_output:
+        Path(args.json_output).write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+    print(ablation_analyze_text(report), end="")
+    if args.output:
+        print(f"\nWrote {len(overrides)} overrides to {args.output}")
+
+
 def write_report_files(run_dir: Path, report: dict[str, Any], formats: list[str]) -> list[Path]:
     written: list[Path] = []
     if "json" in formats:
@@ -5106,6 +5236,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-report":
         benchmark_report_cmd(args)
+        return
+    if args.cmd == "ablation-analyze":
+        ablation_analyze_cmd(args)
         return
     if args.cmd == "export":
         export_cmd(args)
