@@ -2061,6 +2061,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     inspect_types.add_argument("--by-component", action="store_true", help="include per-component type counts")
     inspect_types.add_argument("--json", action="store_true")
 
+    compare_locks = sub.add_parser("compare-locks", help="compare Cerebellum tensor locks between a run and an archive/state")
+    compare_locks.add_argument("run_dir", help="current run directory or model/run name")
+    compare_locks.add_argument("--against", required=True, help="state.json, checkpoint JSON, or archive directory containing state.json")
+    compare_locks.add_argument("--json", action="store_true")
+
     finalize = sub.add_parser("finalize", help="write final reports/model card and tag GGUF provenance")
     finalize.add_argument("--run-dir", required=True)
     finalize.add_argument("--gguf", default=None, help="Final GGUF to tag/inspect")
@@ -3382,6 +3387,81 @@ def inspect_gguf_types_cmd(args: argparse.Namespace) -> None:
         for layer, counts in summary["layer_counts"].items():
             cells = "  ".join(f"{qtype}={count}" for qtype, count in counts.items())
             print(f"  {layer:<8} {cells}")
+
+
+def state_path_for_compare(path: Path) -> Path:
+    if path.is_dir():
+        return path / "state.json"
+    return path
+
+
+def quantizable_locks_from_state(state: dict[str, Any]) -> dict[str, str]:
+    locks = state.get("locked", {})
+    if not isinstance(locks, dict):
+        return {}
+    return {
+        str(tensor): str(qtype)
+        for tensor, qtype in locks.items()
+        if qtype is not None and is_quantizable_tensor(str(tensor))
+    }
+
+
+def compare_locks(current_state: dict[str, Any], against_state: dict[str, Any]) -> dict[str, Any]:
+    current = quantizable_locks_from_state(current_state)
+    against = quantizable_locks_from_state(against_state)
+    rows: list[dict[str, Any]] = []
+    same = different = missing_current = missing_against = 0
+    for tensor in sorted(set(current) | set(against)):
+        current_q = current.get(tensor)
+        against_q = against.get(tensor)
+        if current_q == against_q:
+            status = "same"
+            same += 1
+        elif current_q is None:
+            status = "missing_current"
+            missing_current += 1
+        elif against_q is None:
+            status = "missing_against"
+            missing_against += 1
+        else:
+            status = "different"
+            different += 1
+        rows.append({"tensor": tensor, "current": current_q, "against": against_q, "status": status})
+    return {
+        "current_locked": len(current),
+        "against_locked": len(against),
+        "same": same,
+        "different": different,
+        "missing_current": missing_current,
+        "missing_against": missing_against,
+        "rows": rows,
+    }
+
+
+def compare_locks_cmd(args: argparse.Namespace) -> None:
+    run_dir = resolve_run_dir(args.run_dir)
+    against_path = state_path_for_compare(Path(args.against))
+    current_state = read_json(run_dir / "state.json", {})
+    against_state = read_json(against_path, {})
+    summary = compare_locks(current_state, against_state)
+    summary["run_dir"] = str(run_dir)
+    summary["against"] = str(against_path)
+    if args.json:
+        print(json.dumps(summary, indent=2, sort_keys=True))
+        return
+    print(f"Cerebellum lock comparison: {run_dir}")
+    print(f"against: {against_path}")
+    print(
+        f"current={summary['current_locked']} against={summary['against_locked']} "
+        f"same={summary['same']} different={summary['different']} "
+        f"missing_current={summary['missing_current']} missing_against={summary['missing_against']}"
+    )
+    for row in summary["rows"]:
+        if row["status"] == "same":
+            continue
+        current = row["current"] or "-"
+        against = row["against"] or "-"
+        print(f"{row['status']:<16} {row['tensor']}  current={current}  against={against}")
 
 
 def write_report_files(run_dir: Path, report: dict[str, Any], formats: list[str]) -> list[Path]:
@@ -4721,6 +4801,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "inspect-gguf-types":
         inspect_gguf_types_cmd(args)
+        return
+    if args.cmd == "compare-locks":
+        compare_locks_cmd(args)
         return
     if args.cmd == "finalize":
         finalize_cmd(args)

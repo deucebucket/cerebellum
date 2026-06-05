@@ -23,6 +23,7 @@ def main():
         print("  project   Inspect Cerebellum model projects")
         print("  provenance Inspect or generate Cerebellum GGUF provenance")
         print("  inspect-gguf-types Summarize GGUF tensor quantization types")
+        print("  compare-locks Compare tensor locks between a run and archive/state")
         print("  finalize  Write final reports/model card and tag GGUF provenance")
         print("  package   Write portable upload/package manifest")
         print("  system    Inspect local resources and tool availability")
@@ -42,7 +43,7 @@ def main():
         "run", "watch", "status", "events", "runs", "schedule", "system",
         "doctor", "self-test", "provenance", "finalize", "package", "plan-space", "tutorial", "tips", "db", "report", "export", "auth",
         "upload", "api", "stop", "resume", "recover", "cleanup", "rollback", "backup",
-        "project", "inspect-gguf-types",
+        "project", "inspect-gguf-types", "compare-locks",
     }
 
     if command == "imatrix":

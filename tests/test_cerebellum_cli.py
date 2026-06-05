@@ -8,6 +8,7 @@ from pathlib import Path
 from cerebellum import (
     EventLog,
     active_work_status,
+    compare_locks,
     build_recovery_plan,
     build_watch_model,
     discover_projects,
@@ -46,6 +47,15 @@ def test_inspect_gguf_types_command_parses():
     assert args.cmd == "inspect-gguf-types"
     assert args.gguf == "/tmp/model.gguf"
     assert args.by_layer is True
+    assert args.json is True
+
+
+def test_compare_locks_command_parses():
+    args = parse_args(["compare-locks", "/tmp/run", "--against", "/tmp/archive", "--json"])
+
+    assert args.cmd == "compare-locks"
+    assert args.run_dir == "/tmp/run"
+    assert args.against == "/tmp/archive"
     assert args.json is True
 
 
@@ -255,6 +265,38 @@ def test_inspect_gguf_types_summarizes_layers_and_components(tmp_path: Path, mon
     assert summary["type_counts"] == {"F16": 1, "F32": 1, "Q3_K": 1, "Q4_K": 1, "Q5_K": 1}
     assert summary["component_counts"]["ffn_down"] == {"Q4_K": 1, "Q5_K": 1}
     assert summary["layer_counts"]["blk.0"] == {"Q3_K": 1, "Q4_K": 1}
+
+
+def test_compare_locks_filters_non_quantizable_entries():
+    current = {
+        "locked": {
+            "blk.0.ffn_down.weight": "q4_K",
+            "blk.0.ffn_norm.weight": "q2_K",
+            "blk.0.attn_q.weight": "f16",
+        }
+    }
+    against = {
+        "locked": {
+            "blk.0.ffn_down.weight": "q4_K",
+            "blk.0.ffn_norm.weight": "q3_K",
+            "blk.0.attn_q.weight": "q4_K",
+            "blk.0.ffn_up.weight": "q5_K",
+        }
+    }
+
+    summary = compare_locks(current, against)
+
+    assert summary["current_locked"] == 2
+    assert summary["against_locked"] == 3
+    assert summary["same"] == 1
+    assert summary["different"] == 1
+    assert summary["missing_current"] == 1
+    assert summary["missing_against"] == 0
+    assert {row["tensor"] for row in summary["rows"]} == {
+        "blk.0.ffn_down.weight",
+        "blk.0.attn_q.weight",
+        "blk.0.ffn_up.weight",
+    }
 
 
 def test_watch_model_uses_latest_run_epoch_after_rollback(tmp_path: Path):
