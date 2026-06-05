@@ -2364,6 +2364,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_report_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="full", help="benchmark suite to use for leaderboard averaging")
     benchmark_report_parser.add_argument("--size", action="append", default=[], help="model size as MODEL=GiB for score/GiB leaderboard")
     benchmark_report_parser.add_argument("--size-json", help="JSON file with per-model size metadata")
+    benchmark_report_parser.add_argument("--weight", action="append", default=[], help="leaderboard benchmark weight as BENCHMARK=WEIGHT; defaults to 1.0")
     benchmark_report_parser.add_argument("--list-suites", action="store_true", help="print built-in benchmark suite names and tasks")
 
     benchmark_plan_parser = sub.add_parser("benchmark-plan", help="print benchmark suite run plan and artifact checklist")
@@ -3951,6 +3952,22 @@ def parse_size_specs(specs: list[str]) -> dict[str, float]:
     return sizes
 
 
+def parse_weight_specs(specs: list[str]) -> dict[str, float]:
+    weights: dict[str, float] = {}
+    for spec in specs:
+        if "=" not in spec:
+            raise SystemExit(f"--weight must be BENCHMARK=WEIGHT, got {spec!r}")
+        benchmark, value = spec.split("=", 1)
+        key = benchmark_key(benchmark.strip())
+        if not key:
+            raise SystemExit(f"--weight benchmark cannot be empty, got {spec!r}")
+        weight = float(value)
+        if weight < 0:
+            raise SystemExit(f"--weight must be non-negative, got {spec!r}")
+        weights[key] = weight
+    return weights
+
+
 def read_size_json(path: str | None) -> dict[str, float]:
     if not path:
         return {}
@@ -4331,10 +4348,21 @@ def metric_is_quality_percent(metric: str) -> bool:
     return metric not in {"ppl", "tok/s", "gen tok/s"} and "tok/s" not in metric
 
 
-def benchmark_leaderboard(records: list[dict[str, Any]], suite: str, sizes: dict[str, float] | None = None) -> list[dict[str, Any]]:
+def leaderboard_weight_policy(suite: str, weights: dict[str, float] | None = None) -> dict[str, float]:
+    weights = weights or {}
+    return {key: float(weights.get(key, 1.0)) for key in BENCHMARK_SUITES[suite]}
+
+
+def benchmark_leaderboard(
+    records: list[dict[str, Any]],
+    suite: str,
+    sizes: dict[str, float] | None = None,
+    weights: dict[str, float] | None = None,
+) -> list[dict[str, Any]]:
     suite_keys = set(BENCHMARK_SUITES[suite])
+    weight_policy = leaderboard_weight_policy(suite, weights)
     sizes = sizes or {}
-    by_model: dict[str, list[dict[str, Any]]] = {}
+    by_model: dict[str, dict[str, list[dict[str, Any]]]] = {}
     embedded_sizes: dict[str, float] = {}
     for row in records:
         model = str(row["model"])
@@ -4345,13 +4373,26 @@ def benchmark_leaderboard(records: list[dict[str, Any]], suite: str, sizes: dict
             continue
         if not metric_is_quality_percent(str(row["metric"])):
             continue
-        by_model.setdefault(model, []).append(row)
+        by_model.setdefault(model, {}).setdefault(str(row["benchmark_key"]), []).append(row)
 
     leaderboard: list[dict[str, Any]] = []
-    for model, rows in by_model.items():
-        if not rows:
+    for model, benchmark_rows in by_model.items():
+        if not benchmark_rows:
             continue
-        avg = sum(float(row["value"]) for row in rows) / len(rows)
+        weighted_total = 0.0
+        total_weight = 0.0
+        benchmark_scores: dict[str, float] = {}
+        for key, rows in benchmark_rows.items():
+            weight = float(weight_policy.get(key, 1.0))
+            if weight <= 0:
+                continue
+            score = sum(float(row["value"]) for row in rows) / len(rows)
+            benchmark_scores[key] = score
+            weighted_total += score * weight
+            total_weight += weight
+        if total_weight <= 0:
+            continue
+        avg = weighted_total / total_weight
         size_gib = sizes.get(model, embedded_sizes.get(model))
         score_per_gib = None if not size_gib else avg / size_gib
         leaderboard.append(
@@ -4359,7 +4400,9 @@ def benchmark_leaderboard(records: list[dict[str, Any]], suite: str, sizes: dict
                 "model": model,
                 "suite": suite,
                 "average_score": avg,
-                "benchmarks": len(rows),
+                "benchmarks": len(benchmark_scores),
+                "benchmark_scores": benchmark_scores,
+                "total_weight": total_weight,
                 "size_gib": size_gib,
                 "score_per_gib": score_per_gib,
             }
@@ -4374,6 +4417,7 @@ def benchmark_report(
     suite: str = "full",
     leaderboard: bool = False,
     sizes: dict[str, float] | None = None,
+    weights: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     records = benchmark_records(paths)
     models = sorted({str(row["model"]) for row in records})
@@ -4403,8 +4447,9 @@ def benchmark_report(
             )
     report: dict[str, Any] = {"models": models, "benchmarks": benchmarks, "records": records, "deltas": deltas}
     if leaderboard:
-        report["suite"] = {"name": suite, "benchmarks": BENCHMARK_SUITES[suite]}
-        report["leaderboard"] = benchmark_leaderboard(records, suite, sizes=sizes)
+        weight_policy = leaderboard_weight_policy(suite, weights)
+        report["suite"] = {"name": suite, "benchmarks": BENCHMARK_SUITES[suite], "weights": weight_policy}
+        report["leaderboard"] = benchmark_leaderboard(records, suite, sizes=sizes, weights=weight_policy)
     return report
 
 
@@ -4451,6 +4496,7 @@ def benchmark_report_markdown(report: dict[str, Any], include_bars: bool = True)
     if report.get("leaderboard") is not None:
         suite = report.get("suite", {})
         suite_name = suite.get("name", "full") if isinstance(suite, dict) else "full"
+        weights = suite.get("weights", {}) if isinstance(suite, dict) else {}
         leaderboard_rows = []
         for row in report["leaderboard"]:
             size = "-" if row.get("size_gib") is None else f"{float(row['size_gib']):.2f}"
@@ -4468,6 +4514,10 @@ def benchmark_report_markdown(report: dict[str, Any], include_bars: bool = True)
             [
                 "",
                 f"## Leaderboard ({suite_name})",
+                "",
+                "Average: weighted mean of measured quality-percentage benchmarks only; default weight is 1.0 per benchmark.",
+                "",
+                "Weights: " + ", ".join(f"{key}={float(value):g}" for key, value in weights.items()),
                 "",
                 markdown_table(["Model", "Avg score", "Benchmarks", "Size GiB", "Score/GiB"], leaderboard_rows),
             ]
@@ -4499,12 +4549,14 @@ def benchmark_report_cmd(args: argparse.Namespace) -> None:
         raise SystemExit("benchmark-report requires at least one path unless --list-suites is used")
     sizes = read_size_json(args.size_json)
     sizes.update(parse_size_specs(args.size))
+    weights = parse_weight_specs(args.weight)
     report = benchmark_report(
         args.paths,
         baseline=args.baseline,
         suite=args.suite,
         leaderboard=args.leaderboard,
         sizes=sizes,
+        weights=weights,
     )
     if args.json:
         text = json.dumps(report, indent=2, sort_keys=True)

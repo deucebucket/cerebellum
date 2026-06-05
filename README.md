@@ -346,7 +346,7 @@ Cerebellum can turn those JSON artifacts into model-card-ready comparison
 tables and a size-normalized leaderboard:
 
 ```bash
-cerebellum benchmark-report benchmark_results/ --leaderboard --suite full --size Cerebellum=7.6 --no-bars
+cerebellum benchmark-report benchmark_results/ --leaderboard --suite full --size Cerebellum=7.6 --weight gpqa_diamond=2 --no-bars
 cerebellum benchmark-report --list-suites
 cerebellum benchmark-plan --suite release --model Cerebellum --port 8084 --results-dir benchmark_results
 ```
@@ -357,7 +357,9 @@ Built-in leaderboard suites:
 - `frontier`: MMLU-Pro, GPQA-Diamond, MMMLU, HLE no-tools, LiveCodeBench v6.
 - `full`: release plus frontier, speed, and PPL reporting.
 
-The leaderboard average uses quality percentage metrics only. PPL and speed
+The leaderboard average is a benchmark-level weighted mean of measured quality
+percentage metrics only. Default weight is `1.0` per benchmark; use
+`--weight BENCHMARK=WEIGHT` to make the suite weighting explicit. PPL and speed
 stay in the comparison table, but they do not get mixed into the average score.
 Use `--size MODEL=GiB` or include `size_gib` / `gguf_size_bytes` in result JSONs
 to populate the score-per-GiB column.

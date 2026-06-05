@@ -230,14 +230,44 @@ def test_benchmark_report_leaderboard_scores_size_density(tmp_path: Path):
 
     assert report["suite"]["benchmarks"] == ["mmlu_pro", "gpqa_diamond", "mmmlu", "hle_no_tools", "livecodebench_v6"]
     assert report["leaderboard"][0]["model"] == "cerebellum"
+    assert report["suite"]["weights"] == {
+        "mmlu_pro": 1.0,
+        "gpqa_diamond": 1.0,
+        "mmmlu": 1.0,
+        "hle_no_tools": 1.0,
+        "livecodebench_v6": 1.0,
+    }
     assert report["leaderboard"][0]["average_score"] == 69.0
     assert report["leaderboard"][0]["score_per_gib"] == 8.625
+    assert report["leaderboard"][0]["total_weight"] == 2.0
     assert "| cerebellum | 69.00% | 2 | 8.00 | 8.62 |" in markdown
     assert "| baseline | 50.00% | 1 | 10.00 | 5.00 |" in markdown
+    assert "Average: weighted mean of measured quality-percentage benchmarks only" in markdown
+    assert "Weights: mmlu_pro=1" in markdown
+
+
+def test_benchmark_report_leaderboard_uses_explicit_weights(tmp_path: Path):
+    mmlu_pro = tmp_path / "cerebellum_mmlu_pro_results.json"
+    gpqa = tmp_path / "cerebellum_gpqa_diamond_results.json"
+    mmlu_pro.write_text(
+        json.dumps({"benchmark": "mmlu_pro", "model": "cerebellum", "accuracy": 0.72, "size_gib": 8.0}),
+        encoding="utf-8",
+    )
+    gpqa.write_text(
+        json.dumps({"benchmark": "gpqa_diamond", "model": "cerebellum", "score": 66.0}),
+        encoding="utf-8",
+    )
+
+    report = benchmark_report([tmp_path], suite="frontier", leaderboard=True, weights={"gpqa_diamond": 2.0})
+
+    assert report["suite"]["weights"]["mmlu_pro"] == 1.0
+    assert report["suite"]["weights"]["gpqa_diamond"] == 2.0
+    assert report["leaderboard"][0]["average_score"] == 68.0
+    assert report["leaderboard"][0]["score_per_gib"] == 8.5
 
 
 def test_benchmark_report_command_parses():
-    args = parse_args(["benchmark-report", "benchmarks/qwen36-27b", "--baseline", "q4", "--leaderboard", "--suite", "frontier", "--size", "q4=8.0", "--json"])
+    args = parse_args(["benchmark-report", "benchmarks/qwen36-27b", "--baseline", "q4", "--leaderboard", "--suite", "frontier", "--size", "q4=8.0", "--weight", "gpqa_diamond=2", "--json"])
 
     assert args.cmd == "benchmark-report"
     assert args.paths == ["benchmarks/qwen36-27b"]
@@ -245,6 +275,7 @@ def test_benchmark_report_command_parses():
     assert args.leaderboard is True
     assert args.suite == "frontier"
     assert args.size == ["q4=8.0"]
+    assert args.weight == ["gpqa_diamond=2"]
     assert args.json is True
 
 
