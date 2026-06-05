@@ -22,6 +22,8 @@ from cerebellum import (
     benchmark_ingest,
     benchmark_ingest_cmd,
     benchmark_ingest_markdown,
+    db_benchmark_leaderboard,
+    db_benchmark_leaderboard_markdown,
     benchmark_manifest,
     benchmark_manifest_args_from_query,
     benchmark_manifest_cmd,
@@ -787,6 +789,58 @@ def test_benchmark_ingest_command_parses():
     assert args.leaderboard is True
     assert args.size == ["gemma4=7.6"]
     assert args.weight == ["gpqa_diamond=2"]
+
+
+def test_db_benchmark_leaderboard_reads_latest_ready_ingests(tmp_path: Path, monkeypatch):
+    db = tmp_path / "cerebellum.db"
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_db_board", ["arc", "mmlu"])
+    for model, arc, mmlu, size in [
+        ("small", 0.80, 0.60, 4.0),
+        ("large", 0.90, 0.70, 10.0),
+    ]:
+        result_dir = tmp_path / model
+        result_dir.mkdir()
+        (result_dir / f"{model}_arc_results.json").write_text(
+            json.dumps({"benchmark": "arc", "model": model, "accuracy": arc, "size_gib": size}),
+            encoding="utf-8",
+        )
+        (result_dir / f"{model}_mmlu_results.json").write_text(
+            json.dumps({"benchmark": "mmlu", "model": model, "accuracy": mmlu, "size_gib": size}),
+            encoding="utf-8",
+        )
+        benchmark_ingest(db, result_dir, suite="unit_db_board", model=model, require_complete=True)
+
+    payload = db_benchmark_leaderboard(db, suite="unit_db_board", weights={"mmlu": 2.0})
+    markdown = db_benchmark_leaderboard_markdown(payload)
+
+    assert payload["schema"] == "cerebellum.db_benchmark_leaderboard.v1"
+    assert payload["records"] == 4
+    assert payload["weight_policy"] == {"arc": 1.0, "mmlu": 2.0}
+    assert [row["model"] for row in payload["leaderboard"]] == ["large", "small"]
+    assert payload["leaderboard"][0]["average_score"] == 76.66666666666667
+    assert payload["leaderboard"][0]["score_per_gib"] == 7.666666666666667
+    assert "Cerebellum Benchmark Leaderboard" in markdown
+    assert "Score/GiB" in markdown
+
+
+def test_db_benchmark_leaderboard_cmd_outputs_json(tmp_path: Path, monkeypatch, capsys):
+    db = tmp_path / "cerebellum.db"
+    result_dir = tmp_path / "bench"
+    result_dir.mkdir()
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_db_cli", ["arc"])
+    (result_dir / "model_arc_results.json").write_text(
+        json.dumps({"benchmark": "arc", "model": "model", "accuracy": 0.75, "size_gib": 5.0}),
+        encoding="utf-8",
+    )
+    benchmark_ingest(db, result_dir, suite="unit_db_cli", model="model", require_complete=True)
+    args = parse_args(["db", "--db", str(db), "--json", "leaderboard", "--suite", "unit_db_cli", "--limit", "5"])
+
+    hillstep.db_cmd(args)
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["schema"] == "cerebellum.db_benchmark_leaderboard.v1"
+    assert payload["leaderboard"][0]["model"] == "model"
+    assert payload["leaderboard"][0]["score_per_gib"] == 15.0
 
 
 def test_benchmark_run_execute_stops_on_failure(tmp_path: Path, monkeypatch):

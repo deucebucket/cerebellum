@@ -2958,6 +2958,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     models.add_argument("--family")
     db_sub.add_parser("builds")
     db_sub.add_parser("benchmarks")
+    leaderboard_db = db_sub.add_parser("leaderboard")
+    leaderboard_db.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    leaderboard_db.add_argument("--weight", action="append", default=[], help="leaderboard benchmark weight as BENCHMARK=WEIGHT")
+    leaderboard_db.add_argument("--limit", type=int, default=20)
     db_sub.add_parser("runs")
     import_run = db_sub.add_parser("import-run")
     import_run.add_argument("run_dir")
@@ -4107,6 +4111,92 @@ def project_cmd(args: argparse.Namespace) -> None:
             print(f"  next: {row['next_command']}")
 
 
+def db_benchmark_leaderboard(db: Path, suite: str = "release", weights: dict[str, float] | None = None, limit: int = 20) -> dict[str, Any]:
+    conn = sqlite3.connect(db)
+    try:
+        ensure_hill_tables(conn)
+    finally:
+        conn.close()
+    records = sqlite_rows(
+        db,
+        """
+        SELECT r.model, r.suite, r.benchmark_key, r.benchmark, r.metric, r.value,
+               r.path, r.size_gib, r.release_metadata_json, i.id AS ingest_id,
+               i.results_dir, i.updated_at
+        FROM cerebellum_benchmark_results r
+        JOIN cerebellum_benchmark_ingests i ON i.id = r.ingest_id
+        JOIN (
+            SELECT model, MAX(id) AS ingest_id
+            FROM cerebellum_benchmark_ingests
+            WHERE suite = ? AND ready = 1
+            GROUP BY model
+        ) latest ON latest.ingest_id = i.id
+        WHERE r.suite = ?
+        ORDER BY r.model, r.benchmark_key, r.metric
+        """,
+        (suite, suite),
+    )
+    for row in records:
+        try:
+            metadata = json.loads(str(row.get("release_metadata_json") or "{}"))
+        except json.JSONDecodeError:
+            metadata = {}
+        row["release_metadata"] = metadata
+        if row.get("size_gib") is None and metadata.get("size_gib") is not None:
+            row["size_gib"] = float(metadata["size_gib"])
+        row.pop("release_metadata_json", None)
+    weight_policy = leaderboard_weight_policy(suite, weights)
+    leaderboard = benchmark_leaderboard(records, suite, weights=weight_policy)[: max(1, limit)]
+    source_ingests = sorted(
+        {
+            (str(row["model"]), int(row["ingest_id"]), str(row["results_dir"]), str(row["updated_at"]))
+            for row in records
+        }
+    )
+    return {
+        "schema": "cerebellum.db_benchmark_leaderboard.v1",
+        "suite": suite,
+        "suite_purpose": BENCHMARK_SUITE_PURPOSES.get(suite, ""),
+        "weight_policy": weight_policy,
+        "source_ingests": [
+            {"model": model, "ingest_id": ingest_id, "results_dir": results_dir, "updated_at": updated_at}
+            for model, ingest_id, results_dir, updated_at in source_ingests
+        ],
+        "records": len(records),
+        "leaderboard": leaderboard,
+    }
+
+
+def db_benchmark_leaderboard_markdown(payload: dict[str, Any]) -> str:
+    rows = []
+    for idx, row in enumerate(payload["leaderboard"], 1):
+        size = "-" if row.get("size_gib") is None else f"{float(row['size_gib']):.2f}"
+        density = "-" if row.get("score_per_gib") is None else f"{float(row['score_per_gib']):.2f}"
+        rows.append(
+            [
+                str(idx),
+                row["model"],
+                f"{float(row['average_score']):.2f}",
+                str(row["benchmarks"]),
+                size,
+                density,
+            ]
+        )
+    parts = [
+        "# Cerebellum Benchmark Leaderboard",
+        "",
+        f"suite: `{payload['suite']}`",
+        f"purpose: `{payload.get('suite_purpose') or '-'}`",
+        f"records: `{payload['records']}`",
+        "",
+        markdown_table(["Rank", "Model", "Avg score", "Benchmarks", "Size GiB", "Score/GiB"], rows) if rows else "No ready ingested benchmark rows found.",
+    ]
+    if payload["source_ingests"]:
+        ingest_rows = [[row["model"], str(row["ingest_id"]), row["results_dir"]] for row in payload["source_ingests"]]
+        parts.extend(["", "## Source Ingests", "", markdown_table(["Model", "Ingest", "Results Dir"], ingest_rows)])
+    return "\n".join(parts) + "\n"
+
+
 def db_cmd(args: argparse.Namespace) -> None:
     db = Path(args.db)
     if args.db_cmd == "families":
@@ -4178,6 +4268,13 @@ def db_cmd(args: argparse.Namespace) -> None:
             GROUP BY benchmark_key ORDER BY benchmark_key
             """,
         )
+    elif args.db_cmd == "leaderboard":
+        payload = db_benchmark_leaderboard(db, suite=args.suite, weights=parse_weight_specs(args.weight), limit=args.limit)
+        if args.json:
+            print(json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            print(db_benchmark_leaderboard_markdown(payload), end="")
+        return
     elif args.db_cmd in {"runs", "hill-runs"}:
         rows = sqlite_rows(
             db,

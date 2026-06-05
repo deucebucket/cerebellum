@@ -170,6 +170,7 @@ cerebellum queue run-next --execute
 cerebellum pipeline-status --manifest /path/to/pipeline.json
 cerebellum benchmark-status --results-dir benchmark_results
 cerebellum benchmark-ingest benchmark_results --db db/cerebellum.db --suite release --model Cerebellum --require-complete
+cerebellum db --db db/cerebellum.db leaderboard --suite release
 cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir out --skip-inspect --json
 cerebellum cpu-offload-build-plan --source-gguf GLM.gguf --output-dir out --skip-inspect --write out/build_plan.json --json
 cerebellum hf-stats --author deucebucket --snapshot db/hf_downloads.jsonl
@@ -473,6 +474,9 @@ The ingest stores the manifest, audit, report, per-result records, and a
 `ready` verdict with explicit blockers for missing suite results or audit
 failures. `cerebellum db benchmarks --db db/cerebellum.db` then summarizes the
 durable benchmark rows.
+Use `cerebellum db --db db/cerebellum.db leaderboard --suite release` to build
+a durable leaderboard from the latest ready ingest per model, using the same
+weighted average and score/GiB math as `benchmark-report`.
 Use `benchmark-manifest` after a run to hash summary/detail artifacts, record
 which suite benchmarks have measured JSON, and produce a HF/model-card bundle
 manifest. Add `--require-complete` for release automation so missing suite
