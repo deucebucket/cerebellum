@@ -128,7 +128,7 @@ cerebellum api --host 127.0.0.1 --port 8931 --data-root /path/to/cerebellum-runs
 Initial endpoints include `/health`, `/runs`, `/run`, `/events`,
 `/measurements`, `/projects`, `/recover`, `/package`, `/system`, `/space`,
 `/tutorial`, `/self-test`, `/commands`, `/schema`, `/report`, `/provenance`,
-and `/db/families`.
+`/pipeline-plan`, and `/db/families`.
 
 Transparent provenance metadata:
 

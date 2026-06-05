@@ -35,6 +35,7 @@ from cerebellum import (
     package_manifest,
     parse_args,
     pipeline_plan,
+    pipeline_plan_args_from_query,
     pipeline_plan_markdown,
     pipeline_plan_cmd,
     public_audit,
@@ -459,6 +460,34 @@ def test_pipeline_plan_command_parses():
     assert args.output_dir == "out"
     assert args.benchmark_suite == "release"
     assert args.json is True
+
+
+def test_pipeline_plan_query_args_use_task_profile_defaults():
+    args = pipeline_plan_args_from_query(
+        {
+            "source_gguf": ["model.gguf"],
+            "output_dir": ["out"],
+            "task_profile": ["code"],
+            "model_name": ["Model X"],
+            "low_space": ["true"],
+        }
+    )
+    plan = pipeline_plan(args)
+
+    assert args.low_space is True
+    assert plan["ppl_profile"] == "code"
+    assert plan["benchmark_suite"] == "full"
+    assert plan["task_profile"] == "code"
+    assert plan["final_gguf"].endswith("model-x-code-cerebellum.gguf")
+
+
+def test_pipeline_plan_query_args_require_source_and_output():
+    try:
+        pipeline_plan_args_from_query({"source_gguf": ["model.gguf"]})
+    except ValueError as exc:
+        assert "output_dir query param required" in str(exc)
+    else:
+        raise AssertionError("pipeline-plan API query should require output_dir")
 
 
 def test_pipeline_plan_task_profile_sets_variant_defaults(tmp_path: Path):

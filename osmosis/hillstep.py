@@ -4273,6 +4273,63 @@ def pipeline_plan_cmd(args: argparse.Namespace) -> None:
     print(pipeline_plan_markdown(plan), end="")
 
 
+def query_value(qs: dict[str, list[str]], key: str, default: Any = None) -> Any:
+    return qs.get(key, [default])[0]
+
+
+def query_bool(qs: dict[str, list[str]], key: str, default: bool = False) -> bool:
+    value = str(query_value(qs, key, str(default))).lower()
+    return value in {"1", "true", "yes", "on"}
+
+
+def pipeline_plan_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    source = query_value(qs, "source_gguf")
+    output_dir = query_value(qs, "output_dir")
+    if not source:
+        raise ValueError("source_gguf query param required")
+    if not output_dir:
+        raise ValueError("output_dir query param required")
+    task_profile = query_value(qs, "task_profile")
+    profile = query_value(qs, "profile", "custom")
+    benchmark_suite = query_value(qs, "benchmark_suite", "release")
+    if task_profile and task_profile not in TASK_PROFILES:
+        raise ValueError(f"unknown task_profile {task_profile}")
+    if profile not in {*PPL_PROFILES, "custom"}:
+        raise ValueError(f"unknown profile {profile}")
+    if benchmark_suite not in BENCHMARK_SUITES:
+        raise ValueError(f"unknown benchmark_suite {benchmark_suite}")
+    return argparse.Namespace(
+        source_gguf=source,
+        output_dir=output_dir,
+        imatrix=query_value(qs, "imatrix"),
+        corpus=query_value(qs, "corpus"),
+        profile=profile,
+        family=query_value(qs, "family"),
+        model_name=query_value(qs, "model_name"),
+        source_name=query_value(qs, "source_name"),
+        run_name=query_value(qs, "run_name"),
+        run_dir=query_value(qs, "run_dir"),
+        data_root=query_value(qs, "data_root"),
+        scratch_root=query_value(qs, "scratch_root"),
+        base_type=query_value(qs, "base_type", "Q4_K_M"),
+        start_type=query_value(qs, "start_type", "q4_K"),
+        levels=query_value(qs, "levels", ",".join(DEFAULT_LEVELS)),
+        quantize_bin=query_value(qs, "quantize_bin", DEFAULT_QUANTIZE),
+        perplexity_bin=query_value(qs, "perplexity_bin", DEFAULT_PERPLEXITY),
+        gpu_layers=int(query_value(qs, "gpu_layers", 99)),
+        ctx_size=int(query_value(qs, "ctx_size", 2048)),
+        chunks=query_value(qs, "chunks"),
+        distrobox=query_value(qs, "distrobox"),
+        low_space=query_bool(qs, "low_space"),
+        benchmark_suite=benchmark_suite,
+        task_profile=task_profile,
+        benchmark_port=int(query_value(qs, "benchmark_port", 8084)),
+        repo_name=query_value(qs, "repo_name"),
+        write=None,
+        json=True,
+    )
+
+
 def task_profiles_markdown() -> str:
     rows = []
     for key, profile in TASK_PROFILES.items():
@@ -5636,7 +5693,7 @@ def self_test_payload(run_dir: Path | None = None) -> dict[str, Any]:
     add("system_info", bool(info.get("schema_version")), {"hostname": info.get("hostname"), "python": info.get("python")})
     add("llama_quantize", Path(str(info["binaries"].get("llama_quantize", ""))).exists(), info["binaries"].get("llama_quantize"))
     add("llama_perplexity", Path(str(info["binaries"].get("llama_perplexity", ""))).exists(), info["binaries"].get("llama_perplexity"))
-    add("api_catalog", True, ["/health", "/schema", "/tutorial", "/recover", "/export", "/commands"])
+    add("api_catalog", True, ["/health", "/schema", "/tutorial", "/recover", "/export", "/pipeline-plan", "/commands"])
     if run_dir:
         state = read_json(run_dir / "state.json", {})
         manifest = read_json(run_dir / "manifest.json", {})
@@ -6182,6 +6239,11 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 if not roots:
                     roots = [self.data_root, Path.cwd(), Path.home()]
                 self._json(space_plan(Path(source), roots, float(qs.get("margin_gb", ["20"])[0])))
+        elif parsed.path == "/pipeline-plan":
+            try:
+                self._json(pipeline_plan(pipeline_plan_args_from_query(qs)))
+            except ValueError as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/tutorial":
             topic = qs.get("topic", ["overview"])[0]
             if topic == "list":
@@ -6202,6 +6264,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "export_ai": "cerebellum export RUN_DIR --kind ai",
                         "imatrix": "cerebellum imatrix --model HF_OR_PATH --family FAMILY --model-name MODEL --source-name SOURCE",
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
+                        "pipeline_plan": "cerebellum pipeline-plan --source-gguf MODEL.gguf --output-dir OUT --json",
                     },
                     "state_changing_cli_only": {
                         "run": "cerebellum run --source-gguf MODEL.gguf --profile wiki --family FAMILY --model-name MODEL",
@@ -6216,6 +6279,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "runs": "/runs",
                         "run": "/run?run_dir=RUN_DIR",
                         "recover": "/recover?run_dir=RUN_DIR",
+                        "pipeline_plan": "/pipeline-plan?source_gguf=MODEL.gguf&output_dir=OUT",
                         "tutorial": "/tutorial?topic=overview",
                     },
                 }
@@ -6239,6 +6303,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/package", "params": ["run_dir"], "returns": "package/upload manifest"},
                         {"path": "/system", "params": [], "returns": "host resources and tool availability"},
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
+                        {"path": "/pipeline-plan", "params": ["source_gguf", "output_dir", "task_profile?", "benchmark_suite?"], "returns": "pipeline phase manifest"},
                         {"path": "/tutorial", "params": ["topic"], "returns": "tutorial lines"},
                         {"path": "/self-test", "params": ["run_dir?"], "returns": "read-only CLI/API smoke-check payload"},
                         {"path": "/commands", "params": [], "returns": "CLI command templates"},
@@ -6260,7 +6325,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
