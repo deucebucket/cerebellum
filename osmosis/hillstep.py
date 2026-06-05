@@ -5690,7 +5690,7 @@ def cpu_offload_smoke_payload(args: argparse.Namespace) -> dict[str, Any]:
         "blocked": bool(blockers),
         "blockers": blockers,
         "hazards": cpu_offload_hazards(source, args.model_name),
-        "space": space_plan(source, scratch_roots, args.margin_gb),
+        "space": space_plan(source, scratch_roots, args.margin_gb, create_dirs=getattr(args, "create_dirs", True)),
         "pipeline": plan,
         "inspect": inspect_payload,
         "smoke_commands": [
@@ -5736,6 +5736,34 @@ def cpu_offload_smoke_cmd(args: argparse.Namespace) -> None:
         print(cpu_offload_smoke_markdown(payload), end="")
     if payload["blocked"]:
         raise SystemExit(1)
+
+
+def cpu_offload_smoke_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    source = query_value(qs, "source_gguf")
+    output_dir = query_value(qs, "output_dir")
+    if not source:
+        raise ValueError("source_gguf query param required")
+    if not output_dir:
+        raise ValueError("output_dir query param required")
+    try:
+        benchmark_port = int(query_value(qs, "benchmark_port", "8084"))
+    except ValueError as exc:
+        raise ValueError("benchmark_port must be an integer") from exc
+    try:
+        margin_gb = float(query_value(qs, "margin_gb", "20.0"))
+    except ValueError as exc:
+        raise ValueError("margin_gb must be a number") from exc
+    return argparse.Namespace(
+        source_gguf=source,
+        output_dir=output_dir,
+        model_name=query_value(qs, "model_name", "GLM-5.1"),
+        scratch_root=query_value(qs, "scratch_root"),
+        benchmark_port=benchmark_port,
+        margin_gb=margin_gb,
+        skip_inspect=query_bool(qs, "skip_inspect", False),
+        require_inspect=query_bool(qs, "require_inspect", False),
+        create_dirs=False,
+    )
 
 
 def query_value(qs: dict[str, list[str]], key: str, default: Any = None) -> Any:
@@ -7737,7 +7765,7 @@ def self_test_cmd(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
-def space_plan(source: Path, candidates: list[Path], margin_gb: float) -> dict[str, Any]:
+def space_plan(source: Path, candidates: list[Path], margin_gb: float, create_dirs: bool = True) -> dict[str, Any]:
     source_size = path_size(source)
     required_single = int(source_size * 1.7 + margin_gb * 1e9)
     required_two_slot = int(source_size * 2.4 + margin_gb * 1e9)
@@ -7752,7 +7780,8 @@ def space_plan(source: Path, candidates: list[Path], margin_gb: float) -> dict[s
             continue
         seen.add(key)
         try:
-            path.mkdir(parents=True, exist_ok=True)
+            if create_dirs:
+                path.mkdir(parents=True, exist_ok=True)
             usage = shutil.disk_usage(path)
             writable = os.access(path, os.W_OK)
         except OSError as exc:
@@ -8448,7 +8477,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 roots = [Path(p) for p in qs.get("scratch", [])]
                 if not roots:
                     roots = [self.data_root, Path.cwd(), Path.home()]
-                self._json(space_plan(Path(source), roots, float(qs.get("margin_gb", ["20"])[0])))
+                self._json(space_plan(Path(source), roots, float(qs.get("margin_gb", ["20"])[0]), create_dirs=False))
         elif parsed.path == "/pipeline-plan":
             try:
                 self._json(pipeline_plan(pipeline_plan_args_from_query(qs)))
@@ -8477,6 +8506,11 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 args = benchmark_status_args_from_query(qs)
                 self._json(benchmark_status(Path(args.results_dir), Path(args.events) if args.events else None))
             except (ValueError, OSError, json.JSONDecodeError) as exc:
+                self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/cpu-offload-smoke":
+            try:
+                self._json(cpu_offload_smoke_payload(cpu_offload_smoke_args_from_query(qs)))
+            except (ValueError, OSError, RuntimeError, SystemExit, json.JSONDecodeError) as exc:
                 self._json({"error": str(exc)}, 400)
         elif parsed.path == "/benchmark-manifest":
             try:
@@ -8589,6 +8623,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "pipeline_status": "cerebellum pipeline-status --manifest pipeline.json --json",
                         "benchmark_plan": "cerebellum benchmark-plan --suite release --model MODEL --json",
                         "benchmark_status": "cerebellum benchmark-status --results-dir benchmark_results --json",
+                        "cpu_offload_smoke": "cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir OUT --skip-inspect --json",
                         "benchmark_manifest": "cerebellum benchmark-manifest benchmark_results --suite release --model MODEL --json",
                         "benchmark_audit": "cerebellum benchmark-audit benchmark_results --json",
                         "benchmark_report": "cerebellum benchmark-report benchmark_results --leaderboard --suite frontier --json",
@@ -8619,6 +8654,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "pipeline_status": "/pipeline-status?manifest=pipeline.json",
                         "benchmark_plan": "/benchmark-plan?suite=release&model=MODEL",
                         "benchmark_status": "/benchmark-status?results_dir=benchmark_results",
+                        "cpu_offload_smoke": "/cpu-offload-smoke?source_gguf=GLM.gguf&output_dir=OUT&skip_inspect=true",
                         "benchmark_manifest": "/benchmark-manifest?path=benchmark_results&suite=release&model=MODEL",
                         "benchmark_audit": "/benchmark-audit?path=benchmark_results",
                         "benchmark_report": "/benchmark-report?path=benchmark_results&leaderboard=true&suite=frontier",
@@ -8656,6 +8692,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/pipeline-status", "params": ["manifest", "events?"], "returns": "pipeline execution status and resume command from event logs"},
                         {"path": "/benchmark-plan", "params": ["suite?", "model?", "port?", "results_dir?"], "returns": "benchmark suite command/artifact readiness plan"},
                         {"path": "/benchmark-status", "params": ["results_dir?", "events?"], "returns": "benchmark execution status and rerun command from event logs"},
+                        {"path": "/cpu-offload-smoke", "params": ["source_gguf", "output_dir", "model_name?", "scratch_root?", "benchmark_port?", "margin_gb?", "skip_inspect?", "require_inspect?"], "returns": "read-only huge-model CPU-offload preflight smoke payload"},
                         {"path": "/benchmark-manifest", "params": ["path", "suite?", "model?", "require_complete?"], "returns": "hashed benchmark artifact manifest"},
                         {"path": "/benchmark-audit", "params": ["path", "fail_empty_pct?", "fail_unknown_pct?", "fail_pass_only_pct?"], "returns": "benchmark detailed-artifact quality audit"},
                         {"path": "/benchmark-report", "params": ["path", "baseline?", "leaderboard?", "suite?", "size?", "size_json?", "weight?", "list_suites?"], "returns": "benchmark aggregate comparison and leaderboard report"},
@@ -8686,7 +8723,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-status /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-status /cpu-offload-smoke /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 

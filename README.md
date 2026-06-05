@@ -162,6 +162,7 @@ cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_result
 cerebellum artifact-inventory . --output cerebellum-dev/artifact_inventory.json --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
 cerebellum pipeline-status --manifest /path/to/pipeline.json
 cerebellum benchmark-status --results-dir benchmark_results
+cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir out --skip-inspect --json
 cerebellum hf-stats --author deucebucket --snapshot db/hf_downloads.jsonl
 ```
 
@@ -195,6 +196,10 @@ the resume command for the failed or next pending phase.
 Use `benchmark-status` after `benchmark-run --execute` to read
 `benchmark_run_events.jsonl`, summarize finished/running/failed benchmarks, and
 print the exact logged command for a failed or interrupted benchmark.
+Use `cpu-offload-smoke` before huge GLM-style builds to validate source stat,
+scratch-space planning, streaming artifact flow, optional GGUF inspection, and
+CPU-offload hazards without launching quantization. The API endpoint
+`/cpu-offload-smoke` is read-only and does not create scratch/output dirs.
 Use `hf-stats` for release telemetry. The default public Hugging Face model API
 reports rolling/recent downloads, not lifetime totals, so Cerebellum labels
 those fields as `downloads_recent`. True all-time totals require Hugging Face

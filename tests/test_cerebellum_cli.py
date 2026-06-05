@@ -50,6 +50,7 @@ from cerebellum import (
     compare_gguf_types_args_from_query,
     compare_gguf_types_markdown,
     cpu_offload_smoke_cmd,
+    cpu_offload_smoke_args_from_query,
     cpu_offload_smoke_markdown,
     cpu_offload_smoke_payload,
     discover_projects,
@@ -1405,6 +1406,45 @@ def test_cpu_offload_smoke_validates_plan_without_full_model_load(tmp_path: Path
     assert any(row["name"] == "glm-layout-unverified" for row in payload["hazards"])
     assert "CPU-Offload Smoke" in markdown
     assert cmd_payload["schema"] == "cerebellum.cpu_offload_smoke.v1"
+
+
+def test_cpu_offload_smoke_api_query_args_do_not_create_output_dir(tmp_path: Path):
+    source = tmp_path / "glm.gguf"
+    source.write_bytes(b"gguf" * 1024)
+    output_dir = tmp_path / "missing-output"
+    args = cpu_offload_smoke_args_from_query(
+        {
+            "source_gguf": [str(source)],
+            "output_dir": [str(output_dir)],
+            "model_name": ["GLM 5.1"],
+            "skip_inspect": ["true"],
+            "margin_gb": ["1.5"],
+            "benchmark_port": ["18080"],
+        }
+    )
+
+    payload = cpu_offload_smoke_payload(args)
+
+    assert args.create_dirs is False
+    assert payload["schema"] == "cerebellum.cpu_offload_smoke.v1"
+    assert payload["blocked"] is False
+    assert not output_dir.exists()
+
+
+def test_cpu_offload_smoke_api_query_args_validate_required_fields():
+    try:
+        cpu_offload_smoke_args_from_query({"source_gguf": ["model.gguf"]})
+    except ValueError as exc:
+        assert "output_dir query param required" in str(exc)
+    else:
+        raise AssertionError("cpu-offload-smoke API query should require output_dir")
+
+    try:
+        cpu_offload_smoke_args_from_query({"source_gguf": ["model.gguf"], "output_dir": ["out"], "benchmark_port": ["many"]})
+    except ValueError as exc:
+        assert "benchmark_port must be an integer" in str(exc)
+    else:
+        raise AssertionError("cpu-offload-smoke API query should validate benchmark_port")
 
 
 def test_cpu_offload_smoke_can_block_on_inspect_failure(tmp_path: Path):
