@@ -4495,6 +4495,22 @@ def benchmark_plan_cmd(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+def benchmark_plan_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespace:
+    suite = query_value(qs, "suite", "full")
+    if suite not in BENCHMARK_SUITES:
+        raise ValueError(f"unknown benchmark suite {suite}")
+    try:
+        port = int(query_value(qs, "port", 8084))
+    except ValueError as exc:
+        raise ValueError("port must be an integer") from exc
+    return argparse.Namespace(
+        suite=suite,
+        model=query_value(qs, "model", "cerebellum"),
+        port=port,
+        results_dir=query_value(qs, "results_dir", "benchmark_results"),
+    )
+
+
 def rebench_model_label(repo: str) -> str:
     return slug(repo.split("/", 1)[-1]).lower()
 
@@ -7699,6 +7715,12 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 self._json(pipeline_run_plan(Path(args.manifest), from_phase=args.from_phase, until_phase=args.until_phase))
             except (ValueError, SystemExit, OSError, json.JSONDecodeError) as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/benchmark-plan":
+            try:
+                args = benchmark_plan_args_from_query(qs)
+                self._json(benchmark_plan(args.suite, args.model, args.port, args.results_dir))
+            except ValueError as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/artifact-inventory":
             try:
                 args = artifact_inventory_args_from_query(qs)
@@ -7744,6 +7766,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "provenance": "cerebellum provenance --run-dir RUN_DIR",
                         "pipeline_plan": "cerebellum pipeline-plan --source-gguf MODEL.gguf --output-dir OUT --json",
                         "pipeline_run": "cerebellum pipeline-run --manifest pipeline.json --json",
+                        "benchmark_plan": "cerebellum benchmark-plan --suite release --model MODEL --json",
                         "artifact_inventory": "cerebellum artifact-inventory ROOT --json",
                         "public_export_plan": "cerebellum public-export OUT --dry-run --json",
                         "benchmark_rebench_plan": "cerebellum benchmark-rebench-plan --suite humaneval --json",
@@ -7764,6 +7787,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "recover": "/recover?run_dir=RUN_DIR",
                         "pipeline_plan": "/pipeline-plan?source_gguf=MODEL.gguf&output_dir=OUT",
                         "pipeline_run": "/pipeline-run?manifest=pipeline.json",
+                        "benchmark_plan": "/benchmark-plan?suite=release&model=MODEL",
                         "artifact_inventory": "/artifact-inventory?root=ROOT&top=25",
                         "public_export_plan": "/public-export-plan?path=README.md&path=docs",
                         "benchmark_rebench_plan": "/benchmark-rebench-plan?suite=humaneval",
@@ -7793,6 +7817,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
                         {"path": "/pipeline-plan", "params": ["source_gguf", "output_dir", "task_profile?", "benchmark_suite?"], "returns": "pipeline phase manifest"},
                         {"path": "/pipeline-run", "params": ["manifest", "from_phase?", "until_phase?"], "returns": "pipeline dry-run phase validation"},
+                        {"path": "/benchmark-plan", "params": ["suite?", "model?", "port?", "results_dir?"], "returns": "benchmark suite command/artifact readiness plan"},
                         {"path": "/artifact-inventory", "params": ["root", "top?", "allow_broad?"], "returns": "preservation-first legacy artifact inventory"},
                         {"path": "/public-export-plan", "params": ["path?", "paths?", "max_bytes?"], "returns": "sanitized public export dry-run manifest"},
                         {"path": "/benchmark-rebench-plan", "params": ["suite=humaneval|release?", "results_root?", "port?", "model?", "correction_issue?"], "returns": "published-model corrected rebench queue"},
@@ -7818,7 +7843,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /system /space /pipeline-plan /pipeline-run /benchmark-plan /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 

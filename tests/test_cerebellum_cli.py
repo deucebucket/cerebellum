@@ -22,6 +22,7 @@ from cerebellum import (
     benchmark_manifest_cmd,
     benchmark_manifest_markdown,
     benchmark_plan,
+    benchmark_plan_args_from_query,
     benchmark_plan_cmd,
     benchmark_plan_markdown,
     benchmark_rebench_plan,
@@ -396,6 +397,36 @@ def test_benchmark_plan_command_parses():
     assert args.results_dir == "out"
     assert args.require_ready is True
     assert args.json is True
+
+
+def test_benchmark_plan_api_query_args_validate():
+    args = benchmark_plan_args_from_query(
+        {
+            "suite": ["frontier"],
+            "model": ["gemma4_12b"],
+            "port": ["18080"],
+            "results_dir": ["out"],
+        }
+    )
+
+    assert args.suite == "frontier"
+    assert args.model == "gemma4_12b"
+    assert args.port == 18080
+    assert args.results_dir == "out"
+
+    try:
+        benchmark_plan_args_from_query({"suite": ["unknown"]})
+    except ValueError as exc:
+        assert "unknown benchmark suite unknown" in str(exc)
+    else:
+        raise AssertionError("invalid benchmark suite should fail")
+
+    try:
+        benchmark_plan_args_from_query({"port": ["many"]})
+    except ValueError as exc:
+        assert "port must be an integer" in str(exc)
+    else:
+        raise AssertionError("invalid benchmark port should fail")
 
 
 def test_benchmark_rebench_plan_lists_affected_models_and_audits():
