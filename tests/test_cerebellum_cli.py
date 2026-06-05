@@ -27,6 +27,10 @@ from cerebellum import (
     benchmark_plan_args_from_query,
     benchmark_plan_cmd,
     benchmark_plan_markdown,
+    benchmark_run_cmd,
+    benchmark_run_execute,
+    benchmark_run_markdown,
+    benchmark_run_plan,
     benchmark_rebench_plan,
     benchmark_rebench_plan_args_from_query,
     benchmark_rebench_plan_markdown,
@@ -496,6 +500,93 @@ def test_benchmark_plan_command_parses():
     assert args.results_dir == "out"
     assert args.require_ready is True
     assert args.json is True
+
+
+def test_benchmark_run_command_parses():
+    args = parse_args(["benchmark-run", "--suite", "frontier", "--model", "gemma4", "--port", "18080", "--results-dir", "out", "--benchmark", "mmlu_pro", "--execute", "--json"])
+
+    assert args.cmd == "benchmark-run"
+    assert args.suite == "frontier"
+    assert args.model == "gemma4"
+    assert args.port == 18080
+    assert args.results_dir == "out"
+    assert args.benchmark == ["mmlu_pro"]
+    assert args.execute is True
+    assert args.json is True
+
+
+def test_benchmark_run_plan_filters_and_reports_blockers():
+    plan = benchmark_run_plan("capability", model="gemma4", port=18080, results_dir="out", benchmarks=["aime_2025"])
+    markdown = benchmark_run_markdown(plan)
+
+    assert plan["schema"] == "cerebellum.benchmark_run.v1"
+    assert plan["dry_run"] is True
+    assert plan["blocked"] is True
+    assert [row["benchmark"] for row in plan["benchmarks"]] == ["aime_2025"]
+    assert plan["blockers"][0]["benchmark"] == "aime_2025"
+    assert "Benchmark Run" in markdown
+    assert "Blockers" in markdown
+
+    try:
+        benchmark_run_plan("frontier", model="gemma4", port=18080, results_dir="out", benchmarks=["missing"])
+    except SystemExit as exc:
+        assert "unknown benchmark(s) for suite frontier: missing" in str(exc)
+    else:
+        raise AssertionError("benchmark-run should reject unknown selected benchmark")
+
+
+def test_benchmark_run_cmd_executes_selected_benchmark(tmp_path: Path, capsys, monkeypatch):
+    output = tmp_path / "bench.out"
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit", ["unit_smoke"])
+    monkeypatch.setitem(
+        hillstep.BENCHMARK_CATALOG,
+        "unit_smoke",
+        {
+            "name": "Unit smoke",
+            "status": "implemented",
+            "script": "-c",
+            "workers": 1,
+            "args": [f"from pathlib import Path; Path({str(output)!r}).write_text('ok')"],
+            "artifacts": ["{model}_unit_smoke_results.json"],
+        },
+    )
+
+    dry_args = parse_args(["benchmark-run", "--suite", "unit", "--model", "unit-model", "--results-dir", str(tmp_path), "--benchmark", "unit_smoke"])
+    benchmark_run_cmd(dry_args)
+    assert "# Benchmark Run" in capsys.readouterr().out
+
+    execute_args = parse_args(["benchmark-run", "--suite", "unit", "--model", "unit-model", "--results-dir", str(tmp_path), "--benchmark", "unit_smoke", "--execute", "--json"])
+    benchmark_run_cmd(execute_args)
+    payload = json.loads(capsys.readouterr().out)
+
+    assert payload["dry_run"] is False
+    assert output.read_text(encoding="utf-8") == "ok"
+    assert Path(payload["event_log"]).is_file()
+    assert Path(payload["executions"][0]["log"]).is_file()
+
+
+def test_benchmark_run_execute_stops_on_failure(tmp_path: Path, monkeypatch):
+    skipped = tmp_path / "skipped.out"
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_fail", ["fail", "skip"])
+    monkeypatch.setitem(
+        hillstep.BENCHMARK_CATALOG,
+        "fail",
+        {"name": "Fail", "status": "implemented", "script": "-c", "args": ["raise SystemExit(6)"]},
+    )
+    monkeypatch.setitem(
+        hillstep.BENCHMARK_CATALOG,
+        "skip",
+        {"name": "Skip", "status": "implemented", "script": "-c", "args": [f"from pathlib import Path; Path({str(skipped)!r}).write_text('bad')"]},
+    )
+
+    plan = benchmark_run_plan("unit_fail", model="unit-model", port=18080, results_dir=str(tmp_path))
+    result = benchmark_run_execute(plan)
+
+    assert result["dry_run"] is False
+    assert result["blocked"] is True
+    assert result["blockers"] == [{"benchmark": "fail", "status": "implemented", "reason": "command exited 6"}]
+    assert [row["benchmark"] for row in result["executions"]] == ["fail"]
+    assert not skipped.exists()
 
 
 def test_benchmark_plan_api_query_args_validate():

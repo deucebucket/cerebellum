@@ -2498,6 +2498,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_plan_parser.add_argument("--require-ready", action="store_true", help="exit non-zero if any suite benchmark lacks an implemented runner")
     benchmark_plan_parser.add_argument("--json", action="store_true")
 
+    benchmark_run_parser = sub.add_parser("benchmark-run", help="validate or execute a Cerebellum benchmark suite plan")
+    benchmark_run_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    benchmark_run_parser.add_argument("--model", default="cerebellum", help="BENCH_MODEL label for generated commands")
+    benchmark_run_parser.add_argument("--port", type=int, default=8084, help="llama-server port used by generated commands")
+    benchmark_run_parser.add_argument("--results-dir", default="benchmark_results", help="directory for benchmark artifacts and logs")
+    benchmark_run_parser.add_argument("--benchmark", action="append", help="run only this benchmark key; may be repeated")
+    benchmark_run_parser.add_argument("--execute", action="store_true", help="actually run benchmark commands; dry-run is default")
+    benchmark_run_parser.add_argument("--json", action="store_true")
+
     rebench_plan_parser = sub.add_parser("benchmark-rebench-plan", help="plan corrected HumanEval+/release reruns for published models")
     rebench_plan_parser.add_argument("--suite", choices=["humaneval", "release"], default="humaneval")
     rebench_plan_parser.add_argument("--results-root", default="benchmark_results/rebench_20260605")
@@ -4521,6 +4530,144 @@ def benchmark_plan_cmd(args: argparse.Namespace) -> None:
     else:
         print(benchmark_plan_markdown(plan), end="")
     if args.require_ready and not plan["readiness"]["ready"]:
+        raise SystemExit(1)
+
+
+def benchmark_run_plan(
+    suite: str,
+    model: str,
+    port: int,
+    results_dir: str,
+    benchmarks: list[str] | None = None,
+) -> dict[str, Any]:
+    plan = benchmark_plan(suite, model, port, results_dir)
+    selected = list(plan["rows"])
+    if benchmarks:
+        wanted = set(benchmarks)
+        known = {row["benchmark"] for row in selected}
+        unknown = sorted(wanted - known)
+        if unknown:
+            raise SystemExit(f"unknown benchmark(s) for suite {suite}: {', '.join(unknown)}")
+        selected = [row for row in selected if row["benchmark"] in wanted]
+    blockers = [
+        {
+            "benchmark": row["benchmark"],
+            "status": row["status"],
+            "reason": row.get("note") or "runner not implemented",
+        }
+        for row in selected
+        if row["status"] != "implemented" or not row.get("command")
+    ]
+    return {
+        "schema": "cerebellum.benchmark_run.v1",
+        "suite": suite,
+        "purpose": plan.get("purpose", ""),
+        "model": model,
+        "port": port,
+        "results_dir": results_dir,
+        "dry_run": True,
+        "benchmarks": selected,
+        "blocked": bool(blockers),
+        "blockers": blockers,
+    }
+
+
+def benchmark_run_markdown(plan: dict[str, Any]) -> str:
+    rows = [
+        [row["benchmark"], row["status"], "-" if row.get("workers") is None else str(row["workers"]), row.get("command") or row.get("note") or "-"]
+        for row in plan["benchmarks"]
+    ]
+    parts = [
+        f"# Benchmark Run ({plan['suite']})",
+        "",
+        f"mode: `{'dry-run' if plan.get('dry_run') else 'execute'}`",
+        f"model: `{plan['model']}`",
+        f"results_dir: `{plan['results_dir']}`",
+        "",
+        markdown_table(["Benchmark", "Status", "Workers", "Command / note"], rows),
+    ]
+    if plan.get("blockers"):
+        parts.extend(["", "## Blockers", "", markdown_table(["Benchmark", "Status", "Reason"], [[row["benchmark"], row["status"], row["reason"]] for row in plan["blockers"]])])
+    if plan.get("executions"):
+        parts.extend(
+            [
+                "",
+                "## Executions",
+                "",
+                markdown_table(["Benchmark", "Return", "Log"], [[row["benchmark"], str(row["returncode"]), row["log"]] for row in plan["executions"]]),
+            ]
+        )
+    return "\n".join(parts) + "\n"
+
+
+def append_benchmark_run_event(path: Path, event: dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "a", encoding="utf-8") as f:
+        f.write(json.dumps({"time": utc_now(), **event}, sort_keys=True) + "\n")
+
+
+def split_env_prefixed_command(command: str) -> tuple[dict[str, str], list[str]]:
+    env: dict[str, str] = {}
+    argv = shlex.split(command)
+    while argv and re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", argv[0]):
+        key, value = argv.pop(0).split("=", 1)
+        env[key] = value
+    if not argv:
+        raise ValueError("command has no executable")
+    return env, argv
+
+
+def benchmark_run_execute(plan: dict[str, Any]) -> dict[str, Any]:
+    if plan["blocked"]:
+        raise SystemExit("benchmark-run has blockers; use an implemented benchmark selection before --execute")
+    results_dir = Path(str(plan["results_dir"]))
+    log_dir = results_dir / "benchmark_run_logs"
+    event_log = results_dir / "benchmark_run_events.jsonl"
+    executions: list[dict[str, Any]] = []
+    for row in plan["benchmarks"]:
+        benchmark = str(row["benchmark"])
+        command = str(row["command"])
+        log_path = log_dir / f"{slug(benchmark)}.log"
+        append_benchmark_run_event(event_log, {"event": "benchmark_start", "benchmark": benchmark, "command": command})
+        started = time.monotonic()
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(log_path, "w", encoding="utf-8") as log:
+            env_prefix, argv = split_env_prefixed_command(command)
+            proc = subprocess.run(argv, cwd=Path.cwd(), env={**os.environ, **env_prefix}, stdout=log, stderr=subprocess.STDOUT, text=True, check=False)
+        elapsed = time.monotonic() - started
+        execution = {
+            "benchmark": benchmark,
+            "command": command,
+            "returncode": proc.returncode,
+            "elapsed_seconds": round(elapsed, 3),
+            "log": str(log_path),
+        }
+        executions.append(execution)
+        append_benchmark_run_event(event_log, {"event": "benchmark_finish", **execution})
+        if proc.returncode != 0:
+            plan.update(
+                {
+                    "dry_run": False,
+                    "blocked": True,
+                    "blockers": [{"benchmark": benchmark, "status": row.get("status"), "reason": f"command exited {proc.returncode}"}],
+                    "executions": executions,
+                    "event_log": str(event_log),
+                }
+            )
+            return plan
+    plan.update({"dry_run": False, "executions": executions, "event_log": str(event_log)})
+    return plan
+
+
+def benchmark_run_cmd(args: argparse.Namespace) -> None:
+    plan = benchmark_run_plan(args.suite, args.model, args.port, args.results_dir, args.benchmark)
+    if args.execute:
+        plan = benchmark_run_execute(plan)
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+    else:
+        print(benchmark_run_markdown(plan), end="")
+    if plan["blocked"]:
         raise SystemExit(1)
 
 
@@ -7979,6 +8126,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "cleanup_partials": "cerebellum cleanup RUN_DIR --partials --yes",
                         "rollback_layer": "cerebellum rollback RUN_DIR --last-completed-layer --yes",
                         "backup": "cerebellum backup RUN_DIR --to BACKUP_ROOT",
+                        "benchmark_run": "cerebellum benchmark-run --suite frontier --model MODEL --results-dir benchmark_results --execute",
                         "finalize": "cerebellum finalize --run-dir RUN_DIR --gguf MODEL.gguf",
                     },
                     "api": {
@@ -8294,6 +8442,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-plan":
         benchmark_plan_cmd(args)
+        return
+    if args.cmd == "benchmark-run":
+        benchmark_run_cmd(args)
         return
     if args.cmd == "benchmark-rebench-plan":
         benchmark_rebench_plan_cmd(args)
