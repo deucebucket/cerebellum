@@ -1090,6 +1090,12 @@ def test_queue_command_parses():
     assert args.priority == 10
     assert args.json is True
 
+    run_next = parse_args(["queue", "--db", "queue.db", "run-next", "--kind", "benchmark", "--execute"])
+    assert run_next.queue_cmd == "run-next"
+    assert run_next.kind == "benchmark"
+    assert run_next.status == "queued"
+    assert run_next.execute is True
+
 
 def test_queue_add_list_get_pipeline_manifest(tmp_path: Path):
     db = tmp_path / "queue.db"
@@ -1136,6 +1142,44 @@ def test_queue_cmd_lists_json(tmp_path: Path, capsys):
 
     assert added["schema"] == "cerebellum.queue.v1"
     assert listed["jobs"][0]["payload"]["command"] == "cerebellum benchmark-run --suite release"
+
+
+def test_queue_run_next_dry_run_does_not_change_status(tmp_path: Path, capsys):
+    db = tmp_path / "queue.db"
+    add_args = parse_args(["queue", "--db", str(db), "--json", "add", "--kind", "benchmark", "--command", "python -c 'print(1)'"])
+    queue_cmd(add_args)
+    capsys.readouterr()
+    run_args = parse_args(["queue", "--db", str(db), "--json", "run-next", "--kind", "benchmark"])
+
+    queue_cmd(run_args)
+    payload = json.loads(capsys.readouterr().out)
+    jobs = queue_list_jobs(db)
+
+    assert payload["schema"] == "cerebellum.queue_run.v1"
+    assert payload["dry_run"] is True
+    assert payload["job"]["status"] == "queued"
+    assert jobs[0]["status"] == "queued"
+
+
+def test_queue_run_next_executes_command_job(tmp_path: Path, capsys):
+    db = tmp_path / "queue.db"
+    output = tmp_path / "queue.out"
+    command = f"{sys.executable} -c \"from pathlib import Path; Path({str(output)!r}).write_text('ok')\""
+    add_args = parse_args(["queue", "--db", str(db), "--json", "add", "--kind", "run", "--command", command])
+    queue_cmd(add_args)
+    capsys.readouterr()
+    run_args = parse_args(["queue", "--db", str(db), "--json", "run-next", "--kind", "run", "--execute"])
+
+    queue_cmd(run_args)
+    payload = json.loads(capsys.readouterr().out)
+    job = queue_get_job(db, payload["job"]["id"])
+
+    assert payload["dry_run"] is False
+    assert payload["result"]["returncode"] == 0
+    assert job["status"] == "completed"
+    assert job["result_json"]
+    assert Path(job["log"]).is_file()
+    assert output.read_text(encoding="utf-8") == "ok"
 
 
 def test_pipeline_run_plan_slices_manifest(tmp_path: Path):

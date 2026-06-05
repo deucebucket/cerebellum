@@ -1346,6 +1346,11 @@ def ensure_hill_tables(conn: sqlite3.Connection) -> None:
             priority INTEGER NOT NULL DEFAULT 100,
             payload_json TEXT NOT NULL,
             notes TEXT,
+            started_at TEXT,
+            finished_at TEXT,
+            log TEXT,
+            result_json TEXT,
+            last_error TEXT,
             created_at TEXT NOT NULL,
             updated_at TEXT NOT NULL
         );
@@ -1354,6 +1359,16 @@ def ensure_hill_tables(conn: sqlite3.Connection) -> None:
         CREATE INDEX IF NOT EXISTS idx_cerebellum_jobs_kind ON cerebellum_jobs(kind, status);
         """
     )
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(cerebellum_jobs)").fetchall()}
+    for name, decl in {
+        "started_at": "TEXT",
+        "finished_at": "TEXT",
+        "log": "TEXT",
+        "result_json": "TEXT",
+        "last_error": "TEXT",
+    }.items():
+        if name not in existing:
+            conn.execute(f"ALTER TABLE cerebellum_jobs ADD COLUMN {name} {decl}")
 
 
 def import_run_to_db(db: Path, run_dir: Path) -> dict[str, Any]:
@@ -1461,6 +1476,13 @@ def decode_queue_row(row: dict[str, Any]) -> dict[str, Any]:
 
 
 def queue_get_job(db: Path, job_id: int) -> dict[str, Any]:
+    if not db.exists():
+        raise SystemExit(f"queue job {job_id} not found")
+    conn = sqlite3.connect(db)
+    try:
+        ensure_hill_tables(conn)
+    finally:
+        conn.close()
     rows = sqlite_rows(db, "SELECT * FROM cerebellum_jobs WHERE id = ?", (job_id,))
     if not rows:
         raise SystemExit(f"queue job {job_id} not found")
@@ -1501,6 +1523,13 @@ def queue_add_job(args: argparse.Namespace) -> dict[str, Any]:
 
 
 def queue_list_jobs(db: Path, status: str | None = None, kind: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+    if not db.exists():
+        return []
+    conn = sqlite3.connect(db)
+    try:
+        ensure_hill_tables(conn)
+    finally:
+        conn.close()
     where = []
     params: list[Any] = []
     if status:
@@ -1515,6 +1544,94 @@ def queue_list_jobs(db: Path, status: str | None = None, kind: str | None = None
     sql += " ORDER BY priority ASC, id ASC LIMIT ?"
     params.append(max(1, int(limit)))
     return [decode_queue_row(row) for row in sqlite_rows(db, sql, tuple(params))]
+
+
+def queue_next_job(db: Path, status: str = "queued", kind: str | None = None) -> dict[str, Any] | None:
+    jobs = queue_list_jobs(db, status=status, kind=kind, limit=1)
+    return jobs[0] if jobs else None
+
+
+def queue_update_job(
+    db: Path,
+    job_id: int,
+    *,
+    status: str,
+    started_at: str | None = None,
+    finished_at: str | None = None,
+    log: str | None = None,
+    result: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> dict[str, Any]:
+    now = utc_now()
+    conn = sqlite3.connect(db)
+    try:
+        ensure_hill_tables(conn)
+        with conn:
+            conn.execute(
+                """
+                UPDATE cerebellum_jobs
+                SET status = ?,
+                    started_at = COALESCE(?, started_at),
+                    finished_at = COALESCE(?, finished_at),
+                    log = COALESCE(?, log),
+                    result_json = COALESCE(?, result_json),
+                    last_error = ?,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (
+                    status,
+                    started_at,
+                    finished_at,
+                    log,
+                    json.dumps(result, sort_keys=True) if result is not None else None,
+                    error,
+                    now,
+                    job_id,
+                ),
+            )
+    finally:
+        conn.close()
+    return queue_get_job(db, job_id)
+
+
+def queue_execute_command(command: str, log_path: Path) -> dict[str, Any]:
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    env_prefix, argv = split_env_prefixed_command(command)
+    started = time.monotonic()
+    with open(log_path, "w", encoding="utf-8") as log_file:
+        proc = subprocess.run(argv, cwd=Path.cwd(), env={**os.environ, **env_prefix}, stdout=log_file, stderr=subprocess.STDOUT, text=True, check=False)
+    return {"returncode": proc.returncode, "elapsed_seconds": round(time.monotonic() - started, 3), "log": str(log_path), "command": command}
+
+
+def queue_run_job(db: Path, job: dict[str, Any], execute: bool = False) -> dict[str, Any]:
+    payload = job.get("payload", {})
+    log_path = db.parent / "queue_logs" / f"job_{job['id']}.log"
+    dry_result = {"schema": "cerebellum.queue_run.v1", "dry_run": True, "job": job, "log": str(log_path)}
+    if not execute:
+        return dry_result
+    started_at = utc_now()
+    queue_update_job(db, int(job["id"]), status="running", started_at=started_at, log=str(log_path), error=None)
+    try:
+        if job["kind"] == "pipeline":
+            manifest = payload.get("manifest")
+            if not manifest:
+                raise RuntimeError("pipeline queue job missing manifest")
+            result = pipeline_run_execute(pipeline_run_plan(Path(str(manifest))))
+            returncode = 1 if result.get("blocked") else 0
+            result["returncode"] = returncode
+        else:
+            command = payload.get("command")
+            if not command:
+                raise RuntimeError(f"{job['kind']} queue job missing command")
+            result = queue_execute_command(str(command), log_path)
+            returncode = int(result["returncode"])
+        status = "completed" if returncode == 0 else "failed"
+        finished = queue_update_job(db, int(job["id"]), status=status, finished_at=utc_now(), log=str(result.get("log") or log_path), result=result, error=None if returncode == 0 else f"command exited {returncode}")
+        return {"schema": "cerebellum.queue_run.v1", "dry_run": False, "job": finished, "result": result}
+    except Exception as exc:
+        failed = queue_update_job(db, int(job["id"]), status="failed", finished_at=utc_now(), log=str(log_path), result=None, error=str(exc))
+        return {"schema": "cerebellum.queue_run.v1", "dry_run": False, "job": failed, "error": str(exc)}
 
 
 def queue_markdown(payload: dict[str, Any]) -> str:
@@ -1534,6 +1651,36 @@ def queue_markdown(payload: dict[str, Any]) -> str:
     ) + "\n"
 
 
+def queue_run_markdown(payload: dict[str, Any]) -> str:
+    job = payload.get("job")
+    parts = [
+        "# Cerebellum Queue Run",
+        "",
+        f"mode: `{'dry-run' if payload.get('dry_run') else 'execute'}`",
+        f"db: `{payload.get('db', '-')}`",
+    ]
+    if not job:
+        parts.append(f"message: `{payload.get('message', 'no job')}`")
+        return "\n".join(parts) + "\n"
+    parts.extend(
+        [
+            f"job: `{job['id']}`",
+            f"kind: `{job['kind']}`",
+            f"status: `{job['status']}`",
+            f"label: `{job.get('label') or '-'}`",
+        ]
+    )
+    if payload.get("result"):
+        result = payload["result"]
+        parts.append(f"returncode: `{result.get('returncode')}`")
+        parts.append(f"log: `{result.get('log') or job.get('log') or '-'}`")
+    elif payload.get("log"):
+        parts.append(f"log: `{payload['log']}`")
+    if payload.get("error"):
+        parts.append(f"error: `{payload['error']}`")
+    return "\n".join(parts) + "\n"
+
+
 def queue_cmd(args: argparse.Namespace) -> None:
     db = Path(args.db)
     if args.queue_cmd == "add":
@@ -1542,10 +1689,19 @@ def queue_cmd(args: argparse.Namespace) -> None:
         payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": queue_list_jobs(db, status=args.status, kind=args.kind, limit=args.limit)}
     elif args.queue_cmd == "get":
         payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": [queue_get_job(db, args.id)]}
+    elif args.queue_cmd == "run-next":
+        job = queue_next_job(db, status=args.status, kind=args.kind)
+        if job is None:
+            payload = {"schema": "cerebellum.queue_run.v1", "db": str(db), "dry_run": not args.execute, "job": None, "message": "no matching queued job"}
+        else:
+            payload = queue_run_job(db, job, execute=args.execute)
+            payload["db"] = str(db)
     else:
         raise SystemExit(f"unknown queue command: {args.queue_cmd}")
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
+    elif args.queue_cmd == "run-next":
+        print(queue_run_markdown(payload), end="")
     else:
         print(queue_markdown(payload), end="")
 
@@ -2555,6 +2711,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     queue_list.add_argument("--limit", type=int, default=50)
     queue_get = queue_sub.add_parser("get")
     queue_get.add_argument("id", type=int)
+    queue_run_next = queue_sub.add_parser("run-next")
+    queue_run_next.add_argument("--kind", choices=["pipeline", "benchmark", "run"], default=None)
+    queue_run_next.add_argument("--status", default="queued")
+    queue_run_next.add_argument("--execute", action="store_true", help="actually run the selected job; default is dry-run")
 
     pipeline_plan_parser = sub.add_parser("pipeline-plan", help="write a full Cerebellum pipeline command manifest")
     pipeline_plan_parser.add_argument("--source-gguf", required=True)
@@ -8824,6 +8984,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "rollback_layer": "cerebellum rollback RUN_DIR --last-completed-layer --yes",
                         "backup": "cerebellum backup RUN_DIR --to BACKUP_ROOT",
                         "queue_add": "cerebellum queue add --kind pipeline --manifest pipeline.json",
+                        "queue_run_next": "cerebellum queue run-next --execute",
                         "benchmark_run": "cerebellum benchmark-run --suite frontier --model MODEL --results-dir benchmark_results --execute",
                         "cpu_offload_smoke": "cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir OUT --json",
                         "finalize": "cerebellum finalize --run-dir RUN_DIR --gguf MODEL.gguf",
