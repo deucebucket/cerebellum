@@ -167,6 +167,10 @@ SPECIAL_QUANT_NORMALIZE = {
 }
 
 
+def normalize_target_name(tensor_name: str) -> str:
+    return tensor_name if tensor_name.endswith(".weight") else f"{tensor_name}.weight"
+
+
 def unsupported_rowblock_layout_reason(tensor_name: str) -> str | None:
     """Return a fail-fast reason for tensors whose physical row layout is unresolved."""
     if tensor_name.endswith(".attn_qkv.weight"):
@@ -175,6 +179,46 @@ def unsupported_rowblock_layout_reason(tensor_name: str) -> str | None:
             "row-block patching can write the wrong logical rows"
         )
     return None
+
+
+def special_tensor_override_plan(tensor_name: str, quant_label: str) -> dict | None:
+    special_kwarg = SPECIAL_TENSORS.get(tensor_name)
+    if special_kwarg is None:
+        return None
+    normalized = SPECIAL_QUANT_NORMALIZE.get(quant_label, quant_label)
+    return {
+        "tensor": tensor_name,
+        "llama_quantize_flag": "--" + special_kwarg.replace("_", "-"),
+        "requested_quant": quant_label,
+        "effective_tensor_quant": normalized,
+        "variant_normalized": normalized != quant_label,
+        "reason": "--tensor-type-file is silently ignored for this tensor by llama-quantize",
+    }
+
+
+def rowblock_safety_report(tensor_name: str, base_quant: str, tensor_base_quant: str,
+                           low_quant: str, allow_unsupported_layout: bool = False) -> dict:
+    target = normalize_target_name(tensor_name)
+    unsupported_reason = unsupported_rowblock_layout_reason(target)
+    special_low = special_tensor_override_plan(target, low_quant)
+    special_base = special_tensor_override_plan(target, tensor_base_quant)
+    blocked = bool(unsupported_reason and not allow_unsupported_layout)
+    return {
+        "target_tensor": target,
+        "rowblock_safe": not blocked,
+        "blocked": blocked,
+        "unsupported_layout_reason": unsupported_reason,
+        "allow_unsupported_layout": allow_unsupported_layout,
+        "base_quant": base_quant,
+        "tensor_base_quant": tensor_base_quant,
+        "low_quant": low_quant,
+        "special_tensor": target in SPECIAL_TENSORS,
+        "special_overrides": [row for row in [special_low, special_base] if row is not None],
+        "notes": [
+            "validate-only does not prove byte layout; first-block PPL sanity still guards runtime patches",
+            "unsupported fused layouts should use whole-tensor ablation until layout-aware patching lands",
+        ],
+    }
 
 
 def measure_ppl(gguf_path: str, corpus_path: str, ctx_size: int = 2048,
@@ -251,8 +295,8 @@ def patch_f16_tensor(gguf_path: str, tensor_offset: int, fp32_data: np.ndarray):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--source-gguf", required=True)
-    ap.add_argument("--imatrix", required=True)
+    ap.add_argument("--source-gguf")
+    ap.add_argument("--imatrix")
     ap.add_argument("--target-tensor", required=True,
                     help="GGUF tensor name (e.g. blk.5.ffn_down.weight)")
     ap.add_argument("--base-quant", default="Q3_K_M",
@@ -265,24 +309,41 @@ def main():
                     help="Quant whose dequantized values get spliced into row-blocks")
     ap.add_argument("--block-size", type=int, default=128,
                     help="Rows per row-block (~1.4 MB shard target for large MLPs)")
-    ap.add_argument("--corpus-dir", required=True)
-    ap.add_argument("--output", required=True)
+    ap.add_argument("--corpus-dir")
+    ap.add_argument("--output")
     ap.add_argument("--domains", default=",".join(DEFAULT_DOMAINS))
     ap.add_argument("--allow-near-neutral-first-block", action="store_true",
                     help="Continue if block 0 is nearly neutral across domains")
     ap.add_argument("--allow-unsupported-layout", action="store_true",
                     help="Bypass fail-fast guard for known unresolved tensor storage layouts")
+    ap.add_argument("--validate-only", action="store_true",
+                    help="Print rowblock safety/override report and exit before quant/PPL work")
     args = ap.parse_args()
 
     domains = [d.strip() for d in args.domains.split(",") if d.strip()]
+    target = normalize_target_name(args.target_tensor)
+    base_quant = args.base_quant
+    tensor_base_quant = args.tensor_base_quant or base_quant
+    low_quant = args.low_quant
+
+    safety = rowblock_safety_report(target, base_quant, tensor_base_quant, low_quant,
+                                    allow_unsupported_layout=args.allow_unsupported_layout)
+    if args.validate_only:
+        print(json.dumps(safety, indent=2, sort_keys=True))
+        sys.exit(6 if safety["blocked"] else 0)
+
+    missing = [name for name in ["source_gguf", "imatrix", "corpus_dir", "output"] if not getattr(args, name)]
+    if missing:
+        print(f"FATAL: missing required arguments for rowblock run: {', '.join('--' + name.replace('_', '-') for name in missing)}",
+              file=sys.stderr)
+        print("  For a path-free safety check, use --validate-only.", file=sys.stderr)
+        sys.exit(2)
+
     output_path = Path(args.output)
     corpus_dir = Path(args.corpus_dir)
 
     WORK_DIR.mkdir(parents=True, exist_ok=True)
 
-    target = args.target_tensor
-    if not target.endswith(".weight"):
-        target += ".weight"
     unsupported_reason = unsupported_rowblock_layout_reason(target)
     if unsupported_reason and not args.allow_unsupported_layout:
         print(f"FATAL: {target} is not row-block safe yet: {unsupported_reason}.", file=sys.stderr)
@@ -291,10 +352,6 @@ def main():
         print("  To intentionally reproduce/debug the old behavior, pass --allow-unsupported-layout.",
               file=sys.stderr)
         sys.exit(6)
-
-    base_quant = args.base_quant
-    tensor_base_quant = args.tensor_base_quant or base_quant
-    low_quant = args.low_quant
 
     # NOTE: llama-quantize applies hardcoded per-tensor overrides for some tensors
     # (output.weight, token_embd.weight forced to Q6_K regardless of base type).
