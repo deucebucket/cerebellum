@@ -150,9 +150,10 @@ compatible `gguf-set-metadata` tool is installed, `--inject` can tag the GGUF.
 `compare-gguf-types` is useful for private Dynamic GGUF/Cerebellum comparisons:
 it reports tensor-type deltas by type, component, and layer.
 `package` writes a portable upload manifest. Public mode is the default and
-includes only release-safe finalize/model-card provenance sidecars. Use
+writes sanitized release sidecars under `public_package/`, with no run IDs, raw
+PPL, tensor maps, event logs, local paths, or selection internals. Use
 `--private` only for private dev uploads that intentionally include raw state,
-events, candidates, decisions, or tensor maps.
+events, candidates, decisions, tensor maps, or private finalize sidecars.
 Run `public-audit` before anything is staged for `origin`; it exits non-zero
 when it sees private paths, raw factory artifacts, local machine paths, or
 token-like content.

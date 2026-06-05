@@ -2273,6 +2273,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     provenance.add_argument("--gguf", default=None, help="GGUF to inspect for existing metadata")
     provenance.add_argument("--run-dir", default=None, help="Cerebellum run directory used to generate metadata")
     provenance.add_argument("--hash-files", action="store_true", help="compute full SHA256 hashes for large files")
+    provenance.add_argument("--private", action="store_true", help="include private run IDs, raw PPL, tensor-map hashes, and event/candidate sidecar names")
     provenance.add_argument("--format", choices=["json", "env"], default="json")
 
     inspect_types = sub.add_parser("inspect-gguf-types", help="summarize GGUF tensor quantization types")
@@ -2299,6 +2300,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     finalize.add_argument("--repo-name", default=None, help="Optional HF/GitHub repo name for model-card text")
     finalize.add_argument("--output-dir", default=None, help="Defaults to RUN_DIR/finalize")
     finalize.add_argument("--hash-files", action="store_true")
+    finalize.add_argument("--private", action="store_true", help="write private finalize sidecars with run IDs, raw PPL, and factory hashes")
     finalize.add_argument("--inject", action="store_true", help="Inject visible cerebellum.* metadata into --gguf when supported")
     finalize.add_argument("--metadata-tool", default=None, help="Path to gguf-set-metadata compatible tool")
     finalize.add_argument("--json", action="store_true")
@@ -3639,7 +3641,7 @@ def build_report(run_dir: Path) -> dict[str, Any]:
     }
 
 
-def cerebellum_metadata_block(run_dir: Path, gguf: Path | None = None, hash_files: bool = False) -> dict[str, Any]:
+def cerebellum_metadata_block(run_dir: Path, gguf: Path | None = None, hash_files: bool = False, private: bool = False) -> dict[str, Any]:
     report = build_report(run_dir)
     manifest = read_json(run_dir / "manifest.json", {})
     files = manifest.get("files", {})
@@ -3648,27 +3650,32 @@ def cerebellum_metadata_block(run_dir: Path, gguf: Path | None = None, hash_file
     metadata = {
         "cerebellum.tool": "Cerebellum",
         "cerebellum.provenance_schema": "1",
-        "cerebellum.run_id": report.get("run_id"),
         "cerebellum.model_family": report.get("model_family"),
         "cerebellum.model_name": report.get("model_name"),
         "cerebellum.source_name": report.get("source_name"),
         "cerebellum.ppl_profile": report.get("ppl_profile"),
-        "cerebellum.corpus": report.get("corpus"),
         "cerebellum.base_type": manifest.get("base_type"),
         "cerebellum.start_type": manifest.get("start_type"),
         "cerebellum.levels": ",".join(manifest.get("levels") or []),
         "cerebellum.locked_count": str(report.get("locked_count")),
-        "cerebellum.candidate_count": str(report.get("candidate_count")),
-        "cerebellum.current_ppl": str(report.get("current_ppl")),
-        "cerebellum.run_dir_sha256": hashlib.sha256(str(run_dir).encode()).hexdigest(),
-        "cerebellum.tensor_types_sha256": sha256_file(final_types) if hash_files else None,
-        "cerebellum.summary_sha256": sha256_file(summary) if hash_files else None,
         "cerebellum.source_gguf_sha256": sha256_file(Path(manifest["source_gguf"])) if hash_files and manifest.get("source_gguf") else None,
         "cerebellum.final_gguf_sha256": sha256_file(gguf) if hash_files and gguf else None,
     }
-    if files:
-        metadata["cerebellum.events_file"] = Path(files.get("events", "")).name
-        metadata["cerebellum.candidates_file"] = Path(files.get("candidates", "")).name
+    if private:
+        metadata.update(
+            {
+                "cerebellum.run_id": report.get("run_id"),
+                "cerebellum.corpus": report.get("corpus"),
+                "cerebellum.candidate_count": str(report.get("candidate_count")),
+                "cerebellum.current_ppl": str(report.get("current_ppl")),
+                "cerebellum.run_dir_sha256": hashlib.sha256(str(run_dir).encode()).hexdigest(),
+                "cerebellum.tensor_types_sha256": sha256_file(final_types) if hash_files else None,
+                "cerebellum.summary_sha256": sha256_file(summary) if hash_files else None,
+            }
+        )
+        if files:
+            metadata["cerebellum.events_file"] = Path(files.get("events", "")).name
+            metadata["cerebellum.candidates_file"] = Path(files.get("candidates", "")).name
     return {key: value for key, value in metadata.items() if value is not None}
 
 
@@ -5385,7 +5392,7 @@ def provenance_cmd(args: argparse.Namespace) -> None:
     payload: dict[str, Any] = {}
     gguf = Path(args.gguf) if args.gguf else None
     if args.run_dir:
-        payload["generated_metadata"] = cerebellum_metadata_block(Path(args.run_dir), gguf, args.hash_files)
+        payload["generated_metadata"] = cerebellum_metadata_block(Path(args.run_dir), gguf, args.hash_files, private=args.private)
     if gguf:
         payload["gguf"] = str(gguf)
         payload["existing_cerebellum_metadata"] = inspect_gguf_metadata(gguf)
@@ -5402,6 +5409,18 @@ def provenance_cmd(args: argparse.Namespace) -> None:
 def write_model_card(run_dir: Path, output_dir: Path, metadata: dict[str, Any], repo_name: str | None = None) -> Path:
     report = build_report(run_dir)
     title = repo_name or f"{report.get('model_name')} Cerebellum GGUF"
+    provenance_lines = [
+        f"- Model: `{metadata.get('cerebellum.model_family')}/{metadata.get('cerebellum.model_name')}`",
+        f"- Source: `{metadata.get('cerebellum.source_name')}`",
+        f"- PPL profile: `{metadata.get('cerebellum.ppl_profile')}`",
+        f"- Locked tensors: `{metadata.get('cerebellum.locked_count')}`",
+    ]
+    if metadata.get("cerebellum.run_id"):
+        provenance_lines.append(f"- Run ID: `{metadata.get('cerebellum.run_id')}`")
+    if metadata.get("cerebellum.current_ppl"):
+        provenance_lines.append(f"- Current PPL: `{metadata.get('cerebellum.current_ppl')}`")
+    if metadata.get("cerebellum.candidate_count"):
+        provenance_lines.append(f"- Candidate tests: `{metadata.get('cerebellum.candidate_count')}`")
     lines = [
         f"# {title}",
         "",
@@ -5409,13 +5428,7 @@ def write_model_card(run_dir: Path, output_dir: Path, metadata: dict[str, Any], 
         "",
         "## Cerebellum provenance",
         "",
-        f"- Run ID: `{metadata.get('cerebellum.run_id')}`",
-        f"- Model: `{metadata.get('cerebellum.model_family')}/{metadata.get('cerebellum.model_name')}`",
-        f"- Source: `{metadata.get('cerebellum.source_name')}`",
-        f"- PPL profile: `{metadata.get('cerebellum.ppl_profile')}`",
-        f"- Current PPL: `{metadata.get('cerebellum.current_ppl')}`",
-        f"- Locked tensors: `{metadata.get('cerebellum.locked_count')}`",
-        f"- Candidate tests: `{metadata.get('cerebellum.candidate_count')}`",
+        *provenance_lines,
         "",
         "## Metadata keys",
         "",
@@ -5465,7 +5478,7 @@ def finalize_cmd(args: argparse.Namespace) -> None:
     output_dir = Path(args.output_dir) if args.output_dir else run_dir / "finalize"
     report = build_report(run_dir)
     write_report_files(run_dir, report, ["json", "md", "csv", "infographic"])
-    metadata = cerebellum_metadata_block(run_dir, gguf, args.hash_files)
+    metadata = cerebellum_metadata_block(run_dir, gguf, args.hash_files, private=args.private)
     output_dir.mkdir(parents=True, exist_ok=True)
     metadata_path = output_dir / "cerebellum_gguf_metadata.json"
     atomic_write_json(metadata_path, metadata)
@@ -5489,6 +5502,7 @@ def finalize_cmd(args: argparse.Namespace) -> None:
         "written": [str(metadata_path), str(env_path), str(card_path)],
         "metadata_tool": tool,
         "injection": injection,
+        "mode": "private" if args.private else "public",
     }
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
@@ -5507,12 +5521,68 @@ def finalize_cmd(args: argparse.Namespace) -> None:
         print("  metadata not injected; rerun with --inject to tag the GGUF")
 
 
+def public_release_label(report: dict[str, Any]) -> str:
+    label = report.get("model_name") or report.get("model") or "cerebellum-release"
+    return slug(str(label)).lower() or "cerebellum-release"
+
+
+def public_package_report(report: dict[str, Any]) -> dict[str, Any]:
+    family = report.get("model_family")
+    name = report.get("model_name") or report.get("model") or "unknown-model"
+    model = f"{family}/{name}" if family else str(name)
+    return {
+        "model": model,
+        "status": report.get("status"),
+        "release_label": public_release_label(report),
+    }
+
+
+def write_public_package_sidecars(run_dir: Path, report: dict[str, Any]) -> list[Path]:
+    output_dir = run_dir / "public_package"
+    output_dir.mkdir(parents=True, exist_ok=True)
+    public_report = public_package_report(report)
+    metadata_path = output_dir / "cerebellum_public_metadata.json"
+    atomic_write_json(
+        metadata_path,
+        {
+            "schema": "cerebellum.public_metadata.v1",
+            "tool": "Cerebellum",
+            **public_report,
+            "notes": [
+                "Public metadata intentionally excludes run IDs, raw PPL, tensor maps, event logs, local paths, and selection internals.",
+                "Private provenance and factory artifacts belong in cerebellum-dev only.",
+            ],
+        },
+    )
+    card_path = output_dir / "MODEL_CARD_CEREBELLUM.md"
+    card_path.write_text(
+        "\n".join(
+            [
+                f"# {public_report['model']} Cerebellum GGUF",
+                "",
+                "This GGUF was produced with **Cerebellum**, a resource-aware mixed-precision quantization workflow.",
+                "",
+                "## Public Provenance",
+                "",
+                f"- Model: `{public_report['model']}`",
+                f"- Status: `{public_report['status']}`",
+                f"- Release label: `{public_report['release_label']}`",
+                "",
+                "Detailed benchmark artifacts, model file hashes, and runtime flags should be attached separately for published releases.",
+                "",
+                "Private run IDs, raw ablation logs, tensor maps, candidate PPL traces, local paths, and selection internals are intentionally omitted.",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return [metadata_path, card_path]
+
+
 def package_files(run_dir: Path, private: bool = False) -> list[Path]:
-    finalize_dir = run_dir / "finalize"
+    report = build_report(run_dir)
     public_candidates = [
-        finalize_dir / "cerebellum_gguf_metadata.json",
-        finalize_dir / "cerebellum_gguf_metadata.env",
-        finalize_dir / "MODEL_CARD_CEREBELLUM.md",
+        *write_public_package_sidecars(run_dir, report),
     ]
     private_candidates = [
         run_dir / "manifest.json",
@@ -5540,7 +5610,7 @@ def package_manifest(run_dir: Path, private: bool = False) -> dict[str, Any]:
                 "name": path.name,
                 "size_bytes": size,
                 "sha256": sha256_file(path) if size < 128 * 1024 * 1024 else None,
-                "hf_path": f"cerebellum_runs/{report['run_id']}/{path.name}",
+                "hf_path": remote_sidecar_path(report, path, private=private),
             }
         )
         if private:
@@ -5548,14 +5618,12 @@ def package_manifest(run_dir: Path, private: bool = False) -> dict[str, Any]:
     payload = {
         "schema": "cerebellum.package.v1",
         "mode": "private" if private else "public",
-        "run_id": report["run_id"],
         "model": f"{report.get('model_family')}/{report.get('model_name')}",
         "status": report.get("status"),
-        "ppl_profile": report.get("ppl_profile"),
         "files": files,
         "notes": [
             (
-                "Public mode includes only release-safe finalize/model-card provenance sidecars. "
+                "Public mode writes sanitized release sidecars and excludes raw factory artifacts. "
                 "Use --private only for private dev uploads."
             ),
             "If GGUF metadata is stripped, compare public sidecar provenance and model-card text.",
@@ -5563,6 +5631,10 @@ def package_manifest(run_dir: Path, private: bool = False) -> dict[str, Any]:
     }
     if private:
         payload["run_dir"] = str(run_dir)
+        payload["run_id"] = report["run_id"]
+        payload["ppl_profile"] = report.get("ppl_profile")
+    else:
+        payload.update(public_package_report(report))
     return payload
 
 
@@ -6293,14 +6365,13 @@ def auth_cmd(args: argparse.Namespace) -> None:
 
 
 def public_report_summary(report: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "run_id": report.get("run_id"),
-        "model": f"{report.get('model_family')}/{report.get('model_name')}",
-        "status": report.get("status"),
-        "ppl_profile": report.get("ppl_profile"),
-        "locked_count": report.get("locked_count"),
-        "candidate_count": report.get("candidate_count"),
-    }
+    return public_package_report(report)
+
+
+def remote_sidecar_path(report: dict[str, Any], path: Path, private: bool = False) -> str:
+    if private:
+        return f"cerebellum_runs/{report['run_id']}/{path.name}"
+    return f"cerebellum_releases/{public_release_label(report)}/{path.name}"
 
 
 def github_upload_plan(
@@ -6311,14 +6382,14 @@ def github_upload_plan(
     private: bool = False,
     include_local_paths: bool = True,
 ) -> dict[str, Any]:
-    target_branch = branch or f"cerebellum-run-{report['run_id']}"
+    target_branch = branch or (f"cerebellum-run-{report['run_id']}" if private else f"cerebellum-release-{public_release_label(report)}")
     planned_files = []
     for path in files:
         planned_files.append(
             {
                 "name": path.name,
                 "size_bytes": path_size(path),
-                "github_path": f"cerebellum_runs/{report['run_id']}/{path.name}",
+                "github_path": remote_sidecar_path(report, path, private=private),
             }
         )
         if include_local_paths:
@@ -6444,7 +6515,7 @@ def upload_cmd(args: argparse.Namespace) -> None:
         for path in files:
             upload_file(
                 path_or_fileobj=str(path),
-                path_in_repo=f"cerebellum_runs/{report['run_id']}/{path.name}",
+                path_in_repo=remote_sidecar_path(report, path, private=args.private),
                 repo_id=args.repo,
                 repo_type=args.repo_type,
                 token=token,

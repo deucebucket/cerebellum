@@ -21,6 +21,7 @@ from cerebellum import (
     benchmark_plan_markdown,
     benchmark_report,
     benchmark_report_markdown,
+    cerebellum_metadata_block,
     clear_terminal_markers,
     compare_locks,
     build_recovery_plan,
@@ -370,6 +371,16 @@ def test_benchmark_plan_command_parses():
     assert args.results_dir == "out"
     assert args.require_ready is True
     assert args.json is True
+
+
+def test_provenance_and_finalize_private_flags_parse():
+    provenance = parse_args(["provenance", "--run-dir", "/tmp/run", "--private", "--hash-files"])
+    finalize = parse_args(["finalize", "--run-dir", "/tmp/run", "--private", "--json"])
+
+    assert provenance.private is True
+    assert provenance.hash_files is True
+    assert finalize.private is True
+    assert finalize.json is True
 
 
 def test_benchmark_plan_cmd_exits_when_required_suite_not_ready(capsys):
@@ -1329,13 +1340,13 @@ def test_private_watch_shows_locked_layer_map(tmp_path: Path, monkeypatch, capsy
     assert "ffn_down=q3_K" in output
 
 
-def test_package_files_default_to_public_safe_finalize_sidecars(tmp_path: Path):
+def test_package_files_default_to_public_safe_sidecars(tmp_path: Path):
     run_dir = tmp_path / "run"
     finalize = run_dir / "finalize"
     finalize.mkdir(parents=True)
+    (run_dir / "manifest.json").write_text('{"run_id":"run","model_family":"gemma","model_name":"tiny"}', encoding="utf-8")
+    (run_dir / "state.json").write_text('{"run_status":"complete","locked":{},"tested":[]}', encoding="utf-8")
     raw_names = [
-        "manifest.json",
-        "state.json",
         "cerebellum_events.jsonl",
         "cerebellum_candidates.jsonl",
         "cerebellum_summary.json",
@@ -1351,8 +1362,9 @@ def test_package_files_default_to_public_safe_finalize_sidecars(tmp_path: Path):
     public = {path.name for path in package_files(run_dir)}
     private = {path.name for path in package_files(run_dir, private=True)}
 
-    assert public == {"cerebellum_gguf_metadata.json", "cerebellum_gguf_metadata.env", "MODEL_CARD_CEREBELLUM.md"}
-    assert set(raw_names).issubset(private)
+    assert public == {"cerebellum_public_metadata.json", "MODEL_CARD_CEREBELLUM.md"}
+    assert "cerebellum_gguf_metadata.env" not in public
+    assert {"manifest.json", "state.json", *raw_names}.issubset(private)
 
 
 def test_package_manifest_marks_public_mode(tmp_path: Path):
@@ -1370,9 +1382,44 @@ def test_package_manifest_marks_public_mode(tmp_path: Path):
     payload = package_manifest(run_dir)
 
     assert payload["mode"] == "public"
+    assert "run_id" not in payload
+    assert "ppl_profile" not in payload
     assert "run_dir" not in payload
-    assert [item["name"] for item in payload["files"]] == ["MODEL_CARD_CEREBELLUM.md"]
-    assert "path" not in payload["files"][0]
+    assert payload["release_label"] == "tiny"
+    assert [item["name"] for item in payload["files"]] == ["cerebellum_public_metadata.json", "MODEL_CARD_CEREBELLUM.md"]
+    assert all("path" not in item for item in payload["files"])
+    assert all("run" not in item["hf_path"] for item in payload["files"])
+    assert payload["files"][0]["hf_path"] == "cerebellum_releases/tiny/cerebellum_public_metadata.json"
+
+
+def test_cerebellum_metadata_block_defaults_to_public_safe_keys(tmp_path: Path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "run_id": "run",
+                "model_family": "gemma",
+                "model_name": "tiny",
+                "source_name": "hf",
+                "ppl_profile": "wiki",
+                "corpus": "/tmp/wiki.test.raw",
+                "files": {"events": "/tmp/cerebellum_events.jsonl", "candidates": "/tmp/cerebellum_candidates.jsonl"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "state.json").write_text('{"run_status":"complete","current_ppl":1234.5,"locked":{},"tested":[]}', encoding="utf-8")
+
+    public = cerebellum_metadata_block(run_dir)
+    private = cerebellum_metadata_block(run_dir, private=True)
+
+    assert "cerebellum.run_id" not in public
+    assert "cerebellum.current_ppl" not in public
+    assert "cerebellum.events_file" not in public
+    assert private["cerebellum.run_id"] == "run"
+    assert private["cerebellum.current_ppl"] == "1234.5"
+    assert private["cerebellum.events_file"] == "cerebellum_events.jsonl"
 
 
 def test_public_audit_blocks_private_paths_and_local_content(tmp_path: Path):
@@ -1497,30 +1544,46 @@ def test_public_report_summary_strips_factory_fields():
     )
 
     assert summary == {
-        "run_id": "run",
         "model": "gemma/tiny",
         "status": "running",
-        "ppl_profile": "wiki",
-        "locked_count": 3,
-        "candidate_count": 9,
+        "release_label": "tiny",
     }
 
 
-def test_github_upload_plan_uses_run_sidecar_paths(tmp_path: Path):
+def test_github_upload_plan_redacts_run_id_in_public_mode(tmp_path: Path):
     sidecar = tmp_path / "cerebellum_summary.json"
     sidecar.write_text("{}", encoding="utf-8")
 
     plan = github_upload_plan(
-        {"run_id": "gemma4-live", "status": "complete"},
+        {"run_id": "gemma4-live", "model_name": "Gemma 4 12B", "status": "complete"},
         [sidecar],
         "deucebucket/cerebellum-dev",
         None,
     )
 
-    assert plan["branch"] == "cerebellum-run-gemma4-live"
+    assert plan["branch"] == "cerebellum-release-gemma-4-12b"
     assert plan["mode"] == "public"
-    assert plan["files"][0]["github_path"] == "cerebellum_runs/gemma4-live/cerebellum_summary.json"
+    assert plan["files"][0]["github_path"] == "cerebellum_releases/gemma-4-12b/cerebellum_summary.json"
     assert plan["files"][0]["size_bytes"] == 2
+    assert plan["report"] == {"model": "Gemma 4 12B", "status": "complete", "release_label": "gemma-4-12b"}
+
+
+def test_github_upload_plan_keeps_run_paths_only_private(tmp_path: Path):
+    sidecar = tmp_path / "cerebellum_summary.json"
+    sidecar.write_text("{}", encoding="utf-8")
+
+    plan = github_upload_plan(
+        {"run_id": "gemma4-live", "model_name": "Gemma 4 12B", "status": "complete"},
+        [sidecar],
+        "deucebucket/cerebellum-dev",
+        None,
+        private=True,
+    )
+
+    assert plan["branch"] == "cerebellum-run-gemma4-live"
+    assert plan["mode"] == "private"
+    assert plan["files"][0]["github_path"] == "cerebellum_runs/gemma4-live/cerebellum_summary.json"
+    assert plan["report"]["run_id"] == "gemma4-live"
 
 
 def test_public_github_upload_result_omits_local_paths(tmp_path: Path, monkeypatch):
