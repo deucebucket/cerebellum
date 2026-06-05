@@ -2910,6 +2910,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     cpu_offload_smoke.add_argument("--require-inspect", action="store_true", help="exit non-zero if GGUF tensor inspection fails")
     cpu_offload_smoke.add_argument("--json", action="store_true")
 
+    cpu_offload_build = sub.add_parser("cpu-offload-build-plan", help="write a no-execute huge-model CPU-offload streaming build manifest")
+    cpu_offload_build.add_argument("--source-gguf", required=True)
+    cpu_offload_build.add_argument("--output-dir", required=True)
+    cpu_offload_build.add_argument("--model-name", default="GLM-5.1")
+    cpu_offload_build.add_argument("--scratch-root", default=None)
+    cpu_offload_build.add_argument("--benchmark-port", type=int, default=8084)
+    cpu_offload_build.add_argument("--margin-gb", type=float, default=20.0)
+    cpu_offload_build.add_argument("--skip-inspect", action="store_true", help="skip GGUF tensor parsing and use stat/plan/space workflow only")
+    cpu_offload_build.add_argument("--require-inspect", action="store_true", help="exit non-zero if GGUF tensor inspection fails")
+    cpu_offload_build.add_argument("--manifest", default=None, help="pipeline manifest path; defaults under --output-dir")
+    cpu_offload_build.add_argument("--write", default=None, help="write build plan JSON to this path")
+    cpu_offload_build.add_argument("--json", action="store_true")
+
     task_profiles = sub.add_parser("task-profiles", help="list task-specific Cerebellum variant profiles")
     task_profiles.add_argument("--json", action="store_true")
 
@@ -3082,7 +3095,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "inspect-gguf-types", "finalize", "package", "plan-space",
             "public-audit", "public-export", "release-gate", "artifact-inventory",
             "benchmark-plan", "benchmark-run", "benchmark-ingest", "benchmark-status", "benchmark-rebench-plan", "benchmark-manifest", "benchmark-audit",
-            "benchmark-report", "cpu-offload-smoke", "compare-gguf-types", "compare-locks",
+            "benchmark-report", "cpu-offload-smoke", "cpu-offload-build-plan", "compare-gguf-types", "compare-locks",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
             "cleanup", "rollback",
             "backup",
@@ -6326,7 +6339,7 @@ def cpu_offload_streaming_quant_dry_run(
         "artifact_flow": artifact_flow,
         "preflight_commands": [
             shell_join(["cerebellum", "system"]),
-            shell_join(["cerebellum", "plan-space", "--source-gguf", source, "--scratch", output_dir, "--margin-gb", "20"]),
+            shell_join(["cerebellum", "plan-space", "--source-gguf", source, "--scratch-candidates", output_dir, "--margin-gb", "20"]),
             shell_join(["cerebellum", "inspect-gguf-types", source, "--by-component", "--json"]),
         ],
         "execution_guard": "plan only; actual streaming quant build must be launched separately and monitored",
@@ -6464,6 +6477,147 @@ def cpu_offload_smoke_cmd(args: argparse.Namespace) -> None:
     else:
         print(cpu_offload_smoke_markdown(payload), end="")
     if payload["blocked"]:
+        raise SystemExit(1)
+
+
+def cpu_offload_build_plan_payload(args: argparse.Namespace) -> dict[str, Any]:
+    source = Path(args.source_gguf)
+    output_dir = Path(args.output_dir)
+    manifest_path = Path(args.manifest) if args.manifest else output_dir / "cpu_offload_pipeline.json"
+    smoke_args = argparse.Namespace(**vars(args))
+    smoke_args.create_dirs = False
+    smoke = cpu_offload_smoke_payload(smoke_args)
+    pipeline = smoke["pipeline"]
+    cpu_plan = pipeline["cpu_offload_plan"]
+    dry_run = cpu_plan["streaming_quant_dry_run"]
+    run_dir = Path(pipeline["run_dir"])
+    commands = {
+        "prepare_output_dir": shell_join(["mkdir", "-p", output_dir]),
+        "write_pipeline_manifest": shell_join(
+            [
+                "cerebellum",
+                "pipeline-plan",
+                "--source-gguf",
+                source,
+                "--output-dir",
+                output_dir,
+                "--model-name",
+                args.model_name,
+                "--task-profile",
+                "cpu-offload",
+                "--write",
+                manifest_path,
+                "--json",
+            ]
+        ),
+        "queue_pipeline": shell_join(["cerebellum", "queue", "add", "--kind", "pipeline", "--manifest", manifest_path]),
+        "run_next": shell_join(["cerebellum", "queue", "run-next", "--execute"]),
+        "status": shell_join(["cerebellum", "pipeline-status", "--manifest", manifest_path]),
+        "watch_ablation": shell_join(["cerebellum", "watch", run_dir]),
+        "resume_ablation": shell_join(["cerebellum", "resume", run_dir, "--low-space"]),
+        "benchmark_status": shell_join(["cerebellum", "benchmark-status", "--results-dir", output_dir / "benchmark_results"]),
+        "release_gate": shell_join(
+            [
+                "cerebellum",
+                "release-gate",
+                "README.md",
+                "docs",
+                output_dir / "benchmark_results",
+                "--remote",
+                "origin",
+                "--benchmark-results",
+                output_dir / "benchmark_results",
+                "--suite",
+                "release",
+                "--model",
+                args.model_name,
+                "--require-benchmarks",
+            ]
+        ),
+    }
+    operator_steps = [
+        {"step": "prepare", "command": commands["prepare_output_dir"], "notes": "create the output directory for manifests and later artifacts"},
+        {"step": "preflight", "command": commands["write_pipeline_manifest"], "notes": "writes the exact cpu-offload pipeline manifest; no quantization"},
+        {"step": "queue", "command": commands["queue_pipeline"], "notes": "stores the manifest in the Cerebellum queue"},
+        {"step": "execute", "command": commands["run_next"], "notes": "launches the queued pipeline when ready"},
+        {"step": "monitor", "command": commands["watch_ablation"], "notes": "watch the long ablation run and locked tensor map"},
+        {"step": "resume", "command": commands["resume_ablation"], "notes": "resume after interruption without discarding progress"},
+        {"step": "benchmarks", "command": commands["benchmark_status"], "notes": "track throughput and benchmark artifacts"},
+        {"step": "public gate", "command": commands["release_gate"], "notes": "block origin pushes until public/benchmark gates pass"},
+    ]
+    return {
+        "schema": "cerebellum.cpu_offload_build_plan.v1",
+        "dry_run": True,
+        "source": str(source),
+        "output_dir": str(output_dir),
+        "manifest": str(manifest_path),
+        "model_name": args.model_name,
+        "full_model_ram_load_required": False,
+        "ready": not smoke["blocked"],
+        "blockers": smoke["blockers"],
+        "hazards": smoke["hazards"],
+        "space": smoke["space"],
+        "pipeline": pipeline,
+        "streaming_quant": dry_run,
+        "artifact_flow": dry_run["artifact_flow"],
+        "disk_requirements": dry_run["disk_requirements"],
+        "expected_outputs": cpu_plan["expected_outputs"],
+        "runtime_targets": cpu_plan["runtime_targets"],
+        "operator_steps": operator_steps,
+        "commands": commands,
+        "notes": [
+            "This command does not run quantization or load the full model into RAM.",
+            "Use the emitted queue/run/watch commands to launch and monitor the actual GLM-scale build.",
+            "CPU-offload success requires recording CPU tok/s, RAM GiB, GPU offload layers, final size, and benchmark quality.",
+        ],
+    }
+
+
+def cpu_offload_build_plan_markdown(payload: dict[str, Any]) -> str:
+    rows = [
+        [row["phase"], row["requirement"], "-" if row["additional_gib"] is None else str(row["additional_gib"]), row["note"]]
+        for row in payload["disk_requirements"]
+    ]
+    steps = [[row["step"], row["command"], row["notes"]] for row in payload["operator_steps"]]
+    hazards = [[row["name"], row["status"], row["detail"]] for row in payload["hazards"]]
+    parts = [
+        "# CPU-Offload Build Plan",
+        "",
+        f"source: `{payload['source']}`",
+        f"manifest: `{payload['manifest']}`",
+        f"status: `{'ready' if payload['ready'] else 'blocked'}`",
+        f"full_model_ram_load_required: `{payload['full_model_ram_load_required']}`",
+        "",
+        "## Operator Steps",
+        "",
+        markdown_table(["Step", "Command", "Notes"], steps),
+        "",
+        "## Disk Requirements",
+        "",
+        markdown_table(["Phase", "Requirement", "Additional GiB", "Note"], rows),
+        "",
+        "## Hazards",
+        "",
+        markdown_table(["Hazard", "Status", "Detail"], hazards),
+    ]
+    if payload["blockers"]:
+        blockers = [[row["name"], str(row.get("detail") or "-")] for row in payload["blockers"]]
+        parts.extend(["", "## Blockers", "", markdown_table(["Check", "Detail"], blockers)])
+    parts.extend(["", "## Notes", "", *[f"- {note}" for note in payload["notes"]]])
+    return "\n".join(parts) + "\n"
+
+
+def cpu_offload_build_plan_cmd(args: argparse.Namespace) -> None:
+    payload = cpu_offload_build_plan_payload(args)
+    if args.write:
+        output_path = Path(args.write)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(cpu_offload_build_plan_markdown(payload), end="")
+    if payload["blockers"]:
         raise SystemExit(1)
 
 
@@ -9538,6 +9692,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "benchmark_plan": "cerebellum benchmark-plan --suite release --model MODEL --json",
                         "benchmark_status": "cerebellum benchmark-status --results-dir benchmark_results --json",
                         "cpu_offload_smoke": "cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir OUT --skip-inspect --json",
+                        "cpu_offload_build_plan": "cerebellum cpu-offload-build-plan --source-gguf GLM.gguf --output-dir OUT --skip-inspect --json",
                         "benchmark_manifest": "cerebellum benchmark-manifest benchmark_results --suite release --model MODEL --json",
                         "benchmark_audit": "cerebellum benchmark-audit benchmark_results --json",
                         "benchmark_report": "cerebellum benchmark-report benchmark_results --leaderboard --suite frontier --json",
@@ -9866,6 +10021,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "cpu-offload-smoke":
         cpu_offload_smoke_cmd(args)
+        return
+    if args.cmd == "cpu-offload-build-plan":
+        cpu_offload_build_plan_cmd(args)
         return
     if args.cmd == "task-profiles":
         task_profiles_cmd(args)

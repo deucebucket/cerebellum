@@ -171,6 +171,7 @@ cerebellum pipeline-status --manifest /path/to/pipeline.json
 cerebellum benchmark-status --results-dir benchmark_results
 cerebellum benchmark-ingest benchmark_results --db db/cerebellum.db --suite release --model Cerebellum --require-complete
 cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir out --skip-inspect --json
+cerebellum cpu-offload-build-plan --source-gguf GLM.gguf --output-dir out --skip-inspect --write out/build_plan.json --json
 cerebellum hf-stats --author deucebucket --snapshot db/hf_downloads.jsonl
 ```
 

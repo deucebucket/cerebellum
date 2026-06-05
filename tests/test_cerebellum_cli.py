@@ -57,6 +57,9 @@ from cerebellum import (
     cpu_offload_smoke_args_from_query,
     cpu_offload_smoke_markdown,
     cpu_offload_smoke_payload,
+    cpu_offload_build_plan_cmd,
+    cpu_offload_build_plan_markdown,
+    cpu_offload_build_plan_payload,
     discover_projects,
     doctor_cmd,
     eta_grid_values,
@@ -1703,6 +1706,7 @@ def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path
     assert {row["phase"] for row in dry_run["disk_requirements"]} >= {"inspect-source", "ablate", "build-final-gguf"}
     assert {row["phase"] for row in dry_run["artifact_flow"]} >= {"stream-imatrix", "build-final-gguf", "dynamic-compare"}
     assert "plan-space --source-gguf" in " ".join(dry_run["preflight_commands"])
+    assert "--scratch-candidates" in " ".join(dry_run["preflight_commands"])
     assert "inspect-gguf-types" in " ".join(dry_run["preflight_commands"])
     assert "cpu_tok_s" in plan["cpu_offload_plan"]["runtime_targets"]["record"]
     assert "scripts/benchmark_perf.py" in plan["cpu_offload_plan"]["throughput_probe_command"]
@@ -1821,6 +1825,122 @@ def test_cpu_offload_smoke_can_block_on_inspect_failure(tmp_path: Path):
 
     assert payload["blocked"] is True
     assert any(row["name"] == "inspect_gguf_types" for row in payload["blockers"])
+
+
+def test_cpu_offload_build_plan_command_parses():
+    args = parse_args(
+        [
+            "cpu-offload-build-plan",
+            "--source-gguf",
+            "glm.gguf",
+            "--output-dir",
+            "out",
+            "--model-name",
+            "GLM 5.1",
+            "--scratch-root",
+            "/tmp/scratch",
+            "--skip-inspect",
+            "--write",
+            "out/build.json",
+            "--json",
+        ]
+    )
+
+    assert args.cmd == "cpu-offload-build-plan"
+    assert args.source_gguf == "glm.gguf"
+    assert args.output_dir == "out"
+    assert args.model_name == "GLM 5.1"
+    assert args.scratch_root == "/tmp/scratch"
+    assert args.skip_inspect is True
+    assert args.write == "out/build.json"
+    assert args.json is True
+
+
+def test_cpu_offload_build_plan_emits_operator_manifest_without_full_model_load(tmp_path: Path):
+    source = tmp_path / "glm-5.1-f16.gguf"
+    source.write_bytes(b"gguf" * 1024)
+    out = tmp_path / "glm51-cpu"
+    args = parse_args(
+        [
+            "cpu-offload-build-plan",
+            "--source-gguf",
+            str(source),
+            "--output-dir",
+            str(out),
+            "--model-name",
+            "GLM 5.1",
+            "--skip-inspect",
+        ]
+    )
+
+    payload = cpu_offload_build_plan_payload(args)
+    markdown = cpu_offload_build_plan_markdown(payload)
+
+    assert payload["schema"] == "cerebellum.cpu_offload_build_plan.v1"
+    assert payload["ready"] is True
+    assert payload["full_model_ram_load_required"] is False
+    assert payload["manifest"] == str(out / "cpu_offload_pipeline.json")
+    assert payload["pipeline"]["task_profile"] == "cpu-offload"
+    assert {row["name"] for row in payload["pipeline"]["phases"]} >= {"imatrix", "ablate", "build-final-gguf"}
+    assert {row["phase"] for row in payload["artifact_flow"]} >= {"stream-imatrix", "build-final-gguf"}
+    assert payload["commands"]["prepare_output_dir"] == f"mkdir -p {out}"
+    assert "queue run-next --execute" in payload["commands"]["run_next"]
+    assert "release-gate" in payload["commands"]["release_gate"]
+    assert "CPU-Offload Build Plan" in markdown
+    assert not out.exists()
+
+
+def test_cpu_offload_build_plan_cmd_writes_requested_json_only(tmp_path: Path, capsys):
+    source = tmp_path / "glm.gguf"
+    source.write_bytes(b"gguf" * 1024)
+    out = tmp_path / "out"
+    report = tmp_path / "build_plan.json"
+    args = parse_args(
+        [
+            "cpu-offload-build-plan",
+            "--source-gguf",
+            str(source),
+            "--output-dir",
+            str(out),
+            "--skip-inspect",
+            "--write",
+            str(report),
+            "--json",
+        ]
+    )
+
+    cpu_offload_build_plan_cmd(args)
+    printed = json.loads(capsys.readouterr().out)
+    written = json.loads(report.read_text(encoding="utf-8"))
+
+    assert printed["schema"] == "cerebellum.cpu_offload_build_plan.v1"
+    assert written["manifest"] == str(out / "cpu_offload_pipeline.json")
+    assert not out.exists()
+
+
+def test_cpu_offload_build_plan_cmd_creates_requested_write_parent(tmp_path: Path):
+    source = tmp_path / "glm.gguf"
+    source.write_bytes(b"gguf" * 1024)
+    out = tmp_path / "out"
+    report = out / "build_plan.json"
+    args = parse_args(
+        [
+            "cpu-offload-build-plan",
+            "--source-gguf",
+            str(source),
+            "--output-dir",
+            str(out),
+            "--skip-inspect",
+            "--write",
+            str(report),
+        ]
+    )
+
+    cpu_offload_build_plan_cmd(args)
+
+    data = json.loads(report.read_text(encoding="utf-8"))
+    assert data["schema"] == "cerebellum.cpu_offload_build_plan.v1"
+    assert report.exists()
 
 
 def test_task_profiles_command_outputs_catalog(capsys):
