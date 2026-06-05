@@ -13,6 +13,59 @@ def env_value(name: str, default: str = "") -> str:
     return os.environ.get(name, default)
 
 
+def pct_value(value: object) -> float | None:
+    try:
+        number = float(value)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
+    return number * 100.0 if 0.0 <= number <= 1.0 else number
+
+
+def metric_payload_from_mapping(data: dict) -> dict[str, object]:
+    for key in ["score", "accuracy", "final_score", "hle_score"]:
+        if key in data:
+            score = pct_value(data.get(key))
+            if score is not None:
+                return {"score": round(score, 4), "metric_source": key}
+    correct = data.get("correct")
+    total = data.get("total") or data.get("num_total") or data.get("n")
+    try:
+        correct_n = int(correct)  # type: ignore[arg-type]
+        total_n = int(total)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return {}
+    if total_n <= 0:
+        return {}
+    return {
+        "score": round((correct_n / total_n) * 100.0, 4),
+        "correct": correct_n,
+        "total": total_n,
+        "metric_source": "correct/total",
+    }
+
+
+def extract_hle_metrics(*texts: str) -> dict[str, object]:
+    """Extract a leaderboard-friendly HLE score from common judge outputs."""
+    for text in texts:
+        for line in reversed(text.splitlines()):
+            stripped = line.strip()
+            if not stripped:
+                continue
+            candidates = [stripped]
+            if "{" in stripped and "}" in stripped:
+                candidates.append(stripped[stripped.find("{"): stripped.rfind("}") + 1])
+            for candidate in candidates:
+                try:
+                    data = json.loads(candidate)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(data, dict):
+                    metric = metric_payload_from_mapping(data)
+                    if metric:
+                        return metric
+    return {}
+
+
 def main() -> None:
     model = env_value("BENCH_MODEL", "model")
     port = int(env_value("BENCH_PORT", "8080"))
@@ -84,6 +137,7 @@ def main() -> None:
         "judge_stdout_tail": (judge_proc.stdout[-4000:] if judge_proc else ""),
         "judge_stderr_tail": (judge_proc.stderr[-4000:] if judge_proc else ""),
     }
+    payload.update(extract_hle_metrics(payload["judge_stdout_tail"], payload["judge_stderr_tail"], payload["stdout_tail"], payload["stderr_tail"]))
     summary.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if payload["status"] != "completed":
         raise SystemExit(proc.returncode or (judge_proc.returncode if judge_proc else 1))
