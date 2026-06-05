@@ -371,6 +371,17 @@ The manifest records the imatrix step, Cerebellum search/resume commands, final
 GGUF build command, benchmark plan, finalize step, and package step. It is a
 dry-run contract for the full automator and dashboard queue.
 
+Task-specific variants can be planned with named profiles:
+
+```bash
+cerebellum task-profiles
+cerebellum pipeline-plan --source-gguf f16.gguf --output-dir ./code-results --task-profile code
+```
+
+Current profiles are `general`, `code`, `reason`, `chat`, and `tools`. They
+record the intended PPL profile, benchmark suite, metrics, and variant suffix
+for task-specific Cerebellum maps.
+
 For each released model, keep a reproducibility bundle next to the benchmark
 artifacts when practical:
 

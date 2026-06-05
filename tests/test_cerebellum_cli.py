@@ -32,6 +32,8 @@ from cerebellum import (
     pipeline_plan,
     pipeline_plan_markdown,
     pipeline_plan_cmd,
+    task_profiles_cmd,
+    task_profiles_markdown,
     rollback_cmd,
     resolve_run_dir,
     public_report_summary,
@@ -334,6 +336,52 @@ def test_pipeline_plan_command_parses():
     assert args.source_gguf == "m.gguf"
     assert args.output_dir == "out"
     assert args.benchmark_suite == "release"
+    assert args.json is True
+
+
+def test_pipeline_plan_task_profile_sets_variant_defaults(tmp_path: Path):
+    args = parse_args(
+        [
+            "pipeline-plan",
+            "--source-gguf",
+            str(tmp_path / "m.gguf"),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--model-name",
+            "Model X",
+            "--task-profile",
+            "code",
+        ]
+    )
+
+    plan = pipeline_plan(args)
+    phases = {row["name"]: row for row in plan["phases"]}
+
+    assert plan["task_profile"] == "code"
+    assert plan["ppl_profile"] == "code"
+    assert plan["benchmark_suite"] == "full"
+    assert plan["task_profile_detail"]["metrics"] == ["humaneval", "evalplus", "livecodebench_v6"]
+    assert plan["final_gguf"].endswith("model-x-code-cerebellum.gguf")
+    assert "--profile code" in phases["ablate"]["command"]
+    assert "benchmark-plan --suite full --model model-x-code" in phases["benchmark"]["command"]
+
+
+def test_task_profiles_command_outputs_catalog(capsys):
+    markdown = task_profiles_markdown()
+    args = parse_args(["task-profiles", "--json"])
+
+    task_profiles_cmd(args)
+
+    data = json.loads(capsys.readouterr().out)
+    assert "code" in data["profiles"]
+    assert data["profiles"]["tools"]["ppl_profile"] == "agentic"
+    assert "| code | code | full | humaneval, evalplus, livecodebench_v6 |" in markdown
+
+
+def test_task_profiles_command_parses():
+    args = parse_args(["task-profiles", "--json"])
+
+    assert args.cmd == "task-profiles"
     assert args.json is True
 
 

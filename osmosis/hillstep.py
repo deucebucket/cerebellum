@@ -144,6 +144,48 @@ BENCHMARK_CATALOG = {
     "hle_no_tools": {"name": "HLE no-tools", "status": "pending", "note": "Add no-tool harness and refusal/parser audit."},
     "livecodebench_v6": {"name": "LiveCodeBench v6", "status": "pending", "note": "Add version-pinned code runner and syntax/execution audit."},
 }
+TASK_PROFILES = {
+    "general": {
+        "label": "Cerebellum-General",
+        "ppl_profile": "wiki",
+        "benchmark_suite": "release",
+        "metrics": ["ppl", "arc", "hellaswag", "mmlu_redux", "evalplus"],
+        "variant_suffix": "general",
+        "note": "General language, reasoning, and code release profile.",
+    },
+    "code": {
+        "label": "Cerebellum-Code",
+        "ppl_profile": "code",
+        "benchmark_suite": "full",
+        "metrics": ["humaneval", "evalplus", "livecodebench_v6"],
+        "variant_suffix": "code",
+        "note": "Protect tensors that matter for code generation and execution accuracy.",
+    },
+    "reason": {
+        "label": "Cerebellum-Reason",
+        "ppl_profile": "wiki",
+        "benchmark_suite": "full",
+        "metrics": ["arc", "mmlu_redux", "mmlu_pro", "gpqa_diamond"],
+        "variant_suffix": "reason",
+        "note": "Protect tensors that matter for science, knowledge, and reasoning MCQ accuracy.",
+    },
+    "chat": {
+        "label": "Cerebellum-Chat",
+        "ppl_profile": "dialogue",
+        "benchmark_suite": "release",
+        "metrics": ["dialogue", "mt_bench_pending"],
+        "variant_suffix": "chat",
+        "note": "Protect conversational behavior; local MT-Bench-style runner is still pending.",
+    },
+    "tools": {
+        "label": "Cerebellum-Tools",
+        "ppl_profile": "agentic",
+        "benchmark_suite": "release",
+        "metrics": ["tool_call_pending", "json_schema_pending", "agentic"],
+        "variant_suffix": "tools",
+        "note": "Protect function calling and structured JSON behavior; harness adapters are pending.",
+    },
+}
 LEGACY_PROFILE_ROOTS = [
     Path("/var/home/deucebucket/games/osmosis-quants"),
     Path("/var/home/deucebucket/games"),
@@ -2247,10 +2289,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     pipeline_plan_parser.add_argument("--distrobox", default=None)
     pipeline_plan_parser.add_argument("--low-space", action="store_true")
     pipeline_plan_parser.add_argument("--benchmark-suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    pipeline_plan_parser.add_argument("--task-profile", choices=sorted(TASK_PROFILES), default=None, help="task-specific variant profile to annotate and default profile/suite")
     pipeline_plan_parser.add_argument("--benchmark-port", type=int, default=8084)
     pipeline_plan_parser.add_argument("--repo-name", default=None)
     pipeline_plan_parser.add_argument("--write", default=None, help="write JSON manifest to this path")
     pipeline_plan_parser.add_argument("--json", action="store_true")
+
+    task_profiles = sub.add_parser("task-profiles", help="list task-specific Cerebellum variant profiles")
+    task_profiles.add_argument("--json", action="store_true")
 
     system = sub.add_parser("system", help="inspect local resources and tool availability")
     system.add_argument("--json", action="store_true")
@@ -3911,7 +3957,11 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = Path(args.run_dir) if args.run_dir else output_dir / "run"
     imatrix = Path(args.imatrix) if args.imatrix else output_dir / "imatrix.dat"
     source = Path(args.source_gguf)
-    model_label = slug(args.model_name or source.stem).lower()
+    task_profile = TASK_PROFILES.get(args.task_profile) if args.task_profile else None
+    effective_profile = str(task_profile["ppl_profile"]) if task_profile and args.profile == "custom" else args.profile
+    effective_suite = str(task_profile["benchmark_suite"]) if task_profile and args.benchmark_suite == "release" else args.benchmark_suite
+    variant_suffix = f"-{task_profile['variant_suffix']}" if task_profile and task_profile.get("variant_suffix") != "general" else ""
+    model_label = f"{slug(args.model_name or source.stem).lower()}{variant_suffix}"
     final_gguf = output_dir / f"{model_label}-cerebellum.gguf"
     benchmark_dir = output_dir / "benchmark_results"
 
@@ -3923,7 +3973,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         "--run-dir",
         str(run_dir),
         "--profile",
-        args.profile,
+        effective_profile,
         "--base-type",
         args.base_type,
         "--start-type",
@@ -4013,7 +4063,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
                     "cerebellum",
                     "benchmark-plan",
                     "--suite",
-                    args.benchmark_suite,
+                    effective_suite,
                     "--model",
                     model_label,
                     "--port",
@@ -4044,7 +4094,10 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         "run_dir": str(run_dir),
         "imatrix": str(imatrix),
         "final_gguf": str(final_gguf),
-        "benchmark_suite": args.benchmark_suite,
+        "benchmark_suite": effective_suite,
+        "task_profile": args.task_profile,
+        "task_profile_detail": task_profile,
+        "ppl_profile": effective_profile,
         "phases": phases,
     }
 
@@ -4079,6 +4132,28 @@ def pipeline_plan_cmd(args: argparse.Namespace) -> None:
         print(json.dumps(plan, indent=2, sort_keys=True))
         return
     print(pipeline_plan_markdown(plan), end="")
+
+
+def task_profiles_markdown() -> str:
+    rows = []
+    for key, profile in TASK_PROFILES.items():
+        rows.append(
+            [
+                key,
+                str(profile["ppl_profile"]),
+                str(profile["benchmark_suite"]),
+                ", ".join(str(metric) for metric in profile["metrics"]),
+                str(profile["note"]),
+            ]
+        )
+    return markdown_table(["Profile", "PPL", "Bench suite", "Metrics", "Note"], rows) + "\n"
+
+
+def task_profiles_cmd(args: argparse.Namespace) -> None:
+    if args.json:
+        print(json.dumps({"profiles": TASK_PROFILES}, indent=2, sort_keys=True))
+        return
+    print(task_profiles_markdown(), end="")
 
 
 def benchmark_input_specs(paths: list[Any]) -> list[tuple[Path, str | None]]:
@@ -5800,6 +5875,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "pipeline-plan":
         pipeline_plan_cmd(args)
+        return
+    if args.cmd == "task-profiles":
+        task_profiles_cmd(args)
         return
     if args.cmd == "system":
         system_cmd(args)
