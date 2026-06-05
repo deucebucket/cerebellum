@@ -2942,6 +2942,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_run_parser.add_argument("--results-dir", default="benchmark_results", help="directory for benchmark artifacts and logs")
     benchmark_run_parser.add_argument("--benchmark", action="append", help="run only this benchmark key; may be repeated")
     benchmark_run_parser.add_argument("--execute", action="store_true", help="actually run benchmark commands; dry-run is default")
+    benchmark_run_parser.add_argument("--postprocess", action="store_true", help="after a successful execute, write manifest/audit/report sidecars under RESULTS_DIR/postprocess")
+    benchmark_run_parser.add_argument("--require-complete", action="store_true", help="with --postprocess, fail if suite result JSONs are missing")
+    benchmark_run_parser.add_argument("--leaderboard", action="store_true", help="with --postprocess, include leaderboard rows in benchmark_report.json")
+    benchmark_run_parser.add_argument("--size", action="append", default=[], help="with --postprocess --leaderboard, model size as MODEL=GiB")
+    benchmark_run_parser.add_argument("--size-json", help="with --postprocess --leaderboard, JSON file with per-model size metadata")
+    benchmark_run_parser.add_argument("--weight", action="append", default=[], help="with --postprocess --leaderboard, benchmark weight as BENCHMARK=WEIGHT")
     benchmark_run_parser.add_argument("--json", action="store_true")
 
     benchmark_status_parser = sub.add_parser("benchmark-status", help="summarize benchmark-run event logs and resume point")
@@ -5040,6 +5046,23 @@ def benchmark_run_markdown(plan: dict[str, Any]) -> str:
                 markdown_table(["Benchmark", "Return", "Log"], [[row["benchmark"], str(row["returncode"]), row["log"]] for row in plan["executions"]]),
             ]
         )
+    if plan.get("postprocess"):
+        post = plan["postprocess"]
+        parts.extend(
+            [
+                "",
+                "## Postprocess",
+                "",
+                markdown_table(
+                    ["Artifact", "Path"],
+                    [
+                        ["manifest", post["manifest"]],
+                        ["audit", post["audit"]],
+                        ["report", post["report"]],
+                    ],
+                ),
+            ]
+        )
     return "\n".join(parts) + "\n"
 
 
@@ -5102,10 +5125,80 @@ def benchmark_run_execute(plan: dict[str, Any]) -> dict[str, Any]:
     return plan
 
 
+def benchmark_run_postprocess(
+    plan: dict[str, Any],
+    *,
+    require_complete: bool = False,
+    leaderboard: bool = False,
+    sizes: dict[str, float] | None = None,
+    weights: dict[str, float] | None = None,
+) -> dict[str, Any]:
+    results_dir = Path(str(plan["results_dir"]))
+    results_dir.mkdir(parents=True, exist_ok=True)
+    post_dir = results_dir / "postprocess"
+    post_dir.mkdir(parents=True, exist_ok=True)
+    manifest = benchmark_manifest([results_dir], suite=str(plan["suite"]), model=str(plan["model"]))
+    audit = benchmark_audit([str(results_dir)])
+    report = benchmark_report([results_dir], suite=str(plan["suite"]), leaderboard=leaderboard, sizes=sizes, weights=weights)
+    manifest_path = post_dir / "benchmark_manifest.json"
+    audit_path = post_dir / "benchmark_audit.json"
+    report_path = post_dir / "benchmark_report.json"
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    audit_path.write_text(json.dumps(audit, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    report_path.write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    blockers: list[dict[str, Any]] = []
+    if require_complete and manifest["missing_measured"]:
+        blockers.append(
+            {
+                "benchmark": ",".join(manifest["missing_measured"]),
+                "status": "missing",
+                "reason": "missing measured benchmark artifacts after benchmark-run postprocess",
+            }
+        )
+    if audit["blocked"]:
+        blockers.extend(
+            {
+                "benchmark": Path(str(item["path"])).stem,
+                "status": "audit_failed",
+                "reason": str(item["reason"]),
+            }
+            for item in audit["failures"]
+        )
+    return {
+        "schema": "cerebellum.benchmark_postprocess.v1",
+        "results_dir": str(results_dir),
+        "suite": plan["suite"],
+        "model": plan["model"],
+        "manifest": str(manifest_path),
+        "audit": str(audit_path),
+        "report": str(report_path),
+        "missing_measured": manifest["missing_measured"],
+        "audit_failures": audit["failures"],
+        "leaderboard_rows": len(report.get("leaderboard", [])),
+        "blocked": bool(blockers),
+        "blockers": blockers,
+    }
+
+
 def benchmark_run_cmd(args: argparse.Namespace) -> None:
     plan = benchmark_run_plan(args.suite, args.model, args.port, args.results_dir, args.benchmark)
     if args.execute:
         plan = benchmark_run_execute(plan)
+        if args.postprocess and not plan["blocked"]:
+            sizes = read_size_json(args.size_json)
+            sizes.update(parse_size_specs(args.size))
+            weights = parse_weight_specs(args.weight)
+            postprocess = benchmark_run_postprocess(
+                plan,
+                require_complete=args.require_complete,
+                leaderboard=args.leaderboard,
+                sizes=sizes,
+                weights=weights,
+            )
+            plan["postprocess"] = postprocess
+            if postprocess["blocked"]:
+                plan["blocked"] = True
+                plan["blockers"] = postprocess["blockers"]
     if args.json:
         print(json.dumps(plan, indent=2, sort_keys=True))
     else:

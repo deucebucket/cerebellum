@@ -443,6 +443,17 @@ Use `benchmark-plan` before a release run. It prints implemented runner
 commands, expected summary/detail artifacts, and audit commands. Benchmarks
 without a local runner are explicitly marked pending instead of being silently
 skipped.
+Use `benchmark-run --execute --postprocess` for unattended release runs that
+should produce sidecars immediately after the benchmark commands succeed:
+
+```bash
+cerebellum benchmark-run --suite release --model Cerebellum --results-dir benchmark_results --execute --postprocess --require-complete --leaderboard --size Cerebellum=7.6
+```
+
+Postprocess writes `postprocess/benchmark_manifest.json`,
+`postprocess/benchmark_audit.json`, and `postprocess/benchmark_report.json`.
+`--require-complete` fails the run if the selected suite is missing measured
+summary JSONs, and audit failures are reported as benchmark-run blockers.
 Use `benchmark-manifest` after a run to hash summary/detail artifacts, record
 which suite benchmarks have measured JSON, and produce a HF/model-card bundle
 manifest. Add `--require-complete` for release automation so missing suite

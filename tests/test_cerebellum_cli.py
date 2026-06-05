@@ -31,6 +31,7 @@ from cerebellum import (
     benchmark_run_execute,
     benchmark_run_markdown,
     benchmark_run_plan,
+    benchmark_run_postprocess,
     benchmark_status,
     benchmark_status_args_from_query,
     benchmark_status_markdown,
@@ -521,7 +522,30 @@ def test_benchmark_plan_command_parses():
 
 
 def test_benchmark_run_command_parses():
-    args = parse_args(["benchmark-run", "--suite", "frontier", "--model", "gemma4", "--port", "18080", "--results-dir", "out", "--benchmark", "mmlu_pro", "--execute", "--json"])
+    args = parse_args(
+        [
+            "benchmark-run",
+            "--suite",
+            "frontier",
+            "--model",
+            "gemma4",
+            "--port",
+            "18080",
+            "--results-dir",
+            "out",
+            "--benchmark",
+            "mmlu_pro",
+            "--execute",
+            "--postprocess",
+            "--require-complete",
+            "--leaderboard",
+            "--size",
+            "gemma4=7.6",
+            "--weight",
+            "mmlu_pro=2",
+            "--json",
+        ]
+    )
 
     assert args.cmd == "benchmark-run"
     assert args.suite == "frontier"
@@ -530,6 +554,11 @@ def test_benchmark_run_command_parses():
     assert args.results_dir == "out"
     assert args.benchmark == ["mmlu_pro"]
     assert args.execute is True
+    assert args.postprocess is True
+    assert args.require_complete is True
+    assert args.leaderboard is True
+    assert args.size == ["gemma4=7.6"]
+    assert args.weight == ["mmlu_pro=2"]
     assert args.json is True
 
 
@@ -581,6 +610,77 @@ def test_benchmark_run_cmd_executes_selected_benchmark(tmp_path: Path, capsys, m
     assert output.read_text(encoding="utf-8") == "ok"
     assert Path(payload["event_log"]).is_file()
     assert Path(payload["executions"][0]["log"]).is_file()
+
+
+def test_benchmark_run_postprocess_writes_release_sidecars(tmp_path: Path, capsys, monkeypatch):
+    summary = tmp_path / "unit-model_unit_smoke_results.json"
+    detail = tmp_path / "unit-model_unit_smoke_detailed.jsonl"
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_post", ["unit_smoke"])
+    monkeypatch.setitem(
+        hillstep.BENCHMARK_CATALOG,
+        "unit_smoke",
+        {
+            "name": "Unit smoke",
+            "status": "implemented",
+            "script": "-c",
+            "workers": 1,
+            "args": [
+                "from pathlib import Path; "
+                f"Path({str(summary)!r}).write_text('{{{{\"benchmark\":\"unit_smoke\",\"model\":\"unit-model\",\"accuracy\":0.75,\"size_gib\":4.0}}}}'); "
+                f"Path({str(detail)!r}).write_text('{{{{\"correct\":true,\"predicted\":\"A\",\"raw_response\":\"A\"}}}}\\n')"
+            ],
+            "artifacts": ["{model}_unit_smoke_results.json", "{model}_unit_smoke_detailed.jsonl"],
+        },
+    )
+    args = parse_args(
+        [
+            "benchmark-run",
+            "--suite",
+            "unit_post",
+            "--model",
+            "unit-model",
+            "--results-dir",
+            str(tmp_path),
+            "--execute",
+            "--postprocess",
+            "--require-complete",
+            "--leaderboard",
+            "--size",
+            "unit-model=4.0",
+            "--json",
+        ]
+    )
+
+    benchmark_run_cmd(args)
+    payload = json.loads(capsys.readouterr().out)
+    postprocess = payload["postprocess"]
+
+    assert payload["blocked"] is False
+    assert postprocess["schema"] == "cerebellum.benchmark_postprocess.v1"
+    assert postprocess["blocked"] is False
+    assert postprocess["leaderboard_rows"] == 1
+    assert Path(postprocess["manifest"]).is_file()
+    assert Path(postprocess["audit"]).is_file()
+    assert Path(postprocess["report"]).is_file()
+    manifest = json.loads(Path(postprocess["manifest"]).read_text(encoding="utf-8"))
+    report = json.loads(Path(postprocess["report"]).read_text(encoding="utf-8"))
+    assert manifest["missing_measured"] == []
+    assert report["leaderboard"][0]["model"] == "unit-model"
+
+
+def test_benchmark_run_postprocess_blocks_missing_complete_suite(tmp_path: Path, monkeypatch):
+    monkeypatch.setitem(hillstep.BENCHMARK_SUITES, "unit_missing", ["missing"])
+    plan = {
+        "suite": "unit_missing",
+        "model": "unit-model",
+        "results_dir": str(tmp_path),
+    }
+
+    postprocess = benchmark_run_postprocess(plan, require_complete=True)
+
+    assert postprocess["blocked"] is True
+    assert postprocess["missing_measured"] == ["missing"]
+    assert postprocess["blockers"][0]["status"] == "missing"
 
 
 def test_benchmark_run_execute_stops_on_failure(tmp_path: Path, monkeypatch):
