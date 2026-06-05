@@ -29,7 +29,8 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, quote, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
+from urllib.request import Request, urlopen
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
@@ -2515,6 +2516,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     auth = sub.add_parser("auth", help="check HF/GitHub auth status")
     auth.add_argument("service", choices=["hf", "huggingface", "github"])
+
+    hf_stats = sub.add_parser("hf-stats", help="summarize Hugging Face model download/like stats")
+    hf_stats.add_argument("--author", default="deucebucket", help="HF user/org namespace for public rolling stats")
+    hf_stats.add_argument("--period", choices=["recent", "all-time"], default="recent", help="recent uses public rolling downloads; all-time requires --publisher-org")
+    hf_stats.add_argument("--publisher-org", default=None, help="HF Publisher Analytics org for all-time stats")
+    hf_stats.add_argument("--limit", type=int, default=1000)
+    hf_stats.add_argument("--json", action="store_true")
 
     upload = sub.add_parser("upload", help="upload Cerebellum artifacts to HF/GitHub")
     upload.add_argument("target", choices=["hf", "huggingface", "github"])
@@ -6969,6 +6977,134 @@ def auth_cmd(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
+def hf_auth_header() -> dict[str, str]:
+    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+    return {"Authorization": f"Bearer {token}"} if token else {}
+
+
+def hf_fetch_json(url: str) -> Any:
+    req = Request(url, headers=hf_auth_header())
+    with urlopen(req, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def hf_fetch_text(url: str) -> str:
+    req = Request(url, headers=hf_auth_header())
+    with urlopen(req, timeout=30) as response:
+        return response.read().decode("utf-8")
+
+
+def hf_recent_model_stats(author: str, limit: int = 1000) -> dict[str, Any]:
+    url = "https://huggingface.co/api/models?" + urlencode({"author": author, "full": "true", "limit": str(limit)})
+    data = hf_fetch_json(url)
+    models = []
+    for item in data:
+        model_id = item.get("modelId") or item.get("id")
+        if not model_id:
+            continue
+        models.append(
+            {
+                "modelId": model_id,
+                "downloads_recent": int(item.get("downloads") or 0),
+                "likes": int(item.get("likes") or 0),
+                "private": bool(item.get("private")),
+            }
+        )
+    models.sort(key=lambda row: (row["downloads_recent"], row["likes"], row["modelId"]), reverse=True)
+    return {
+        "schema": "cerebellum.hf_model_stats.v1",
+        "author": author,
+        "period": "recent",
+        "metric_note": "Hugging Face public model downloads are rolling/recent counts, not lifetime totals.",
+        "source": "https://huggingface.co/api/models",
+        "count": len(models),
+        "total_downloads_recent": sum(row["downloads_recent"] for row in models),
+        "total_likes": sum(row["likes"] for row in models),
+        "models": models,
+    }
+
+
+def hf_publisher_all_time_stats(org: str) -> dict[str, Any]:
+    url = f"https://huggingface.co/organizations/{quote(org)}/settings/publisher-analytics/download-breakdown"
+    text = hf_fetch_text(url)
+    latest_by_repo: dict[str, dict[str, Any]] = {}
+    for row in csv.DictReader(text.splitlines()):
+        if row.get("repoType") != "model":
+            continue
+        repo = row.get("repoName") or ""
+        if not repo:
+            continue
+        try:
+            total = int(float(row.get("total") or 0))
+            downloads = int(float(row.get("downloads") or 0))
+        except ValueError:
+            continue
+        timestamp = row.get("timestamp") or ""
+        previous = latest_by_repo.get(repo)
+        if previous is None or timestamp >= previous["latest_timestamp"]:
+            latest_by_repo[repo] = {
+                "modelId": repo,
+                "downloads_all_time": total,
+                "latest_timestamp": timestamp,
+                "latest_daily_downloads": downloads,
+            }
+    models = sorted(latest_by_repo.values(), key=lambda row: (row["downloads_all_time"], row["modelId"]), reverse=True)
+    return {
+        "schema": "cerebellum.hf_model_stats.v1",
+        "author": org,
+        "publisher_org": org,
+        "period": "all-time",
+        "metric_note": "All-time totals come from Hugging Face Publisher Analytics CSV and require eligible org/auth access.",
+        "source": url,
+        "count": len(models),
+        "total_downloads_all_time": sum(row["downloads_all_time"] for row in models),
+        "models": models,
+    }
+
+
+def hf_model_stats(args: argparse.Namespace) -> dict[str, Any]:
+    if args.period == "all-time":
+        if not args.publisher_org:
+            raise SystemExit("--period all-time requires --publisher-org and HF auth with Publisher Analytics access")
+        return hf_publisher_all_time_stats(args.publisher_org)
+    return hf_recent_model_stats(args.author, limit=max(1, args.limit))
+
+
+def hf_model_stats_markdown(report: dict[str, Any]) -> str:
+    period = report["period"]
+    if period == "all-time":
+        total_key = "total_downloads_all_time"
+        download_key = "downloads_all_time"
+        heading = "HF model stats: all-time downloads"
+    else:
+        total_key = "total_downloads_recent"
+        download_key = "downloads_recent"
+        heading = "HF model stats: recent rolling downloads"
+    rows = [
+        [row["modelId"], str(row.get(download_key, 0)), str(row.get("likes", "-"))]
+        for row in report["models"]
+    ]
+    return "\n".join(
+        [
+            heading,
+            f"author: `{report['author']}`",
+            f"models: `{report['count']}`",
+            f"downloads: `{report.get(total_key, 0)}`",
+            f"note: {report['metric_note']}",
+            "",
+            markdown_table(["Model", "Downloads", "Likes"], rows),
+        ]
+    ) + "\n"
+
+
+def hf_stats_cmd(args: argparse.Namespace) -> None:
+    report = hf_model_stats(args)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+    print(hf_model_stats_markdown(report), end="")
+
+
 def public_report_summary(report: dict[str, Any]) -> dict[str, Any]:
     return public_package_report(report)
 
@@ -7605,6 +7741,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "auth":
         auth_cmd(args)
+        return
+    if args.cmd == "hf-stats":
+        hf_stats_cmd(args)
         return
     if args.cmd == "upload":
         upload_cmd(args)

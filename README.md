@@ -160,6 +160,7 @@ cerebellum package /path/to/run
 cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
 cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_results/ --clean
 cerebellum artifact-inventory . --output cerebellum-dev/artifact_inventory.json --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
+cerebellum hf-stats --author deucebucket
 ```
 
 Cerebellum provenance uses visible `cerebellum.*` GGUF metadata keys and report
@@ -186,6 +187,12 @@ Use `artifact-inventory` before cleanup. It scans file paths and sizes without
 reading log contents, groups legacy model trees and private artifacts into
 storage categories, flags public-risk paths, and writes JSON/Markdown inventory
 reports. The command is preservation-first; it never deletes files.
+Use `hf-stats` for release telemetry. The default public Hugging Face model API
+reports rolling/recent downloads, not lifetime totals, so Cerebellum labels
+those fields as `downloads_recent`. True all-time totals require Hugging Face
+Publisher Analytics access and can be requested with
+`hf-stats --period all-time --publisher-org ORG` when the account has that
+authorized org analytics endpoint.
 
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,

@@ -5,6 +5,7 @@ import types
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+import osmosis.hillstep as hillstep
 from cerebellum import (
     EventLog,
     active_work_status,
@@ -37,6 +38,8 @@ from cerebellum import (
     eta_grid_values,
     github_upload_plan,
     grid_watch_cmd,
+    hf_model_stats,
+    hf_model_stats_markdown,
     inspect_gguf_types,
     is_quantizable_tensor,
     locked_layer_lines,
@@ -1712,6 +1715,93 @@ def test_artifact_inventory_command_parses():
     assert args.output == "inventory.json"
     assert args.markdown == "inventory.md"
     assert args.top == 5
+    assert args.json is True
+
+
+class _FakeHTTPResponse:
+    def __init__(self, text: str):
+        self.text = text
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def read(self):
+        return self.text.encode("utf-8")
+
+
+def test_hf_stats_recent_labels_public_downloads_as_recent(monkeypatch):
+    payload = json.dumps(
+        [
+            {"modelId": "deucebucket/a", "downloads": 10, "likes": 2, "private": False},
+            {"modelId": "deucebucket/b", "downloads": 5, "likes": 1, "private": False},
+        ]
+    )
+
+    def fake_urlopen(request, timeout=30):
+        assert "api/models" in request.full_url
+        assert "author=deucebucket" in request.full_url
+        return _FakeHTTPResponse(payload)
+
+    monkeypatch.setattr(hillstep, "urlopen", fake_urlopen)
+    args = parse_args(["hf-stats", "--author", "deucebucket", "--json"])
+
+    report = hf_model_stats(args)
+    markdown = hf_model_stats_markdown(report)
+
+    assert report["period"] == "recent"
+    assert report["total_downloads_recent"] == 15
+    assert "total_downloads" not in report
+    assert report["models"][0]["downloads_recent"] == 10
+    assert "not lifetime totals" in report["metric_note"]
+    assert "recent rolling downloads" in markdown
+
+
+def test_hf_stats_all_time_requires_publisher_org():
+    args = parse_args(["hf-stats", "--period", "all-time"])
+
+    try:
+        hf_model_stats(args)
+    except SystemExit as exc:
+        assert "--publisher-org" in str(exc)
+    else:
+        raise AssertionError("all-time HF stats should require publisher analytics org")
+
+
+def test_hf_stats_all_time_parses_publisher_analytics_csv(monkeypatch):
+    csv_text = "\n".join(
+        [
+            "repoType,repoName,total,timestamp,downloads",
+            "model,deucebucket/a,100,2026-06-01 T00:00:00.000 Z,3",
+            "model,deucebucket/a,110,2026-06-02 T00:00:00.000 Z,10",
+            "model,deucebucket/b,20,2026-06-02 T00:00:00.000 Z,2",
+            "dataset,deucebucket/data,999,2026-06-02 T00:00:00.000 Z,9",
+        ]
+    )
+
+    def fake_urlopen(request, timeout=30):
+        assert "publisher-analytics/download-breakdown" in request.full_url
+        return _FakeHTTPResponse(csv_text)
+
+    monkeypatch.setattr(hillstep, "urlopen", fake_urlopen)
+    args = parse_args(["hf-stats", "--period", "all-time", "--publisher-org", "deucebucket"])
+
+    report = hf_model_stats(args)
+
+    assert report["period"] == "all-time"
+    assert report["total_downloads_all_time"] == 130
+    assert [row["modelId"] for row in report["models"]] == ["deucebucket/a", "deucebucket/b"]
+
+
+def test_hf_stats_command_parses():
+    args = parse_args(["hf-stats", "--author", "deucebucket", "--period", "recent", "--limit", "10", "--json"])
+
+    assert args.cmd == "hf-stats"
+    assert args.author == "deucebucket"
+    assert args.period == "recent"
+    assert args.limit == 10
     assert args.json is True
 
 
