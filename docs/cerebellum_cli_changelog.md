@@ -188,3 +188,9 @@
 - Implemented `cerebellum upload github` for package sidecars through `gh api`.
 - Uploads use a dedicated branch named `cerebellum-run-RUN_ID` unless `--branch` is provided.
 - Dry-run output now shows planned GitHub paths under `cerebellum_runs/RUN_ID/`.
+
+## 2026-06-05 public-safe watch screenshots
+
+- Added `cerebellum watch --public` for screenshot-safe progress telemetry.
+- Public watch mode redacts tensor names, candidate quant levels, per-tensor PPL deltas, run IDs, GGUF paths, process IDs, and event stream details.
+- Normal private `watch` and `watch --tui` views still show full factory/debugging details.

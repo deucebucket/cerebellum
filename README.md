@@ -98,6 +98,7 @@ cerebellum run \
   --start-type q4_K \
   --levels q3_K,q2_K,q5_K,q6_K,f16
 cerebellum watch /path/to/run
+cerebellum watch /path/to/run --public --once --plain   # screenshot-safe
 cerebellum watch /path/to/run --tui
 cerebellum report /path/to/run
 ```
@@ -160,14 +161,16 @@ measurements, and the event stream. The dashboard stays bounded by default;
 increase visible rows with `--events-limit N` and `--measurements-limit N`. Use
 `cerebellum watch RUN_DIR --tui` for an interactive terminal UI with independent
 scrollable panes for events, measurements, processes/GPU, and files.
+
+For public screenshots, use `cerebellum watch RUN_DIR --public --once --plain`.
+It redacts tensor names, candidate quant levels, per-tensor PPL deltas, run IDs,
+paths, process IDs, and event details while still showing progress, health,
+resources, disk, and ETA.
+
 CLI layout redesign notes live in
 [docs/cerebellum_cli_layout_notes.md](docs/cerebellum_cli_layout_notes.md).
 Current CLI changelog:
 [docs/cerebellum_cli_changelog.md](docs/cerebellum_cli_changelog.md).
-Captured dev snapshots:
-
-- [Qwen3 0.6B smoke dashboard](docs/cerebellum_cli_smoke_snapshot.png)
-- [Gemma 4 12B live dashboard](docs/cerebellum_cli_gemma4_12b_live.png)
 
 Install or build llama.cpp separately. The commands below assume
 `llama-quantize` is on `PATH`. You can also pass `--quantize-bin` to the
@@ -343,9 +346,11 @@ artifacts when practical:
 
 ## Development Notes
 
-The public `origin` remote is for release-ready engine files, docs, benchmark
-artifacts, and reproducible recipes. The private `dev` remote is for exploratory
-automation, local scripts, unpublished logs, and unfinished experiments.
+The public `origin` remote is for model cards, benchmark summaries, high-level
+recipes, public docs, and safe release metadata. It is not the factory. The
+private `dev` remote is for pipeline automation, tensor-selection internals,
+raw ablation traces, local scripts, unpublished logs, and unfinished
+experiments.
 
 When unsure, keep it out of `origin`.
 

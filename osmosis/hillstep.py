@@ -1836,6 +1836,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     watch.add_argument("--events-limit", type=int, default=12)
     watch.add_argument("--measurements-limit", type=int, default=8)
     watch.add_argument("--tui", action="store_true", help="open scrollable interactive terminal UI")
+    watch.add_argument("--public", action="store_true", help="render a screenshot-safe view without tensor, candidate, path, or event details")
     watch.add_argument("--plain", action="store_true")
     watch.add_argument("--no-color", action="store_true")
 
@@ -2569,6 +2570,7 @@ def print_heavy_box(title: str, lines: list[str], width: int, code: str, enabled
 def grid_watch_cmd(args: argparse.Namespace) -> None:
     run_dir = Path(args.run_dir)
     enabled = not args.no_color and not args.plain
+    public_view = bool(getattr(args, "public", False))
     try:
         while True:
             model = build_watch_model(run_dir, args.stall_warn_seconds, args.stall_fail_seconds)
@@ -2591,7 +2593,9 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
             print()
 
             eta = eta_grid_values(state, model["active_age"], model["total"])
-            progress_left = f"{model['bar']} {model['progress']}  ppl {state.get('current_ppl')}"
+            progress_left = f"{model['bar']} {model['progress']}"
+            if not public_view:
+                progress_left = f"{progress_left}  ppl {state.get('current_ppl')}"
             resource_bits = []
             if gpu_info:
                 gpu = gpu_info[0]
@@ -2604,41 +2608,66 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
             job_label = f"{active.get('event')}  age {fmt_seconds(model['active_age'])}"
             if health["stale"]:
                 job_label = f"interrupted  {active.get('event')} age {fmt_seconds(model['active_age'])}"
-            overview = [
-                grid_line(color("progress  ", "90", enabled) + color(progress_left, "32;1", enabled), color("resources  ", "90", enabled) + color(resource_bits[0], "36;1", enabled), width),
-                grid_line(color("cpu/gpu   ", "90", enabled) + color((" | ".join(row["kind"] for row in processes[:3]) if processes else "idle"), "36;1", enabled), color("jobs       ", "90", enabled) + color(("  ".join(resource_bits[1:]) if len(resource_bits) > 1 else "idle"), "36;1", enabled), width),
-                grid_line(color("tensor    ", "90", enabled) + color(f"{active.get('tensor')}  {active.get('level')}", "33;1", enabled), color("disk       ", "90", enabled) + color(f"{disk_free_gb(run_dir):.1f} GiB free", "36", enabled), width),
-                grid_line(color("job       ", "90", enabled) + color(job_label, health["code"], enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes_dense(model['baseline_size'])} active {fmt_bytes_dense(model['active_size'])}", "36;1", enabled), width),
-                grid_line(color("storage   ", "90", enabled) + color(f"tmp {fmt_bytes(model['tmp_size'])} artifacts {fmt_bytes(model['artifacts_size'])}", "36;1", enabled), color("pid        ", "90", enabled) + color(str(health["expected_pid"] or "-"), health["code"], enabled), width),
-                grid_line(color("health    ", "90", enabled) + color(str(health["reason"]), health["code"], enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
-                grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", "36;1", enabled), color("done       ", "90", enabled) + color(eta["completion_at"], "36;1", enabled), width),
-                grid_line(color("avg layer ", "90", enabled) + color(eta["avg_layer"], "36;1", enabled), color("floor      ", "90", enabled) + color(f"{manifest.get('hard_free_floor_gb', 10.0)} GiB hard floor", "31;1" if disk_free_gb(run_dir) < 20 else "36", enabled), width),
-            ]
+            if public_view:
+                public_job = "active" if health["health"] in {"active", "waiting"} else health["health"]
+                overview = [
+                    grid_line(color("progress  ", "90", enabled) + color(progress_left, "32;1", enabled), color("resources  ", "90", enabled) + color(resource_bits[0], "36;1", enabled), width),
+                    grid_line(color("cpu/gpu   ", "90", enabled) + color((" | ".join(row["kind"] for row in processes[:3]) if processes else "idle"), "36;1", enabled), color("jobs       ", "90", enabled) + color(("  ".join(resource_bits[1:]) if len(resource_bits) > 1 else "idle"), "36;1", enabled), width),
+                    grid_line(color("phase     ", "90", enabled) + color(public_job, health["code"], enabled), color("disk       ", "90", enabled) + color(f"{disk_free_gb(run_dir):.1f} GiB free", "36", enabled), width),
+                    grid_line(color("health    ", "90", enabled) + color(health["health"], health["code"], enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
+                    grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} total {eta['total']}", "36;1", enabled), color("done       ", "90", enabled) + color(eta["completion_at"], "36;1", enabled), width),
+                    grid_line(color("view      ", "90", enabled) + color("public-safe telemetry", "36;1", enabled), color("details    ", "90", enabled) + color("redacted", "33;1", enabled), width),
+                ]
+            else:
+                overview = [
+                    grid_line(color("progress  ", "90", enabled) + color(progress_left, "32;1", enabled), color("resources  ", "90", enabled) + color(resource_bits[0], "36;1", enabled), width),
+                    grid_line(color("cpu/gpu   ", "90", enabled) + color((" | ".join(row["kind"] for row in processes[:3]) if processes else "idle"), "36;1", enabled), color("jobs       ", "90", enabled) + color(("  ".join(resource_bits[1:]) if len(resource_bits) > 1 else "idle"), "36;1", enabled), width),
+                    grid_line(color("tensor    ", "90", enabled) + color(f"{active.get('tensor')}  {active.get('level')}", "33;1", enabled), color("disk       ", "90", enabled) + color(f"{disk_free_gb(run_dir):.1f} GiB free", "36", enabled), width),
+                    grid_line(color("job       ", "90", enabled) + color(job_label, health["code"], enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes_dense(model['baseline_size'])} active {fmt_bytes_dense(model['active_size'])}", "36;1", enabled), width),
+                    grid_line(color("storage   ", "90", enabled) + color(f"tmp {fmt_bytes(model['tmp_size'])} artifacts {fmt_bytes(model['artifacts_size'])}", "36;1", enabled), color("pid        ", "90", enabled) + color(str(health["expected_pid"] or "-"), health["code"], enabled), width),
+                    grid_line(color("health    ", "90", enabled) + color(str(health["reason"]), health["code"], enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
+                    grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", "36;1", enabled), color("done       ", "90", enabled) + color(eta["completion_at"], "36;1", enabled), width),
+                    grid_line(color("avg layer ", "90", enabled) + color(eta["avg_layer"], "36;1", enabled), color("floor      ", "90", enabled) + color(f"{manifest.get('hard_free_floor_gb', 10.0)} GiB hard floor", "31;1" if disk_free_gb(run_dir) < 20 else "36", enabled), width),
+                ]
             print_heavy_box("OPERATIONS", overview, width, "34;1", enabled)
             print()
 
-            measure_lines = [f"{'quant':<7} {'ppl':<12} {'delta':<12} {'size':<12} tensor"]
-            measure_lines.append("─" * (width - 4))
-            for row in candidates[-max(1, args.measurements_limit) :]:
-                delta = row.get("delta")
-                delta_s = "-" if delta is None else f"{delta:+.4f}"
-                marker, marker_code = delta_marker(delta)
-                line = (
-                    color(f"{row.get('level', '-'):<7}", "35;1", enabled)
-                    + color(f"{str(row.get('ppl', '-')):<12}", "33;1", enabled)
-                    + color(f"{delta_s:<12}", delta_code(delta), enabled)
-                    + color(f"{fmt_bytes_dense(row.get('size_bytes')):<12}", size_code(row.get("size_bytes"), model["baseline_size"]), enabled)
-                    + color(f"{row.get('tensor', '')}", "33", enabled)
-                    + (" " + color(marker, marker_code, enabled) if marker else "")
-                )
-                measure_lines.append(line)
-            print_heavy_box("RECENT MEASUREMENTS", measure_lines, width, "32;1", enabled)
+            if public_view:
+                measure_lines = [
+                    "Candidate tensor names, quant levels, PPL deltas, and GGUF paths are redacted.",
+                    "Use the private watch view for factory debugging.",
+                ]
+                print_heavy_box("PUBLIC VIEW", measure_lines, width, "32;1", enabled)
+            else:
+                measure_lines = [f"{'quant':<7} {'ppl':<12} {'delta':<12} {'size':<12} tensor"]
+                measure_lines.append("─" * (width - 4))
+                for row in candidates[-max(1, args.measurements_limit) :]:
+                    delta = row.get("delta")
+                    delta_s = "-" if delta is None else f"{delta:+.4f}"
+                    marker, marker_code = delta_marker(delta)
+                    line = (
+                        color(f"{row.get('level', '-'):<7}", "35;1", enabled)
+                        + color(f"{str(row.get('ppl', '-')):<12}", "33;1", enabled)
+                        + color(f"{delta_s:<12}", delta_code(delta), enabled)
+                        + color(f"{fmt_bytes_dense(row.get('size_bytes')):<12}", size_code(row.get("size_bytes"), model["baseline_size"]), enabled)
+                        + color(f"{row.get('tensor', '')}", "33", enabled)
+                        + (" " + color(marker, marker_code, enabled) if marker else "")
+                    )
+                    measure_lines.append(line)
+                print_heavy_box("RECENT MEASUREMENTS", measure_lines, width, "32;1", enabled)
             print()
 
-            event_parts = []
-            for row in events[-min(5, max(1, args.events_limit)) :]:
-                event_parts.append(f"{row.get('event')} {row.get('level', '')} {row.get('tensor', '')}".strip())
-            print_heavy_box("EVENT STRIP", [" | ".join(event_parts), f"run {run_id}", "Ctrl+C exits UI only. Use `cerebellum stop RUN_DIR` to stop."], width, "33;1", enabled)
+            if public_view:
+                event_lines = [
+                    "Event stream redacted for public screenshots.",
+                    "Ctrl+C exits UI only. Use private tooling to stop or recover a run.",
+                ]
+            else:
+                event_parts = []
+                for row in events[-min(5, max(1, args.events_limit)) :]:
+                    event_parts.append(f"{row.get('event')} {row.get('level', '')} {row.get('tensor', '')}".strip())
+                event_lines = [" | ".join(event_parts), f"run {run_id}", "Ctrl+C exits UI only. Use `cerebellum stop RUN_DIR` to stop."]
+            print_heavy_box("EVENT STRIP", event_lines, width, "33;1", enabled)
             if args.once:
                 return
             time.sleep(args.interval)

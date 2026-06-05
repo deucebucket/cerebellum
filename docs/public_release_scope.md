@@ -41,6 +41,7 @@ Safe release metadata can include:
 - benchmark runtime flags,
 - result summaries and selected detailed answer artifacts,
 - high-level quant family/size target,
+- public-safe `cerebellum watch --public` screenshots,
 - model-card provenance statements.
 
 Raw local logs, tensor maps, ablation JSON, temporary GGUF paths, and method
@@ -81,5 +82,7 @@ Before making `origin` public again:
 - Mark proxy-based results as proxy-based.
 - Add GitHub Sponsors, Ko-fi, and commission/priority-run links to README and
   model cards.
+- Use `cerebellum watch --public --once --plain` or crop/redact raw watch
+  screenshots before publishing.
 - Keep releasing GGUFs and benchmark artifacts even while the factory remains
   private.

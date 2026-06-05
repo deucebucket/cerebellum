@@ -13,6 +13,7 @@ from cerebellum import (
     doctor_cmd,
     eta_grid_values,
     github_upload_plan,
+    grid_watch_cmd,
     is_quantizable_tensor,
     parse_args,
     sanitize_process_cmd,
@@ -27,6 +28,13 @@ def test_project_root_alias_parses_as_data_root():
     assert args.cmd == "project"
     assert args.data_root == "/tmp/cerebellum-runs"
     assert args.json is True
+
+
+def test_watch_public_flag_parses():
+    args = parse_args(["watch", "/tmp/run", "--public", "--once", "--plain"])
+
+    assert args.cmd == "watch"
+    assert args.public is True
 
 
 def test_active_work_status_marks_missing_started_process_interrupted():
@@ -245,6 +253,71 @@ def test_watch_model_shows_rollback_finish_before_resume(tmp_path: Path):
     model = build_watch_model(run_dir)
 
     assert model["active"]["event"] == "rollback_finish"
+
+
+def test_public_watch_redacts_factory_details(tmp_path: Path, monkeypatch, capsys):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "run_status": "running",
+                "model_family": "gemma-4",
+                "model_name": "gemma-4-12b-it",
+                "current_ppl": 2142.6025,
+                "locked": {"blk.1.attn_v.weight": "q4_K"},
+                "tested": [{"tensor": "blk.1.attn_v.weight"}],
+                "totals": {"quant_seconds": 30.0, "ppl_seconds": 30.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text(
+        '{"run_id":"gemma4-12b-cerebellum-q4km-wiki-visible-20260604","ppl_profile":"wiki"}',
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_events.jsonl").write_text(
+        "\n".join(
+            [
+                '{"event":"run_start","tensors":328}',
+                '{"event":"tensor_start","tensor":"blk.1.attn_k.weight","total":328}',
+                '{"event":"quant_start","level":"q3_K","tensor":"blk.1.attn_k.weight","pid":"123456"}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_candidates.jsonl").write_text(
+        '{"level":"q3_K","ppl":2147.7021,"delta":5.0996,"size_bytes":8577434592,"tensor":"blk.1.attn_k.weight"}\n',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("osmosis.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("osmosis.hillstep.gpu_rows", lambda: [])
+    monkeypatch.setattr("osmosis.hillstep.os.system", lambda _cmd: 0)
+
+    grid_watch_cmd(
+        types.SimpleNamespace(
+            run_dir=str(run_dir),
+            stall_warn_seconds=300.0,
+            stall_fail_seconds=900.0,
+            measurements_limit=8,
+            events_limit=12,
+            once=True,
+            public=True,
+            plain=True,
+            no_color=True,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "public-safe telemetry" in output
+    assert "redacted" in output
+    assert "blk.1.attn_k.weight" not in output
+    assert "q3_K" not in output
+    assert "2147.7021" not in output
+    assert "+5.0996" not in output
+    assert "gemma4-12b-cerebellum-q4km-wiki-visible-20260604" not in output
+    assert "pid" not in output.lower()
 
 
 def test_github_upload_plan_uses_run_sidecar_paths(tmp_path: Path):
