@@ -2844,9 +2844,10 @@ def stop_cmd(args: argparse.Namespace) -> None:
 def cleanup_cmd(args: argparse.Namespace) -> None:
     run_dir = Path(args.run_dir)
     state = read_json(run_dir / "state.json", {})
+    manifest = read_json(run_dir / "manifest.json", {})
     locked = set(state.get("locked", {}))
     events_path = first_existing(run_dir, EVENT_FILES)
-    tmp_root = run_dir / "tmp"
+    tmp_root = run_tmp_root(run_dir, manifest, state)
     candidates: list[Path] = []
     runner_active = any(row["kind"] == "runner" for row in process_rows_for_run(run_dir))
     if tmp_root.exists():

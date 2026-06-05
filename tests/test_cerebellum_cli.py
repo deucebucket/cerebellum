@@ -23,6 +23,7 @@ from cerebellum import (
     benchmark_report_markdown,
     cerebellum_metadata_block,
     clear_terminal_markers,
+    cleanup_cmd,
     compare_locks,
     build_recovery_plan,
     build_watch_model,
@@ -1150,6 +1151,26 @@ def test_recovery_and_watch_use_scratch_roots(tmp_path: Path, monkeypatch):
     assert recovery["artifact_size_bytes"] == len(b"artifact")
     assert model["tmp_size"] == len(b"partial")
     assert model["artifacts_size"] == len(b"artifact")
+
+
+def test_cleanup_partials_uses_scratch_root(tmp_path: Path, monkeypatch, capsys):
+    run_dir = tmp_path / "run"
+    scratch = tmp_path / "scratch"
+    run_id = "run-a"
+    partial = scratch / run_id / "tmp" / "00001-blk-0-attn-q"
+    partial.mkdir(parents=True)
+    (partial / "candidate.gguf").write_bytes(b"partial")
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(json.dumps({"run_status": "stopped", "run_id": run_id, "locked": {}}), encoding="utf-8")
+    (run_dir / "manifest.json").write_text(json.dumps({"run_id": run_id, "scratch_root": str(scratch)}), encoding="utf-8")
+    monkeypatch.setattr("osmosis.hillstep.process_rows_for_run", lambda _run_dir: [])
+
+    args = parse_args(["cleanup", str(run_dir), "--partials"])
+    cleanup_cmd(args)
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["mode"] == "dry-run"
+    assert payload["paths"] == [str(partial)]
 
 
 def test_rollback_refuses_active_runner_without_force(tmp_path: Path, monkeypatch):
