@@ -109,9 +109,11 @@ from cerebellum import (
     release_gate_cmd,
     release_gate_markdown,
     read_tensor_type_map,
+    resume_cmd,
     task_profiles_cmd,
     task_profiles_markdown,
     rollback_cmd,
+    run_from_namespace,
     resolve_run_dir,
     public_report_summary,
     sanitize_process_cmd,
@@ -1399,10 +1401,12 @@ def test_pipeline_plan_builds_full_manifest(tmp_path: Path):
     assert "cerebellum imatrix" in phases["imatrix"]["command"]
     assert "cerebellum run" in phases["ablate"]["command"]
     assert "--profile wiki" in phases["ablate"]["command"]
+    assert "--metric ppl" in phases["ablate"]["command"]
     assert "--low-space" in phases["ablate"]["command"]
     assert "cerebellum resume" in phases["resume"]["command"]
     assert "--tensor-type-file" in phases["build-final-gguf"]["command"]
-    assert "benchmark-plan --suite frontier" in phases["benchmark"]["command"]
+    assert "benchmark-run --suite frontier" in phases["benchmark"]["command"]
+    assert "--execute --postprocess --require-complete" in phases["benchmark"]["command"]
     assert "cerebellum finalize" in phases["finalize"]["command"]
     assert "--repo-name" not in phases["finalize"]["command"]
     assert "cerebellum package" in phases["package"]["command"]
@@ -1430,6 +1434,15 @@ def test_pipeline_plan_command_writes_json(tmp_path: Path, capsys):
     data = json.loads(manifest.read_text(encoding="utf-8"))
     assert data["pipeline"] == "cerebellum"
     assert data["phases"][0]["name"] == "imatrix"
+
+
+def test_pipeline_plan_default_benchmark_suite_is_executable(tmp_path: Path):
+    args = parse_args(["pipeline-plan", "--source-gguf", str(tmp_path / "m.gguf"), "--output-dir", str(tmp_path / "out")])
+
+    plan = pipeline_plan(args)
+
+    assert plan["benchmark_suite"] == "release-local"
+    assert benchmark_run_plan(plan["benchmark_suite"], model="m", port=8084, results_dir=str(tmp_path / "bench"))["blocked"] is False
 
 
 def test_pipeline_plan_command_parses():
@@ -1679,7 +1692,7 @@ def test_pipeline_run_plan_slices_manifest(tmp_path: Path):
                 "phases": [
                     {"name": "imatrix", "status": "planned", "command": "cerebellum imatrix", "outputs": ["imatrix.dat"]},
                     {"name": "ablate", "status": "planned", "command": "cerebellum run", "outputs": ["state.json"]},
-                    {"name": "benchmark", "status": "planned", "command": "cerebellum benchmark-plan", "outputs": ["benchmark_results"]},
+                    {"name": "benchmark", "status": "planned", "command": "cerebellum benchmark-run --execute", "outputs": ["benchmark_results"]},
                 ],
             }
         ),
@@ -1775,6 +1788,41 @@ def test_pipeline_run_execute_stops_on_failure(tmp_path: Path):
     assert not skipped.exists()
 
 
+def test_pipeline_run_execute_benchmark_phase_can_write_sidecars(tmp_path: Path):
+    manifest = tmp_path / "pipeline.json"
+    command = (
+        f"{sys.executable} -c "
+        "\"from pathlib import Path; "
+        "p=Path('benchmark_results/postprocess'); "
+        "p.mkdir(parents=True); "
+        "Path('benchmark_results/unit_results.json').write_text('{\\\"accuracy\\\":1.0}'); "
+        "Path('benchmark_results/postprocess/benchmark_manifest.json').write_text('{\\\"ready\\\":true}')\""
+    )
+    manifest.write_text(
+        json.dumps(
+            {
+                "pipeline": "cerebellum",
+                "phases": [
+                    {
+                        "name": "benchmark",
+                        "status": "planned",
+                        "command": command,
+                        "outputs": ["benchmark_results"],
+                    }
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = pipeline_run_execute(pipeline_run_plan(manifest, from_phase="benchmark"))
+
+    assert result["dry_run"] is False
+    assert result["blocked"] is False
+    assert (tmp_path / "benchmark_results" / "unit_results.json").is_file()
+    assert (tmp_path / "benchmark_results" / "postprocess" / "benchmark_manifest.json").is_file()
+
+
 def test_pipeline_status_command_parses():
     args = parse_args(["pipeline-status", "--manifest", "pipeline.json", "--events", "events.jsonl", "--json"])
 
@@ -1837,6 +1885,31 @@ def test_pipeline_status_reports_failed_resume_point(tmp_path: Path):
     assert [row["status"] for row in status["phases"]] == ["failed", "pending"]
 
 
+def test_resume_preserves_keep_measured_candidates(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "source_gguf": str(tmp_path / "m.gguf"),
+                "corpus": str(tmp_path / "wiki.txt"),
+                "ppl_profile": "wiki",
+                "run_id": "unit",
+                "levels": ["q2_K"],
+                "prune_measured_candidates": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    captured = {}
+    monkeypatch.setattr(hillstep, "run_from_namespace", lambda ns: captured.update(vars(ns)))
+
+    resume_cmd(parse_args(["resume", str(run_dir)]))
+
+    assert captured["metric"] == "ppl"
+    assert captured["prune_measured_candidates"] is False
+
+
 def test_pipeline_status_api_query_args_validate():
     args = pipeline_status_args_from_query({"manifest": ["pipeline.json"], "events": ["events.jsonl"]})
 
@@ -1865,7 +1938,7 @@ def test_pipeline_plan_query_args_use_task_profile_defaults():
 
     assert args.low_space is True
     assert plan["ppl_profile"] == "code"
-    assert plan["benchmark_suite"] == "full"
+    assert plan["benchmark_suite"] == "release-local"
     assert plan["task_profile"] == "code"
     assert plan["final_gguf"].endswith("model-x-code-cerebellum.gguf")
 
@@ -1899,11 +1972,59 @@ def test_pipeline_plan_task_profile_sets_variant_defaults(tmp_path: Path):
 
     assert plan["task_profile"] == "code"
     assert plan["ppl_profile"] == "code"
-    assert plan["benchmark_suite"] == "full"
+    assert plan["ablation_metric"] == "humaneval"
+    assert plan["benchmark_suite"] == "release-local"
+    assert plan["task_profile_detail"]["ablation_metric"] == "humaneval"
     assert plan["task_profile_detail"]["metrics"] == ["humaneval", "evalplus", "livecodebench_v6"]
     assert plan["final_gguf"].endswith("model-x-code-cerebellum.gguf")
     assert "--profile code" in phases["ablate"]["command"]
-    assert "benchmark-plan --suite full --model model-x-code" in phases["benchmark"]["command"]
+    assert "--metric humaneval" in phases["ablate"]["command"]
+    assert "benchmark-run --suite release-local --model model-x-code" in phases["benchmark"]["command"]
+    assert "--execute --postprocess --require-complete" in phases["benchmark"]["command"]
+
+
+def test_pipeline_plan_task_profile_allows_metric_override(tmp_path: Path):
+    args = parse_args(
+        [
+            "pipeline-plan",
+            "--source-gguf",
+            str(tmp_path / "m.gguf"),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--model-name",
+            "Model X",
+            "--task-profile",
+            "code",
+            "--metric",
+            "ppl",
+        ]
+    )
+
+    plan = pipeline_plan(args)
+    phases = {row["name"]: row for row in plan["phases"]}
+
+    assert plan["task_profile"] == "code"
+    assert plan["ablation_metric"] == "ppl"
+    assert "--metric ppl" in phases["ablate"]["command"]
+
+
+def test_run_rejects_non_ppl_metric_before_launch(tmp_path: Path):
+    args = parse_args(
+        [
+            "run",
+            "--source-gguf",
+            str(tmp_path / "m.gguf"),
+            "--metric",
+            "humaneval",
+        ]
+    )
+
+    try:
+        run_from_namespace(args)
+    except SystemExit as exc:
+        assert "current Cerebellum run scoring supports only 'ppl'" in str(exc)
+    else:
+        raise AssertionError("run --metric humaneval should fail until task scorers exist")
 
 
 def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path: Path):
@@ -1929,7 +2050,7 @@ def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path
 
     assert plan["task_profile"] == "cpu-offload"
     assert plan["ppl_profile"] == "all-around"
-    assert plan["benchmark_suite"] == "full"
+    assert plan["benchmark_suite"] == "release-local"
     assert plan["low_space"] is True
     assert plan["resource_strategy"]["target"] == "large RAM hosts with optional GPU layer offload"
     assert plan["cpu_offload_plan"]["model_hint"] == "glm"
@@ -2190,8 +2311,8 @@ def test_task_profiles_command_outputs_catalog(capsys):
     assert "code" in data["profiles"]
     assert data["profiles"]["tools"]["ppl_profile"] == "agentic"
     assert data["profiles"]["cpu-offload"]["low_space_default"] is True
-    assert "| code | code | full | humaneval, evalplus, livecodebench_v6 |" in markdown
-    assert "| cpu-offload | all-around | full | ppl, speed, score_per_gib, cpu_tok_s, gpu_offload_layers |" in markdown
+    assert "| code | code | humaneval | release-local | humaneval, evalplus, livecodebench_v6 |" in markdown
+    assert "| cpu-offload | all-around | ppl | release-local | ppl, speed, score_per_gib, cpu_tok_s, gpu_offload_layers |" in markdown
 
 
 def test_task_profiles_command_parses():

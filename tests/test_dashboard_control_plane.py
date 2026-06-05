@@ -1,4 +1,6 @@
 import json
+import sqlite3
+from argparse import Namespace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -14,6 +16,7 @@ from osmosis.dashboard.models import (
 )
 from osmosis.dashboard.server import (
     BenchmarkResultIngest,
+    get_control_plane_queue_job,
     get_benchmark_audit,
     get_benchmark_publishability,
     get_model_benchmark_audits,
@@ -24,9 +27,11 @@ from osmosis.dashboard.server import (
     ingest_benchmark_result,
     ingest_discovered_model_cards,
     ingest_scan,
+    list_control_plane_queue,
     list_benchmarks,
     list_models,
 )
+from osmosis.hillstep import DEFAULT_DB, queue_add_job
 
 
 def init_tmp_db(tmp_path: Path):
@@ -200,3 +205,48 @@ def test_ingest_benchmark_result_blocks_without_detail(tmp_path: Path):
     assert payload["data"]["audit"]["passed"] is False
     assert publishability["data"]["publishable"] is False
     assert "missing detailed audit artifact" in publishability["data"]["blockers"]
+
+
+def test_dashboard_exposes_control_plane_queue_jobs(tmp_path: Path, monkeypatch):
+    db = tmp_path / "cerebellum.db"
+    log = tmp_path / "pipeline.log"
+    log.write_text("first\nsecond\nthird\n", encoding="utf-8")
+    job = queue_add_job(
+        Namespace(
+            db=str(db),
+            kind="pipeline",
+            manifest=None,
+            from_phase=None,
+            until_phase=None,
+            command=None,
+            payload_json=json.dumps({"manifest": "pipeline.json", "pipeline": "unit", "log": str(log)}),
+            label="unit pipeline",
+            status="queued",
+            priority=5,
+            notes="bridge test",
+        )
+    )
+    conn = sqlite3.connect(db)
+    try:
+        with conn:
+            conn.execute("UPDATE cerebellum_jobs SET log = ? WHERE id = ?", (str(log), job["id"]))
+    finally:
+        conn.close()
+    monkeypatch.setattr("osmosis.dashboard.server.DB_PATH", str(db))
+
+    listed = list_control_plane_queue(status="queued", kind="pipeline", limit=10)
+    fetched = get_control_plane_queue_job(job["id"], tail=2)
+
+    assert listed["error"] is None
+    assert listed["data"]["schema"] == "cerebellum_jobs"
+    assert listed["data"]["jobs"][0]["id"] == job["id"]
+    assert listed["data"]["jobs"][0]["kind"] == "pipeline"
+    assert listed["data"]["jobs"][0]["payload"]["pipeline"] == "unit"
+    assert fetched["data"]["job"]["label"] == "unit pipeline"
+    assert fetched["data"]["job"]["log_tail"] == "second\nthird"
+
+
+def test_dashboard_control_plane_default_db_matches_cli_queue():
+    from osmosis.dashboard import server
+
+    assert server.DB_PATH == DEFAULT_DB

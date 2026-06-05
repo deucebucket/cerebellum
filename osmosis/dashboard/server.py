@@ -28,12 +28,12 @@ from osmosis.dashboard.models import (
     PIPELINE_PHASES,
     stable_model_id,
 )
-from osmosis.hillstep import audit_jsonl_file
+from osmosis.hillstep import DEFAULT_DB, audit_jsonl_file, queue_get_job, queue_list_jobs
 from osmosis.dashboard.worker import Worker, event_bus
 from osmosis.dashboard.scheduler import Scheduler
 
 
-DB_PATH = os.environ.get("CEREBELLUM_DB", str(Path.home() / ".cerebellum" / "dashboard.db"))
+DB_PATH = os.environ.get("CEREBELLUM_DB", DEFAULT_DB)
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BENCH_FIX_CUTOFF = datetime(2026, 5, 3, 12, 0, tzinfo=timezone.utc).timestamp()
 
@@ -83,6 +83,10 @@ class BenchmarkResultIngest(BaseModel):
 
 def envelope(data=None, error: str | None = None) -> dict:
     return {"data": data, "error": error}
+
+
+def control_plane_db_path() -> Path:
+    return Path(DB_PATH)
 
 
 worker: Optional[Worker] = None
@@ -936,6 +940,37 @@ def list_jobs(status: Optional[str] = Query(None), limit: int = Query(50, le=200
         return {"jobs": [j.to_dict() for j in jobs]}
     finally:
         sess.close()
+
+
+@app.get("/api/control-plane/queue")
+def list_control_plane_queue(
+    status: Optional[str] = Query(None),
+    kind: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+):
+    jobs = queue_list_jobs(control_plane_db_path(), status=status, kind=kind, limit=limit)
+    return envelope(
+        {
+            "schema": "cerebellum_jobs",
+            "db": str(control_plane_db_path()),
+            "jobs": jobs,
+        }
+    )
+
+
+@app.get("/api/control-plane/queue/{job_id}")
+def get_control_plane_queue_job(job_id: int, tail: int = Query(40, ge=0, le=1000)):
+    try:
+        job = queue_get_job(control_plane_db_path(), job_id, tail=tail)
+    except SystemExit as exc:
+        raise HTTPException(status_code=404, detail=envelope(None, str(exc))) from exc
+    return envelope(
+        {
+            "schema": "cerebellum_jobs",
+            "db": str(control_plane_db_path()),
+            "job": job,
+        }
+    )
 
 
 @app.get("/api/model-cards")

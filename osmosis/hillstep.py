@@ -240,6 +240,7 @@ TASK_PROFILES = {
     "general": {
         "label": "Cerebellum-General",
         "ppl_profile": "wiki",
+        "ablation_metric": "ppl",
         "benchmark_suite": "release",
         "metrics": ["ppl", "arc", "hellaswag", "mmlu_redux", "evalplus"],
         "variant_suffix": "general",
@@ -248,7 +249,8 @@ TASK_PROFILES = {
     "code": {
         "label": "Cerebellum-Code",
         "ppl_profile": "code",
-        "benchmark_suite": "full",
+        "ablation_metric": "humaneval",
+        "benchmark_suite": "release-local",
         "metrics": ["humaneval", "evalplus", "livecodebench_v6"],
         "variant_suffix": "code",
         "note": "Protect tensors that matter for code generation and execution accuracy.",
@@ -256,7 +258,8 @@ TASK_PROFILES = {
     "reason": {
         "label": "Cerebellum-Reason",
         "ppl_profile": "wiki",
-        "benchmark_suite": "full",
+        "ablation_metric": "mmlu",
+        "benchmark_suite": "release-local",
         "metrics": ["arc", "mmlu_redux", "mmlu_pro", "gpqa_diamond"],
         "variant_suffix": "reason",
         "note": "Protect tensors that matter for science, knowledge, and reasoning MCQ accuracy.",
@@ -264,6 +267,7 @@ TASK_PROFILES = {
     "chat": {
         "label": "Cerebellum-Chat",
         "ppl_profile": "dialogue",
+        "ablation_metric": "dialogue",
         "benchmark_suite": "release",
         "metrics": ["dialogue", "mt_bench_pending"],
         "variant_suffix": "chat",
@@ -272,6 +276,7 @@ TASK_PROFILES = {
     "tools": {
         "label": "Cerebellum-Tools",
         "ppl_profile": "agentic",
+        "ablation_metric": "tool-call",
         "benchmark_suite": "release",
         "metrics": ["tool_call_pending", "json_schema_pending", "agentic"],
         "variant_suffix": "tools",
@@ -280,7 +285,8 @@ TASK_PROFILES = {
     "cpu-offload": {
         "label": "Cerebellum-CPU-Offload",
         "ppl_profile": "all-around",
-        "benchmark_suite": "full",
+        "ablation_metric": "ppl",
+        "benchmark_suite": "release-local",
         "metrics": ["ppl", "speed", "score_per_gib", "cpu_tok_s", "gpu_offload_layers"],
         "variant_suffix": "cpu-offload",
         "low_space_default": True,
@@ -1907,6 +1913,7 @@ class Config:
     source_gguf: Path
     corpus: Path
     ppl_profile: str
+    ablation_metric: str
     run_dir: Path
     run_id: str
     model_family: str
@@ -2002,6 +2009,7 @@ class HillStepper:
             "source_gguf": str(self.cfg.source_gguf),
             "corpus": str(self.cfg.corpus),
             "ppl_profile": self.cfg.ppl_profile,
+            "ablation_metric": self.cfg.ablation_metric,
             "base_type": self.cfg.base_type,
             "start_type": self.cfg.start_type,
             "levels": self.cfg.levels,
@@ -2046,6 +2054,7 @@ class HillStepper:
             "source_gguf": str(self.cfg.source_gguf),
             "corpus": str(self.cfg.corpus),
             "ppl_profile": self.cfg.ppl_profile,
+            "ablation_metric": self.cfg.ablation_metric,
             "run_dir": str(self.cfg.run_dir),
             "base_type": self.cfg.base_type,
             "start_type": self.cfg.start_type,
@@ -2648,6 +2657,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="custom",
         help="Named PPL target profile recorded with the run",
     )
+    run.add_argument(
+        "--metric",
+        choices=["ppl", "humaneval", "arc", "mmlu", "tool-call", "dialogue"],
+        default="ppl",
+        help="Ablation scoring metric; only ppl is executable until task scorer adapters land",
+    )
     run.add_argument("--family", default=None)
     run.add_argument("--model-name", default=None)
     run.add_argument("--source-name", default=None)
@@ -2900,7 +2915,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     pipeline_plan_parser.add_argument("--chunks", type=int, default=None)
     pipeline_plan_parser.add_argument("--distrobox", default=None)
     pipeline_plan_parser.add_argument("--low-space", action="store_true")
-    pipeline_plan_parser.add_argument("--benchmark-suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    pipeline_plan_parser.add_argument("--benchmark-suite", choices=sorted(BENCHMARK_SUITES), default="release-local")
+    pipeline_plan_parser.add_argument(
+        "--metric",
+        choices=["ppl", "humaneval", "arc", "mmlu", "tool-call", "dialogue"],
+        default=None,
+        help="ablation scoring metric to record and pass to Cerebellum run",
+    )
     pipeline_plan_parser.add_argument("--task-profile", choices=sorted(TASK_PROFILES), default=None, help="task-specific variant profile to annotate and default profile/suite")
     pipeline_plan_parser.add_argument("--benchmark-port", type=int, default=8084)
     pipeline_plan_parser.add_argument("--repo-name", default=None)
@@ -3674,6 +3695,7 @@ def resume_cmd(args: argparse.Namespace) -> None:
         source_gguf=source,
         corpus=corpus,
         profile=manifest.get("ppl_profile") or state.get("ppl_profile") or "custom",
+        metric=manifest.get("ablation_metric") or state.get("ablation_metric") or "ppl",
         family=manifest.get("model_family") or state.get("model_family"),
         model_name=manifest.get("model_name") or state.get("model_name"),
         source_name=manifest.get("source_name") or state.get("source_name"),
@@ -3704,7 +3726,7 @@ def resume_cmd(args: argparse.Namespace) -> None:
         no_keep_winners=False,
         low_space=args.low_space or bool(manifest.get("low_space")),
         serial_candidates=bool(manifest.get("serial_candidates")) or args.low_space,
-        prune_measured_candidates=True,
+        prune_measured_candidates=bool(manifest.get("prune_measured_candidates", state.get("prune_measured_candidates", True))),
         plain=args.plain,
         no_color=args.no_color,
         backup_every=1,
@@ -5898,6 +5920,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
     source = Path(args.source_gguf)
     task_profile = TASK_PROFILES.get(args.task_profile) if args.task_profile else None
     effective_profile = str(task_profile["ppl_profile"]) if task_profile and args.profile == "custom" else args.profile
+    effective_metric = args.metric or (str(task_profile["ablation_metric"]) if task_profile else "ppl")
     effective_suite = str(task_profile["benchmark_suite"]) if task_profile and args.benchmark_suite == "release" else args.benchmark_suite
     effective_low_space = bool(args.low_space or (task_profile and task_profile.get("low_space_default")))
     variant_suffix = f"-{task_profile['variant_suffix']}" if task_profile and task_profile.get("variant_suffix") != "general" else ""
@@ -5914,6 +5937,8 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         str(run_dir),
         "--profile",
         effective_profile,
+        "--metric",
+        effective_metric,
         "--base-type",
         args.base_type,
         "--start-type",
@@ -6001,7 +6026,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
             "command": shell_join(
                 [
                     "cerebellum",
-                    "benchmark-plan",
+                    "benchmark-run",
                     "--suite",
                     effective_suite,
                     "--model",
@@ -6010,6 +6035,9 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
                     args.benchmark_port,
                     "--results-dir",
                     benchmark_dir,
+                    "--execute",
+                    "--postprocess",
+                    "--require-complete",
                 ]
             ),
             "outputs": [str(benchmark_dir)],
@@ -6046,6 +6074,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         "cpu_offload_plan": cpu_offload,
         "low_space": effective_low_space,
         "ppl_profile": effective_profile,
+        "ablation_metric": effective_metric,
         "phases": phases,
     }
 
@@ -6858,13 +6887,16 @@ def pipeline_plan_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespac
         raise ValueError("output_dir query param required")
     task_profile = query_value(qs, "task_profile")
     profile = query_value(qs, "profile", "custom")
-    benchmark_suite = query_value(qs, "benchmark_suite", "release")
+    benchmark_suite = query_value(qs, "benchmark_suite", "release-local")
+    metric = query_value(qs, "metric")
     if task_profile and task_profile not in TASK_PROFILES:
         raise ValueError(f"unknown task_profile {task_profile}")
     if profile not in {*PPL_PROFILES, "custom"}:
         raise ValueError(f"unknown profile {profile}")
     if benchmark_suite not in BENCHMARK_SUITES:
         raise ValueError(f"unknown benchmark_suite {benchmark_suite}")
+    if metric and metric not in {"ppl", "humaneval", "arc", "mmlu", "tool-call", "dialogue"}:
+        raise ValueError(f"unknown metric {metric}")
     return argparse.Namespace(
         source_gguf=source,
         output_dir=output_dir,
@@ -6889,6 +6921,7 @@ def pipeline_plan_args_from_query(qs: dict[str, list[str]]) -> argparse.Namespac
         distrobox=query_value(qs, "distrobox"),
         low_space=query_bool(qs, "low_space"),
         benchmark_suite=benchmark_suite,
+        metric=metric,
         task_profile=task_profile,
         benchmark_port=int(query_value(qs, "benchmark_port", 8084)),
         repo_name=query_value(qs, "repo_name"),
@@ -6904,12 +6937,13 @@ def task_profiles_markdown() -> str:
             [
                 key,
                 str(profile["ppl_profile"]),
+                str(profile.get("ablation_metric", "ppl")),
                 str(profile["benchmark_suite"]),
                 ", ".join(str(metric) for metric in profile["metrics"]),
                 str(profile["note"]),
             ]
         )
-    return markdown_table(["Profile", "PPL", "Bench suite", "Metrics", "Note"], rows) + "\n"
+    return markdown_table(["Profile", "PPL", "Ablation metric", "Bench suite", "Metrics", "Note"], rows) + "\n"
 
 
 def task_profiles_cmd(args: argparse.Namespace) -> None:
@@ -10037,6 +10071,7 @@ def schedule_cmd(args: argparse.Namespace) -> None:
             source_gguf=job["source_gguf"],
             corpus=job.get("corpus"),
             profile=job.get("profile", "custom"),
+            metric=job.get("metric", "ppl"),
             family=job.get("family"),
             model_name=job.get("model_name"),
             source_name=job.get("source_name"),
@@ -10083,12 +10118,18 @@ def schedule_cmd(args: argparse.Namespace) -> None:
 
 
 def run_from_namespace(args: argparse.Namespace) -> None:
+    metric = getattr(args, "metric", "ppl")
+    if metric != "ppl":
+        raise SystemExit(
+            f"ablation metric {metric!r} is not executable yet; current Cerebellum run scoring supports only 'ppl'"
+        )
     run_dir = build_run_dir(args)
     run_id = slug(args.run_name or run_dir.name)
     cfg = Config(
         source_gguf=Path(args.source_gguf),
         corpus=resolve_ppl_corpus(args.profile, args.corpus),
         ppl_profile=args.profile,
+        ablation_metric=metric,
         run_dir=run_dir,
         run_id=run_id,
         model_family=slug(args.family or "unknown-family"),
