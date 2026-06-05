@@ -354,14 +354,17 @@ tables and a size-normalized leaderboard:
 cerebellum benchmark-report benchmark_results/ --leaderboard --suite full --size Cerebellum=7.6 --weight gpqa_diamond=2 --no-bars
 cerebellum benchmark-report --list-suites
 cerebellum benchmark-plan --suite release --model Cerebellum --port 8084 --results-dir benchmark_results
-cerebellum benchmark-manifest benchmark_results/ --suite release --model Cerebellum --output benchmark_results/manifest.json --json
+cerebellum benchmark-plan --suite capability --model Cerebellum --port 8084 --results-dir benchmark_results
+cerebellum benchmark-manifest benchmark_results/ --suite release --model Cerebellum --output benchmark_results/manifest.json --require-complete --json
 ```
 
 Built-in leaderboard suites:
 
 - `release`: ARC, HellaSwag, MMLU/MMLU-Redux, HumanEval/EvalPlus, PPL.
 - `frontier`: MMLU-Pro, GPQA-Diamond, MMMLU, HLE no-tools, LiveCodeBench v6.
-- `full`: release plus frontier, speed, and PPL reporting.
+- `capability`: frontier plus AIME 2025, IFEval, BFCL v3, SWE-bench Verified,
+  and Aider Polyglot.
+- `full`: release plus capability, speed, and PPL reporting.
 
 The leaderboard average is a benchmark-level weighted mean of measured quality
 percentage metrics only. Default weight is `1.0` per benchmark; use
@@ -378,7 +381,8 @@ without a local runner are explicitly marked pending instead of being silently
 skipped.
 Use `benchmark-manifest` after a run to hash summary/detail artifacts, record
 which suite benchmarks have measured JSON, and produce a HF/model-card bundle
-manifest.
+manifest. Add `--require-complete` for release automation so missing suite
+results fail before a model card or leaderboard row is published.
 
 Audit detailed artifacts before publishing benchmark numbers:
 

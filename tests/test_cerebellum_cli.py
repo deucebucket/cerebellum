@@ -14,6 +14,7 @@ from cerebellum import (
     benchmark_audit_cmd,
     benchmark_audit_markdown,
     benchmark_manifest,
+    benchmark_manifest_cmd,
     benchmark_manifest_markdown,
     benchmark_plan,
     benchmark_plan_cmd,
@@ -250,6 +251,8 @@ def test_benchmark_report_leaderboard_scores_size_density(tmp_path: Path):
     markdown = benchmark_report_markdown(report, include_bars=False)
 
     assert report["suite"]["benchmarks"] == ["mmlu_pro", "gpqa_diamond", "mmmlu", "hle_no_tools", "livecodebench_v6"]
+    assert report["suite"]["purpose"].startswith("frontier public leaderboard core")
+    assert report["suite"]["average_policy"].startswith("weighted mean of measured quality-percentage")
     assert report["leaderboard"][0]["model"] == "cerebellum"
     assert report["suite"]["weights"] == {
         "mmlu_pro": 1.0,
@@ -266,6 +269,7 @@ def test_benchmark_report_leaderboard_scores_size_density(tmp_path: Path):
     assert "| cerebellum | 69.00% | 2 | 8.00 | 8.62 |" in markdown
     assert "| cerebellum | 8.00 | 4.25 | Cerebellum-Q4CPU | tensor_types.txt | abc123 | llama-server |" in markdown
     assert "| baseline | 50.00% | 1 | 10.00 | 5.00 |" in markdown
+    assert "Purpose: frontier public leaderboard core" in markdown
     assert "Average: weighted mean of measured quality-percentage benchmarks only" in markdown
     assert "Weights: mmlu_pro=1" in markdown
 
@@ -313,6 +317,7 @@ def test_benchmark_plan_lists_commands_and_pending_frontier():
     pending = {row["benchmark"]: row["status"] for row in frontier["rows"]}
 
     assert "BENCH_MODEL=gemma4_12b" in arc["command"]
+    assert frontier["purpose"].startswith("frontier public leaderboard core")
     assert "BENCH_PORT=18080" in arc["command"]
     assert "BENCH_WORKERS=4" in arc["command"]
     assert "scripts/benchmark_arc.py" in arc["command"]
@@ -330,8 +335,29 @@ def test_benchmark_plan_lists_commands_and_pending_frontier():
     assert frontier["readiness"]["implemented"] == 0
     assert len(frontier["readiness"]["blockers"]) == 5
     assert "readiness: `blocked`" in markdown
+    assert "purpose: `model-card release proof" in markdown
     assert "| arc | implemented | 4 |" in markdown
     assert "out/gemma4_12b_arc_results.json" in markdown
+
+
+def test_benchmark_plan_capability_suite_includes_extra_clean_benchmarks():
+    plan = benchmark_plan("capability", model="gemma4_12b", port=18080, results_dir="out")
+    names = [row["benchmark"] for row in plan["rows"]]
+
+    assert names == [
+        "mmlu_pro",
+        "gpqa_diamond",
+        "mmmlu",
+        "hle_no_tools",
+        "livecodebench_v6",
+        "aime_2025",
+        "ifeval",
+        "bfcl_v3",
+        "swebench_verified",
+        "aider_polyglot",
+    ]
+    assert plan["purpose"].startswith("expanded capability board")
+    assert plan["readiness"]["implemented"] == 0
 
 
 def test_benchmark_plan_command_parses():
@@ -371,6 +397,7 @@ def test_benchmark_manifest_hashes_artifacts_and_tracks_missing_suite_items(tmp_
     kinds = {item["name"]: item["kind"] for item in manifest["artifacts"]}
     assert manifest["schema"] == "cerebellum.benchmark_manifest.v1"
     assert manifest["model"] == "model"
+    assert manifest["suite_purpose"].startswith("model-card release proof")
     assert kinds["model_arc_results.json"] == "summary"
     assert kinds["model_arc_detailed.jsonl"] == "detail"
     assert manifest["artifacts"][0]["sha256"]
@@ -378,18 +405,33 @@ def test_benchmark_manifest_hashes_artifacts_and_tracks_missing_suite_items(tmp_
     assert "hellaswag" in manifest["missing_measured"]
     assert manifest["release_metadata"]["model"]["bpw"] == 4.5
     assert "# Benchmark Artifact Manifest" in markdown
+    assert "purpose: `model-card release proof" in markdown
     assert "model_arc_detailed.jsonl" in markdown
 
 
 def test_benchmark_manifest_command_parses():
-    args = parse_args(["benchmark-manifest", "benchmark_results", "--suite", "release", "--model", "m", "--output", "manifest.json", "--json"])
+    args = parse_args(["benchmark-manifest", "benchmark_results", "--suite", "release", "--model", "m", "--output", "manifest.json", "--require-complete", "--json"])
 
     assert args.cmd == "benchmark-manifest"
     assert args.paths == ["benchmark_results"]
     assert args.suite == "release"
     assert args.model == "m"
     assert args.output == "manifest.json"
+    assert args.require_complete is True
     assert args.json is True
+
+
+def test_benchmark_manifest_cmd_requires_complete_suite(tmp_path: Path):
+    summary = tmp_path / "model_arc_results.json"
+    summary.write_text(json.dumps({"benchmark": "arc", "model": "model", "accuracy": 0.8}), encoding="utf-8")
+    args = parse_args(["benchmark-manifest", str(tmp_path), "--suite", "frontier", "--require-complete", "--json"])
+
+    try:
+        benchmark_manifest_cmd(args)
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        raise AssertionError("benchmark-manifest --require-complete should fail when suite results are missing")
 
 
 def test_benchmark_audit_flags_mcq_empty_and_unknown(tmp_path: Path):

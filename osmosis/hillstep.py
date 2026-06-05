@@ -62,6 +62,18 @@ BENCHMARK_SUITES = {
         "hle_no_tools",
         "livecodebench_v6",
     ],
+    "capability": [
+        "mmlu_pro",
+        "gpqa_diamond",
+        "mmmlu",
+        "hle_no_tools",
+        "livecodebench_v6",
+        "aime_2025",
+        "ifeval",
+        "bfcl_v3",
+        "swebench_verified",
+        "aider_polyglot",
+    ],
     "full": [
         "arc",
         "hellaswag",
@@ -74,9 +86,20 @@ BENCHMARK_SUITES = {
         "mmmlu",
         "hle_no_tools",
         "livecodebench_v6",
+        "aime_2025",
+        "ifeval",
+        "bfcl_v3",
+        "swebench_verified",
+        "aider_polyglot",
         "ppl",
         "speed",
     ],
+}
+BENCHMARK_SUITE_PURPOSES = {
+    "release": "model-card release proof: classic MCQ, code, PPL, and detailed audit artifacts",
+    "frontier": "frontier public leaderboard core: MMLU-Pro, GPQA-Diamond, MMMLU, HLE no-tools, and LiveCodeBench v6",
+    "capability": "expanded capability board: frontier core plus math, instruction following, tools, SWE, and coding agent checks",
+    "full": "complete Cerebellum report: release, frontier/capability checks, speed, and PPL reporting",
 }
 BENCHMARK_CATALOG = {
     "arc": {
@@ -143,6 +166,11 @@ BENCHMARK_CATALOG = {
     "mmmlu": {"name": "MMMLU", "status": "pending", "note": "Add multilingual MCQ runner with language/category rollups."},
     "hle_no_tools": {"name": "HLE no-tools", "status": "pending", "note": "Add no-tool harness and refusal/parser audit."},
     "livecodebench_v6": {"name": "LiveCodeBench v6", "status": "pending", "note": "Add version-pinned code runner and syntax/execution audit."},
+    "aime_2025": {"name": "AIME 2025", "status": "pending", "note": "Add deterministic math runner with exact-answer normalization."},
+    "ifeval": {"name": "IFEval", "status": "pending", "note": "Add instruction-following runner with strict/loose scoring artifacts."},
+    "bfcl_v3": {"name": "BFCL v3", "status": "pending", "note": "Add function-calling runner and JSON/tool-call validity audit."},
+    "swebench_verified": {"name": "SWE-bench Verified", "status": "pending", "note": "Add patch-generation harness for larger code-specialized releases."},
+    "aider_polyglot": {"name": "Aider Polyglot", "status": "pending", "note": "Add coding-agent benchmark for practical edit quality."},
 }
 TASK_PROFILES = {
     "general": {
@@ -2409,6 +2437,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_manifest_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="release")
     benchmark_manifest_parser.add_argument("--model", default=None, help="optional model label for the manifest")
     benchmark_manifest_parser.add_argument("--output", default=None, help="write manifest JSON/Markdown to this path")
+    benchmark_manifest_parser.add_argument("--require-complete", action="store_true", help="exit non-zero if any suite benchmark lacks measured summary JSON")
     benchmark_manifest_parser.add_argument("--json", action="store_true")
 
     benchmark_audit_parser = sub.add_parser("benchmark-audit", help="audit benchmark detailed artifacts before publishing")
@@ -4100,6 +4129,7 @@ def benchmark_plan(suite: str, model: str, port: int, results_dir: str) -> dict[
     ]
     return {
         "suite": suite,
+        "purpose": BENCHMARK_SUITE_PURPOSES.get(suite, ""),
         "model": model,
         "port": port,
         "results_dir": results_dir,
@@ -4121,6 +4151,7 @@ def benchmark_plan_markdown(plan: dict[str, Any]) -> str:
     parts = [
         f"# Benchmark Plan ({plan['suite']})",
         "",
+        f"purpose: `{plan.get('purpose') or '-'}`",
         f"readiness: `{'ready' if plan.get('readiness', {}).get('ready') else 'blocked'}` "
         f"({plan.get('readiness', {}).get('implemented', 0)}/{plan.get('readiness', {}).get('total', 0)} implemented)",
         "",
@@ -4632,6 +4663,7 @@ def benchmark_manifest(paths: list[Any], suite: str = "release", model: str | No
     return {
         "schema": "cerebellum.benchmark_manifest.v1",
         "suite": suite,
+        "suite_purpose": BENCHMARK_SUITE_PURPOSES.get(suite, ""),
         "model": model,
         "paths": [str(path) for path in paths],
         "artifacts": files,
@@ -4657,6 +4689,7 @@ def benchmark_manifest_markdown(manifest: dict[str, Any]) -> str:
         "# Benchmark Artifact Manifest",
         "",
         f"suite: `{manifest['suite']}`",
+        f"purpose: `{manifest.get('suite_purpose') or '-'}`",
         f"model: `{manifest.get('model') or '-'}`",
         "",
         markdown_table(["Benchmark", "Kind", "File", "Size", "SHA256"], rows) if rows else "No benchmark artifacts found.",
@@ -4672,8 +4705,12 @@ def benchmark_manifest_cmd(args: argparse.Namespace) -> None:
     if args.output:
         Path(args.output).write_text(text if text.endswith("\n") else text + "\n", encoding="utf-8")
         print(args.output)
+        if args.require_complete and manifest["missing_measured"]:
+            raise SystemExit(1)
         return
     print(text, end="" if text.endswith("\n") else "\n")
+    if args.require_complete and manifest["missing_measured"]:
+        raise SystemExit(1)
 
 
 def metric_is_quality_percent(metric: str) -> bool:
@@ -4787,7 +4824,13 @@ def benchmark_report(
     report: dict[str, Any] = {"models": models, "benchmarks": benchmarks, "records": records, "deltas": deltas, "release_metadata": metadata_by_model}
     if leaderboard:
         weight_policy = leaderboard_weight_policy(suite, weights)
-        report["suite"] = {"name": suite, "benchmarks": BENCHMARK_SUITES[suite], "weights": weight_policy}
+        report["suite"] = {
+            "name": suite,
+            "purpose": BENCHMARK_SUITE_PURPOSES.get(suite, ""),
+            "benchmarks": BENCHMARK_SUITES[suite],
+            "weights": weight_policy,
+            "average_policy": "weighted mean of measured quality-percentage benchmarks only; speed and PPL are reported but excluded",
+        }
         report["leaderboard"] = benchmark_leaderboard(records, suite, sizes=sizes, weights=weight_policy)
     return report
 
@@ -4863,7 +4906,9 @@ def benchmark_report_markdown(report: dict[str, Any], include_bars: bool = True)
     if report.get("leaderboard") is not None:
         suite = report.get("suite", {})
         suite_name = suite.get("name", "full") if isinstance(suite, dict) else "full"
+        suite_purpose = suite.get("purpose", "") if isinstance(suite, dict) else ""
         weights = suite.get("weights", {}) if isinstance(suite, dict) else {}
+        average_policy = suite.get("average_policy", "weighted mean of measured quality-percentage benchmarks only") if isinstance(suite, dict) else "weighted mean of measured quality-percentage benchmarks only"
         leaderboard_rows = []
         for row in report["leaderboard"]:
             size = "-" if row.get("size_gib") is None else f"{float(row['size_gib']):.2f}"
@@ -4882,7 +4927,9 @@ def benchmark_report_markdown(report: dict[str, Any], include_bars: bool = True)
                 "",
                 f"## Leaderboard ({suite_name})",
                 "",
-                "Average: weighted mean of measured quality-percentage benchmarks only; default weight is 1.0 per benchmark.",
+                f"Purpose: {suite_purpose or '-'}",
+                "",
+                f"Average: {average_policy}; default weight is 1.0 per benchmark.",
                 "",
                 "Weights: " + ", ".join(f"{key}={float(value):g}" for key, value in weights.items()),
                 "",
