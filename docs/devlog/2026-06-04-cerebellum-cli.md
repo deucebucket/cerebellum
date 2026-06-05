@@ -170,3 +170,38 @@ Recorded the separate Gemma 4 12B source-conversion requirement: the HF class is
 but the converter must register the architecture name on Gemma4Model before
 building the F16 GGUF. A valid converted source should report
 `general.architecture=gemma4` and llama.cpp-style `blk.*` tensor names.
+
+## Q4_K_M manual override incident
+
+The live Gemma 4 12B run showed impossible-looking sensitivity after the norm
+rollback. Inspection of `current_baseline.gguf` exposed a semantics mismatch:
+Cerebellum was treating `start_type=q4_K` as a full explicit type map while
+also using `base_type=Q4_K_M`.
+
+There were two separate fixes:
+
+- llama.cpp's quantizer only marked a tensor-type-file match as manual when the
+  requested type differed from the preset default. A real explicit `q4_K`
+  override must count as manual.
+- Cerebellum should not write `start_type` for every tensor when the intended
+  baseline is a mixed preset. `start_type` means baseline/no override; only
+  real tensor overrides belong in the type file.
+
+Forcing all tensors to explicit `q4_K` produced a `7.603 GiB` baseline with PPL
+`5033.7461`, which was a different experiment. After omitting baseline entries
+from the type map, the rebuilt stock `Q4_K_M` baseline returned to `7.980 GiB`
+with PPL `2504.2787`.
+
+Action taken:
+
+- Stopped `gemma4-12b-cerebellum-q4km-wiki-visible-20260604` cleanly.
+- Rolled back to `--to-locked 0`; the first lock was affected, so there was no
+  trustworthy later boundary.
+- Saved rollback checkpoint
+  `checkpoints/rollback-before-20260604-223755.json`.
+- Patched local llama.cpp so any matching tensor-type-file pattern counts as a
+  manual override, even when the requested type equals the preset default.
+- Patched Cerebellum tensor-type writing so baseline/no-override tensors are
+  omitted from the map and only actual overrides are written.
+- Added Cerebellum guardrails for active-run rollback, public TUI leakage,
+  scratch-root recovery sizing, and Gemma 4 prefix validation.

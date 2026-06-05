@@ -64,6 +64,7 @@ NON_QUANTIZABLE_SUBSTRINGS = (
     "embd",
     "_norm.weight",
     "ffn_gate_inp.weight",
+    "layer_output_scale.weight",
     "altup",
     "laurel",
     "per_layer_model_proj",
@@ -351,6 +352,15 @@ def event_age_seconds(row: dict[str, Any]) -> float | None:
     except ValueError:
         return None
     return max(0.0, (datetime.now(timezone.utc) - then).total_seconds())
+
+
+def event_timestamp(value: Any) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except ValueError:
+        return None
 
 
 def process_rows_for_run(run_dir: Path) -> list[dict[str, Any]]:
@@ -699,25 +709,42 @@ def backup_run_metadata(run_dir: Path, backup_root: Path) -> dict[str, Any]:
 
 
 def write_tensor_types_map(source_gguf: Path | None, locked: dict[str, str], start_type: str, path: Path) -> None:
-    names: list[str] = []
-    if source_gguf:
-        try:
-            from gguf import GGUFReader
-
-            reader = GGUFReader(str(source_gguf))
-            names = quantizable_tensor_names([t.name for t in reader.tensors])
-        except Exception:
-            names = []
-    if not names:
-        names = sorted(quantizable_tensor_names(set(locked)))
-    lines = [tensor_type_line(name, locked.get(name, start_type)) for name in names]
+    del source_gguf
+    lines = [tensor_type_line(name, qtype) for name, qtype in sorted(locked.items()) if qtype != start_type and is_quantizable_tensor(name)]
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
-        f.write("\n".join(lines) + "\n")
+        if lines:
+            f.write("\n".join(lines) + "\n")
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp, path)
+
+
+def totals_for_kept_candidates(candidates: list[dict[str, Any]], kept: list[dict[str, Any]]) -> dict[str, Any]:
+    totals = {"quant_seconds": 0.0, "ppl_seconds": 0.0, "candidates": 0, "failures": 0}
+    if not kept:
+        return totals
+    kept_tensors = [row.get("tensor") for row in kept if row.get("tensor")]
+    if not kept_tensors:
+        return totals
+    current = 0
+    for row in candidates:
+        tensor = row.get("tensor")
+        if current >= len(kept_tensors):
+            break
+        if tensor == kept_tensors[current]:
+            pass
+        elif current + 1 < len(kept_tensors) and tensor == kept_tensors[current + 1]:
+            current += 1
+        else:
+            continue
+        totals["quant_seconds"] += row.get("quant_seconds") or 0.0
+        totals["ppl_seconds"] += row.get("ppl_seconds") or 0.0
+        totals["candidates"] += 1
+        if row.get("status") == "failed":
+            totals["failures"] += 1
+    return totals
 
 
 def gguf_field_text(gguf: Path, key: str) -> str | None:
@@ -887,6 +914,26 @@ def run_is_live(run_dir: Path) -> bool:
     if state.get("run_status") != "running":
         return False
     return any(row["kind"] == "runner" for row in process_rows_for_run(run_dir))
+
+
+def scratch_run_root(run_dir: Path, manifest: dict[str, Any] | None = None, state: dict[str, Any] | None = None) -> Path | None:
+    manifest = manifest or read_json(run_dir / "manifest.json", {})
+    state = state or read_json(run_dir / "state.json", {})
+    scratch = manifest.get("scratch_root") or state.get("scratch_root")
+    run_id = manifest.get("run_id") or state.get("run_id") or run_dir.name
+    if not scratch or not run_id:
+        return None
+    return Path(str(scratch)) / str(run_id)
+
+
+def run_tmp_root(run_dir: Path, manifest: dict[str, Any] | None = None, state: dict[str, Any] | None = None) -> Path:
+    scratch = scratch_run_root(run_dir, manifest, state)
+    return (scratch / "tmp") if scratch else (run_dir / "tmp")
+
+
+def run_artifacts_root(run_dir: Path, manifest: dict[str, Any] | None = None, state: dict[str, Any] | None = None) -> Path:
+    scratch = scratch_run_root(run_dir, manifest, state)
+    return (scratch / "artifacts") if scratch else (run_dir / "artifacts")
 
 
 def resolve_run_dir(ref: str | None) -> Path:
@@ -1437,30 +1484,18 @@ class HillStepper:
 
     def write_types(self, locked: dict[str, str], path: Path, extra: dict[str, str] | None = None) -> None:
         extra = extra or {}
-        if self.cfg.tensor_file:
-            names = [line.strip() for line in self.cfg.tensor_file.read_text().splitlines() if line.strip()]
-            names = sorted(quantizable_tensor_names(set(names) | set(locked) | set(extra)))
-        else:
-            try:
-                from gguf import GGUFReader
-                reader = GGUFReader(str(self.cfg.source_gguf))
-                names = quantizable_tensor_names([t.name for t in reader.tensors])
-            except ImportError:
-                names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
-            except Exception:
-                names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
-        if not names:
-            names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
-        lines = []
         merged = dict(locked)
         merged.update(extra)
-        for name in names:
-            qtype = merged.get(name, self.cfg.start_type)
-            lines.append(tensor_type_line(name, qtype))
+        lines = [
+            tensor_type_line(name, qtype)
+            for name, qtype in sorted(merged.items())
+            if qtype != self.cfg.start_type and is_quantizable_tensor(name)
+        ]
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines) + "\n")
+            if lines:
+                f.write("\n".join(lines) + "\n")
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)
@@ -1471,23 +1506,18 @@ class HillStepper:
         Kept separate from write_types() so tests and explicit tensor-file runs
         can operate without parsing the GGUF.
         """
-        extra = extra or {}
-        try:
-            from gguf import GGUFReader
-            reader = GGUFReader(str(self.cfg.source_gguf))
-            names = quantizable_tensor_names([t.name for t in reader.tensors])
-        except Exception:
-            names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
-        lines = []
         merged = dict(locked)
-        merged.update(extra)
-        for name in names:
-            qtype = merged.get(name, self.cfg.start_type)
-            lines.append(tensor_type_line(name, qtype))
+        merged.update(extra or {})
+        lines = [
+            tensor_type_line(name, qtype)
+            for name, qtype in sorted(merged.items())
+            if qtype != self.cfg.start_type and is_quantizable_tensor(name)
+        ]
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
-            f.write("\n".join(lines) + "\n")
+            if lines:
+                f.write("\n".join(lines) + "\n")
             f.flush()
             os.fsync(f.fileno())
         os.replace(tmp, path)
@@ -1975,6 +2005,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     rollback.add_argument("--before-layer", type=int, default=None, help="Remove all locked/tested tensors at this layer and above")
     rollback.add_argument("--last-completed-layer", action="store_true", help="Remove the newest partial layer from state")
     rollback.add_argument("--yes", action="store_true", help="write the rollback; default is dry-run")
+    rollback.add_argument("--force", action="store_true", help="allow rollback even if the runner appears active")
 
     backup = sub.add_parser("backup", help="copy critical run metadata/checkpoints to a backup root")
     backup.add_argument("run_dir")
@@ -2161,6 +2192,8 @@ def events_cmd(args: argparse.Namespace) -> None:
 
 def watch_cmd(args: argparse.Namespace) -> None:
     if args.tui:
+        if args.public:
+            raise SystemExit("watch --public --tui is not supported; use `cerebellum watch --public --plain` or omit --tui")
         tui_watch_cmd(args)
         return
     grid_watch_cmd(args)
@@ -2458,6 +2491,8 @@ def rollback_cmd(args: argparse.Namespace) -> None:
     state = read_json(state_path, {})
     if not state:
         raise SystemExit(f"no state.json found in {run_dir}")
+    if run_is_live(run_dir) and not args.force:
+        raise SystemExit("refusing to rollback while runner is active; stop run first or pass --force")
     tested = list(state.get("tested", []))
     keep_count = len(tested)
     if args.to_locked is not None:
@@ -2491,6 +2526,7 @@ def rollback_cmd(args: argparse.Namespace) -> None:
     atomic_write_json(checkpoint, state)
     state["tested"] = kept
     state["locked"] = {row["tensor"]: row["winner"] for row in kept if row.get("tensor") and row.get("winner")}
+    state["totals"] = totals_for_kept_candidates(read_jsonl(first_existing(run_dir, CANDIDATE_FILES)), kept)
     state["last_tensor"] = kept[-1].get("tensor") if kept else None
     state["current_ppl"] = kept[-1].get("ppl") if kept else (tested[0].get("baseline_ppl") if tested else state.get("current_ppl"))
     state["run_status"] = "stopped"
@@ -2498,11 +2534,13 @@ def rollback_cmd(args: argparse.Namespace) -> None:
     state["rollback_removed"] = [row.get("tensor") for row in removed]
     state["baseline_invalid_after_rollback"] = True
     state["rollback_note"] = "state rolled back; next resume will rebuild current_baseline.gguf from the rolled-back tensor type map"
+    state["updated_at"] = utc_now()
     manifest = read_json(run_dir / "manifest.json", {})
     source = manifest.get("source_gguf") or state.get("source_gguf")
     start_type = manifest.get("start_type") or state.get("start_type") or "q4_K"
     write_tensor_types_map(Path(source) if source else None, state["locked"], start_type, run_dir / CURRENT_TYPES_FILE)
     atomic_write_json(state_path, state)
+    atomic_write_json(run_dir / "timing.json", state["totals"])
     append_event(first_existing(run_dir, EVENT_FILES), "rollback_finish", keep=keep_count, removed=len(removed), checkpoint=str(checkpoint))
     print(json.dumps({"mode": "written", "checkpoint": str(checkpoint), "keep": keep_count, "removed": len(removed), "artifact_note": state["rollback_note"]}, indent=2, sort_keys=True))
 
@@ -2520,7 +2558,8 @@ def build_recovery_plan(run_dir: Path) -> dict[str, Any]:
     run_start_idx = max((idx for idx, row in enumerate(events) if row.get("event") == "run_start"), default=-1)
     current_events = events[run_start_idx + 1 :] if run_start_idx >= 0 else events
     locked = state.get("locked", {})
-    tmp_root = run_dir / "tmp"
+    tmp_root = run_tmp_root(run_dir, manifest, state)
+    artifacts_root = run_artifacts_root(run_dir, manifest, state)
     partials = [str(path) for path in tmp_root.iterdir() if path.is_dir()] if tmp_root.exists() else []
     processes = process_rows_for_run(run_dir)
     status_model = active_work_status(
@@ -2554,7 +2593,7 @@ def build_recovery_plan(run_dir: Path) -> dict[str, Any]:
         "partials": partials,
         "disk_free_gb": round(disk_free_gb(run_dir), 3),
         "tmp_size_bytes": dir_size(tmp_root),
-        "artifact_size_bytes": dir_size(run_dir / "artifacts"),
+        "artifact_size_bytes": dir_size(artifacts_root),
         "resume_command": f"cerebellum resume {run_dir}",
         "safe_partial_cleanup_command": f"cerebellum cleanup {run_dir} --partials --yes",
         "backup_command": f"cerebellum backup {run_dir} --to BACKUP_ROOT",
@@ -2569,7 +2608,8 @@ def build_recovery_plan(run_dir: Path) -> dict[str, Any]:
     if state.get("baseline_invalid_after_rollback"):
         plan["notes"].append("next resume will rebuild baseline GGUF from rolled-back tensor types")
     if manifest.get("scratch_root"):
-        plan["notes"].append(f"heavy temp/artifacts may be under scratch_root {manifest.get('scratch_root')}")
+        plan["scratch_root"] = str(scratch_run_root(run_dir, manifest, state))
+        plan["notes"].append(f"heavy temp/artifacts are under scratch_root {manifest.get('scratch_root')}")
     return plan
 
 
@@ -2806,11 +2846,18 @@ def build_watch_model(
     run_start_idx = max((idx for idx, row in enumerate(events) if row.get("event") == "run_start"), default=-1)
     current_events = events[run_start_idx + 1 :] if run_start_idx >= 0 else events
     run_start = events[run_start_idx] if run_start_idx >= 0 else {}
+    run_start_ts = event_timestamp(run_start.get("timestamp_utc")) if run_start else None
+    if run_start_ts is not None:
+        candidates = [
+            row
+            for row in candidates
+            if (candidate_ts := event_timestamp(row.get("timestamp_utc"))) is not None and candidate_ts >= run_start_ts
+        ]
     current_tensors = {row.get("tensor") for row in state.get("tested", []) if row.get("tensor")}
     active_tensor = next((row.get("tensor") for row in reversed(current_events) if row.get("event") == "tensor_start" and row.get("tensor")), None)
     if active_tensor:
         current_tensors.add(active_tensor)
-    visible_candidates = [row for row in candidates if row.get("tensor") in current_tensors] if current_tensors else candidates
+    visible_candidates = [row for row in candidates if row.get("tensor") in current_tensors] if current_tensors else []
     status = state.get("run_status")
     terminal_events = {"run_stopped", "run_finish", "tensor_interrupted", "signal_received", "rollback_finish"}
     if status in {"stopped", "complete", "failed"}:
@@ -2834,7 +2881,9 @@ def build_watch_model(
     active_processes = [row for row in processes if row["kind"] in {"quantize", "ppl"}]
     status_model = active_work_status(state, events, processes, active, stall_warn_seconds, stall_fail_seconds)
     eta, eta_basis = estimate_eta(state, active_age, total)
-    baseline_path = Path(state.get("baseline_path") or run_dir / "artifacts" / "current_baseline.gguf")
+    tmp_root = run_tmp_root(run_dir, manifest, state)
+    artifacts_root = run_artifacts_root(run_dir, manifest, state)
+    baseline_path = Path(state.get("baseline_path") or artifacts_root / "current_baseline.gguf")
     active_path = active.get("tmp_output") or active.get("output") or active.get("model")
     return {
         "state": state,
@@ -2858,8 +2907,8 @@ def build_watch_model(
         "baseline_size": path_size(baseline_path) if baseline_path.exists() else None,
         "active_path": active_path,
         "active_size": path_size(Path(active_path)) if active_path else None,
-        "tmp_size": dir_size(run_dir / "tmp"),
-        "artifacts_size": dir_size(run_dir / "artifacts"),
+        "tmp_size": dir_size(tmp_root),
+        "artifacts_size": dir_size(artifacts_root),
     }
 
 
@@ -3741,6 +3790,7 @@ def doctor_cmd(args: argparse.Namespace) -> None:
             except Exception:
                 tensor_sample = ""
         gemma4_ok = arch == "gemma4"
+        bad_gemma4_prefix = "model.language_model." in tensor_sample
         add(
             "source gguf",
             source.exists(),
@@ -3749,7 +3799,7 @@ def doctor_cmd(args: argparse.Namespace) -> None:
         )
         add(
             "gemma4 architecture",
-            not args.source_gguf or gemma4_ok or "gemma" not in source.name.lower(),
+            not args.source_gguf or (gemma4_ok and not bad_gemma4_prefix) or "gemma" not in source.name.lower(),
             f"general.architecture={arch or 'unknown'} sample_tensors={tensor_sample or 'unreadable'}",
             "Gemma 4 12B conversion must register Gemma4UnifiedForConditionalGeneration on llama.cpp Gemma4Model so model.language_model.* is stripped and the GGUF architecture is gemma4.",
         )
@@ -4118,7 +4168,7 @@ def github_file_sha(repo: str, branch: str, path_in_repo: str) -> str | None:
     return str(sha) if sha else None
 
 
-def upload_github_sidecars(repo: str, branch: str, files: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def upload_github_sidecars(repo: str, branch: str, files: list[dict[str, Any]], include_local_paths: bool = True) -> list[dict[str, Any]]:
     ensure_github_branch(repo, branch)
     uploaded = []
     for item in files:
@@ -4143,7 +4193,10 @@ def upload_github_sidecars(repo: str, branch: str, files: list[dict[str, Any]]) 
         if sha:
             args.extend(["-f", f"sha={sha}"])
         gh_json(args)
-        uploaded.append({"path": str(path), "github_path": path_in_repo, "branch": branch})
+        item = {"github_path": path_in_repo, "branch": branch}
+        if include_local_paths:
+            item["path"] = str(path)
+        uploaded.append(item)
     return uploaded
 
 
@@ -4189,8 +4242,8 @@ def upload_cmd(args: argparse.Namespace) -> None:
             raise SystemExit("gh CLI not found")
         if not args.repo:
             raise SystemExit("--repo owner/name required for GitHub upload")
-        plan = github_upload_plan(report, files, args.repo, args.branch, private=args.private)
-        uploaded = upload_github_sidecars(args.repo, plan["branch"], plan["files"])
+        plan = github_upload_plan(report, files, args.repo, args.branch, private=args.private, include_local_paths=True)
+        uploaded = upload_github_sidecars(args.repo, plan["branch"], plan["files"], include_local_paths=args.private)
         print(json.dumps({"target": "github", "repo": args.repo, "branch": plan["branch"], "uploaded": uploaded}, indent=2))
     else:
         raise SystemExit("target must be hf or github")

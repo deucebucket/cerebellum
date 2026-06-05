@@ -8,6 +8,7 @@ from pathlib import Path
 from cerebellum import (
     EventLog,
     active_work_status,
+    build_recovery_plan,
     build_watch_model,
     discover_projects,
     doctor_cmd,
@@ -19,10 +20,13 @@ from cerebellum import (
     package_files,
     package_manifest,
     parse_args,
+    rollback_cmd,
     resolve_run_dir,
     public_report_summary,
     sanitize_process_cmd,
     tensor_type_line,
+    upload_github_sidecars,
+    watch_cmd,
     write_tensor_types_map,
 )
 
@@ -40,6 +44,17 @@ def test_watch_public_flag_parses():
 
     assert args.cmd == "watch"
     assert args.public is True
+
+
+def test_public_tui_watch_is_rejected():
+    args = parse_args(["watch", "/tmp/run", "--public", "--tui"])
+
+    try:
+        watch_cmd(args)
+    except SystemExit as exc:
+        assert "watch --public --tui is not supported" in str(exc)
+    else:
+        raise AssertionError("public TUI watch should be rejected")
 
 
 def test_watch_run_dir_is_optional_for_single_active_run():
@@ -165,6 +180,14 @@ def test_tensor_type_map_uses_exact_patterns_without_source(tmp_path: Path):
     assert path.read_text(encoding="utf-8") == r"^blk\.0\.ffn_up\.weight$=q5_K" + "\n"
 
 
+def test_tensor_type_map_omits_start_type_to_preserve_mixed_preset(tmp_path: Path):
+    path = tmp_path / "types.txt"
+
+    write_tensor_types_map(None, {"blk.0.ffn_down.weight": "q4_K"}, "q4_K", path)
+
+    assert path.read_text(encoding="utf-8") == ""
+
+
 def test_tensor_type_map_skips_noop_source_tensors(tmp_path: Path, monkeypatch):
     path = tmp_path / "types.txt"
     source = tmp_path / "source.gguf"
@@ -279,6 +302,98 @@ def test_watch_model_shows_rollback_finish_before_resume(tmp_path: Path):
     model = build_watch_model(run_dir)
 
     assert model["active"]["event"] == "rollback_finish"
+
+
+def test_recovery_and_watch_use_scratch_roots(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    scratch = tmp_path / "scratch"
+    run_id = "run-a"
+    tmp_root = scratch / run_id / "tmp" / "partial"
+    artifact_root = scratch / run_id / "artifacts"
+    tmp_root.mkdir(parents=True)
+    artifact_root.mkdir(parents=True)
+    (tmp_root / "part.bin").write_bytes(b"partial")
+    (artifact_root / "current_baseline.gguf").write_bytes(b"artifact")
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps({"run_status": "stopped", "run_id": run_id, "locked": {}, "tested": []}),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"run_id": run_id, "scratch_root": str(scratch)}),
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_events.jsonl").write_text('{"event":"run_start","tensors":1}\n', encoding="utf-8")
+    (run_dir / "cerebellum_candidates.jsonl").write_text("", encoding="utf-8")
+    monkeypatch.setattr("osmosis.hillstep.process_rows_for_run", lambda _run_dir: [])
+
+    recovery = build_recovery_plan(run_dir)
+    model = build_watch_model(run_dir)
+
+    assert recovery["partials"] == [str(tmp_root)]
+    assert recovery["tmp_size_bytes"] == len(b"partial")
+    assert recovery["artifact_size_bytes"] == len(b"artifact")
+    assert model["tmp_size"] == len(b"partial")
+    assert model["artifacts_size"] == len(b"artifact")
+
+
+def test_rollback_refuses_active_runner_without_force(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "run_status": "running",
+                "tested": [{"tensor": "blk.0.ffn_up.weight", "winner": "q5_K", "ppl": 1.0}],
+                "locked": {"blk.0.ffn_up.weight": "q5_K"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("osmosis.hillstep.run_is_live", lambda _run_dir: True)
+
+    try:
+        rollback_cmd(types.SimpleNamespace(run_dir=str(run_dir), to_locked=0, before_layer=None, last_completed_layer=False, yes=True, force=False))
+    except SystemExit as exc:
+        assert "refusing to rollback while runner is active" in str(exc)
+    else:
+        raise AssertionError("rollback should refuse active runner")
+
+
+def test_rollback_resets_timing_to_kept_epoch(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "checkpoints").mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "run_status": "stopped",
+                "source_gguf": None,
+                "start_type": "q4_K",
+                "current_ppl": 10.0,
+                "tested": [{"tensor": "blk.0.ffn_up.weight", "winner": "q5_K", "ppl": 9.0, "baseline_ppl": 10.0}],
+                "locked": {"blk.0.ffn_up.weight": "q5_K"},
+                "totals": {"quant_seconds": 84.0, "ppl_seconds": 120.0, "candidates": 5, "failures": 0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text('{"start_type":"q4_K"}', encoding="utf-8")
+    (run_dir / "cerebellum_candidates.jsonl").write_text(
+        '{"tensor":"blk.0.ffn_up.weight","quant_seconds":84.0,"ppl_seconds":120.0,"status":"done"}\n',
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_events.jsonl").write_text("", encoding="utf-8")
+    monkeypatch.setattr("osmosis.hillstep.run_is_live", lambda _run_dir: False)
+
+    rollback_cmd(types.SimpleNamespace(run_dir=str(run_dir), to_locked=0, before_layer=None, last_completed_layer=False, yes=True, force=False))
+
+    state = json.loads((run_dir / "state.json").read_text(encoding="utf-8"))
+    timing = json.loads((run_dir / "timing.json").read_text(encoding="utf-8"))
+    assert state["tested"] == []
+    assert state["locked"] == {}
+    assert state["totals"] == {"quant_seconds": 0.0, "ppl_seconds": 0.0, "candidates": 0, "failures": 0}
+    assert timing == state["totals"]
 
 
 def test_locked_layer_lines_groups_locked_quants_by_layer():
@@ -498,6 +613,23 @@ def test_github_upload_plan_uses_run_sidecar_paths(tmp_path: Path):
     assert plan["files"][0]["size_bytes"] == 2
 
 
+def test_public_github_upload_result_omits_local_paths(tmp_path: Path, monkeypatch):
+    sidecar = tmp_path / "MODEL_CARD_CEREBELLUM.md"
+    sidecar.write_text("safe", encoding="utf-8")
+    monkeypatch.setattr("osmosis.hillstep.ensure_github_branch", lambda _repo, _branch: None)
+    monkeypatch.setattr("osmosis.hillstep.github_file_sha", lambda _repo, _branch, _path: None)
+    monkeypatch.setattr("osmosis.hillstep.gh_json", lambda _args: {})
+
+    uploaded = upload_github_sidecars(
+        "deucebucket/cerebellum",
+        "public",
+        [{"path": str(sidecar), "github_path": "cerebellum_runs/public/MODEL_CARD_CEREBELLUM.md"}],
+        include_local_paths=False,
+    )
+
+    assert uploaded == [{"github_path": "cerebellum_runs/public/MODEL_CARD_CEREBELLUM.md", "branch": "public"}]
+
+
 def test_public_cli_exposes_imatrix_subcommand():
     top = subprocess.run(
         [sys.executable, "-m", "cerebellum.cli", "--help"],
@@ -528,3 +660,21 @@ def test_doctor_warns_for_gemma4_source_architecture_mismatch(tmp_path: Path, mo
     check = next(row for row in payload["checks"] if row["name"] == "gemma4 architecture")
     assert check["ok"] is False
     assert "Gemma4UnifiedForConditionalGeneration" in check["fix"]
+
+
+def test_doctor_warns_for_gemma4_unstripped_language_model_prefix(tmp_path: Path, monkeypatch, capsys):
+    source = tmp_path / "gemma-4-12b-it-f16.gguf"
+    source.write_bytes(b"fake")
+    monkeypatch.setattr("osmosis.hillstep.gguf_field_text", lambda _path, _key: "gemma4")
+
+    class FakeReader:
+        tensors = [types.SimpleNamespace(name="model.language_model.blk.0.ffn_down.weight")]
+
+    monkeypatch.setattr("gguf.GGUFReader", lambda _path: FakeReader())
+
+    doctor_cmd(types.SimpleNamespace(source_gguf=str(source), json=True))
+
+    payload = json.loads(capsys.readouterr().out)
+    check = next(row for row in payload["checks"] if row["name"] == "gemma4 architecture")
+    assert check["ok"] is False
+    assert "model.language_model.* is stripped" in check["fix"]
