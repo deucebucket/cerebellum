@@ -16,6 +16,7 @@ import json
 import os
 import queue
 import re
+import shlex
 import shutil
 import sqlite3
 import signal
@@ -76,6 +77,72 @@ BENCHMARK_SUITES = {
         "ppl",
         "speed",
     ],
+}
+BENCHMARK_CATALOG = {
+    "arc": {
+        "name": "ARC-Challenge",
+        "status": "implemented",
+        "script": "scripts/benchmark_arc.py",
+        "workers": 4,
+        "artifacts": ["{model}_arc_results.json", "{model}_arc_detailed.jsonl"],
+        "audit": "jq 'select(.correct == false)' {results_dir}/{model}_arc_detailed.jsonl | head -30",
+    },
+    "hellaswag": {
+        "name": "HellaSwag",
+        "status": "implemented",
+        "script": "scripts/benchmark_hellaswag.py",
+        "workers": 4,
+        "artifacts": ["{model}_hellaswag_results.json", "{model}_hellaswag_detailed.jsonl"],
+        "audit": "jq 'select(.correct == false)' {results_dir}/{model}_hellaswag_detailed.jsonl | head -30",
+    },
+    "mmlu_redux": {
+        "name": "MMLU-Redux",
+        "status": "implemented",
+        "script": "scripts/benchmark_mmlu_redux.py",
+        "workers": 4,
+        "artifacts": ["{model}_mmlu_redux_results.json", "{model}_mmlu_redux_detailed.jsonl"],
+        "audit": "jq 'select(.correct == false)' {results_dir}/{model}_mmlu_redux_detailed.jsonl | head -30",
+    },
+    "humaneval": {
+        "name": "HumanEval+ / EvalPlus chat",
+        "status": "implemented",
+        "script": "scripts/benchmark_evalplus_chat.py",
+        "workers": 1,
+        "max_tokens": 4096,
+        "artifacts": ["{model}_evalplus_chat_results.json", "{model}_evalplus_chat_samples.jsonl"],
+        "audit": "python scripts/audit_evalplus_completions.py {results_dir}/{model}_evalplus_chat_samples.jsonl",
+    },
+    "evalplus": {
+        "name": "EvalPlus chat",
+        "status": "implemented",
+        "script": "scripts/benchmark_evalplus_chat.py",
+        "workers": 1,
+        "max_tokens": 4096,
+        "artifacts": ["{model}_evalplus_chat_results.json", "{model}_evalplus_chat_samples.jsonl"],
+        "audit": "python scripts/audit_evalplus_completions.py {results_dir}/{model}_evalplus_chat_samples.jsonl",
+    },
+    "speed": {
+        "name": "Throughput / latency",
+        "status": "implemented",
+        "script": "scripts/benchmark_perf.py",
+        "workers": 1,
+        "artifacts": ["{model}_perf_results.json"],
+    },
+    "mmlu": {
+        "name": "MMLU",
+        "status": "pending",
+        "note": "Use MMLU-Redux for current release rows until a standard MMLU runner is added.",
+    },
+    "ppl": {
+        "name": "Perplexity",
+        "status": "external",
+        "note": "Run llama-perplexity with the same prompt corpus/context used for ablation.",
+    },
+    "mmlu_pro": {"name": "MMLU-Pro", "status": "pending", "note": "Add no-thinking chat MCQ runner and audit parser."},
+    "gpqa_diamond": {"name": "GPQA-Diamond", "status": "pending", "note": "Add no-thinking chat MCQ runner and audit parser."},
+    "mmmlu": {"name": "MMMLU", "status": "pending", "note": "Add multilingual MCQ runner with language/category rollups."},
+    "hle_no_tools": {"name": "HLE no-tools", "status": "pending", "note": "Add no-tool harness and refusal/parser audit."},
+    "livecodebench_v6": {"name": "LiveCodeBench v6", "status": "pending", "note": "Add version-pinned code runner and syntax/execution audit."},
 }
 LEGACY_PROFILE_ROOTS = [
     Path("/var/home/deucebucket/games/osmosis-quants"),
@@ -2212,6 +2279,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_report_parser.add_argument("--size-json", help="JSON file with per-model size metadata")
     benchmark_report_parser.add_argument("--list-suites", action="store_true", help="print built-in benchmark suite names and tasks")
 
+    benchmark_plan_parser = sub.add_parser("benchmark-plan", help="print benchmark suite run plan and artifact checklist")
+    benchmark_plan_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="full")
+    benchmark_plan_parser.add_argument("--model", default="cerebellum", help="BENCH_MODEL label for generated commands")
+    benchmark_plan_parser.add_argument("--port", type=int, default=8084, help="llama-server port used by generated commands")
+    benchmark_plan_parser.add_argument("--results-dir", default="benchmark_results", help="directory for benchmark artifacts")
+    benchmark_plan_parser.add_argument("--json", action="store_true")
+
     ablation_analyze = sub.add_parser("ablation-analyze", help="analyze ablation PPL JSON/logs and write tensor overrides")
     ablation_analyze.add_argument("input", help="ablation_results.json, log file, or directory of PPL logs")
     ablation_analyze.add_argument("--baseline-ppl", type=float, help="baseline PPL; required for raw log input")
@@ -3705,6 +3779,88 @@ def read_size_json(path: str | None) -> dict[str, float]:
         elif value is not None:
             sizes[str(model)] = float(value)
     return sizes
+
+
+def benchmark_command(entry: dict[str, Any], model: str, port: int, results_dir: str) -> str | None:
+    script = entry.get("script")
+    if not script:
+        return None
+    env = {
+        "BENCH_MODEL": model,
+        "BENCH_PORT": str(port),
+        "BENCH_WORKERS": str(entry.get("workers", 1)),
+        "RESULTS_DIR": results_dir,
+    }
+    if entry.get("max_tokens"):
+        env["BENCH_MAX_TOKENS"] = str(entry["max_tokens"])
+    prefix = " ".join(f"{key}={shlex.quote(value)}" for key, value in env.items())
+    return f"{prefix} python {shlex.quote(str(script))}"
+
+
+def format_artifact_template(template: str, model: str, results_dir: str) -> str:
+    return template.format(model=model, results_dir=results_dir)
+
+
+def benchmark_plan(suite: str, model: str, port: int, results_dir: str) -> dict[str, Any]:
+    rows: list[dict[str, Any]] = []
+    for key in BENCHMARK_SUITES[suite]:
+        entry = BENCHMARK_CATALOG.get(key, {"name": key, "status": "pending"})
+        artifacts = [
+            str(Path(results_dir) / format_artifact_template(template, model, results_dir))
+            for template in entry.get("artifacts", [])
+        ]
+        audit = entry.get("audit")
+        if audit:
+            audit = str(audit).format(model=model, results_dir=results_dir)
+        rows.append(
+            {
+                "benchmark": key,
+                "name": entry.get("name", key),
+                "status": entry.get("status", "pending"),
+                "workers": entry.get("workers"),
+                "command": benchmark_command(entry, model, port, results_dir),
+                "artifacts": artifacts,
+                "audit": audit,
+                "note": entry.get("note"),
+            }
+        )
+    return {
+        "suite": suite,
+        "model": model,
+        "port": port,
+        "results_dir": results_dir,
+        "rows": rows,
+    }
+
+
+def benchmark_plan_markdown(plan: dict[str, Any]) -> str:
+    table_rows = []
+    for row in plan["rows"]:
+        command = row["command"] or row.get("note") or "-"
+        table_rows.append([row["benchmark"], row["status"], "-" if row["workers"] is None else str(row["workers"]), command])
+    parts = [
+        f"# Benchmark Plan ({plan['suite']})",
+        "",
+        markdown_table(["Benchmark", "Status", "Workers", "Command / note"], table_rows),
+    ]
+    artifact_rows = []
+    for row in plan["rows"]:
+        for artifact in row["artifacts"]:
+            artifact_rows.append([row["benchmark"], artifact])
+    if artifact_rows:
+        parts.extend(["", "## Artifacts", "", markdown_table(["Benchmark", "Artifact"], artifact_rows)])
+    audit_rows = [[row["benchmark"], row["audit"]] for row in plan["rows"] if row.get("audit")]
+    if audit_rows:
+        parts.extend(["", "## Audit", "", markdown_table(["Benchmark", "Command"], audit_rows)])
+    return "\n".join(parts) + "\n"
+
+
+def benchmark_plan_cmd(args: argparse.Namespace) -> None:
+    plan = benchmark_plan(args.suite, args.model, args.port, args.results_dir)
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+        return
+    print(benchmark_plan_markdown(plan), end="")
 
 
 def benchmark_input_specs(paths: list[Any]) -> list[tuple[Path, str | None]]:
@@ -5450,6 +5606,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-report":
         benchmark_report_cmd(args)
+        return
+    if args.cmd == "benchmark-plan":
+        benchmark_plan_cmd(args)
         return
     if args.cmd == "ablation-analyze":
         ablation_analyze_cmd(args)

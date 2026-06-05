@@ -341,6 +341,7 @@ tables and a size-normalized leaderboard:
 ```bash
 cerebellum benchmark-report benchmark_results/ --leaderboard --suite full --size Cerebellum=7.6 --no-bars
 cerebellum benchmark-report --list-suites
+cerebellum benchmark-plan --suite release --model Cerebellum --port 8084 --results-dir benchmark_results
 ```
 
 Built-in leaderboard suites:
@@ -353,6 +354,11 @@ The leaderboard average uses quality percentage metrics only. PPL and speed
 stay in the comparison table, but they do not get mixed into the average score.
 Use `--size MODEL=GiB` or include `size_gib` / `gguf_size_bytes` in result JSONs
 to populate the score-per-GiB column.
+
+Use `benchmark-plan` before a release run. It prints implemented runner
+commands, expected summary/detail artifacts, and audit commands. Benchmarks
+without a local runner are explicitly marked pending instead of being silently
+skipped.
 
 For each released model, keep a reproducibility bundle next to the benchmark
 artifacts when practical:

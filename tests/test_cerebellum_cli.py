@@ -10,6 +10,8 @@ from cerebellum import (
     active_work_status,
     ablation_analyze_cmd,
     analyze_ablation_input,
+    benchmark_plan,
+    benchmark_plan_markdown,
     benchmark_report,
     benchmark_report_markdown,
     clear_terminal_markers,
@@ -219,6 +221,43 @@ def test_benchmark_report_command_parses():
     assert args.leaderboard is True
     assert args.suite == "frontier"
     assert args.size == ["q4=8.0"]
+    assert args.json is True
+
+
+def test_benchmark_plan_lists_commands_and_pending_frontier():
+    release = benchmark_plan("release", model="gemma4_12b", port=18080, results_dir="out")
+    markdown = benchmark_plan_markdown(release)
+    frontier = benchmark_plan("frontier", model="gemma4_12b", port=18080, results_dir="out")
+
+    arc = next(row for row in release["rows"] if row["benchmark"] == "arc")
+    humaneval = next(row for row in release["rows"] if row["benchmark"] == "humaneval")
+    pending = {row["benchmark"]: row["status"] for row in frontier["rows"]}
+
+    assert "BENCH_MODEL=gemma4_12b" in arc["command"]
+    assert "BENCH_PORT=18080" in arc["command"]
+    assert "BENCH_WORKERS=4" in arc["command"]
+    assert "scripts/benchmark_arc.py" in arc["command"]
+    assert humaneval["workers"] == 1
+    assert "BENCH_MAX_TOKENS=4096" in humaneval["command"]
+    assert pending == {
+        "mmlu_pro": "pending",
+        "gpqa_diamond": "pending",
+        "mmmlu": "pending",
+        "hle_no_tools": "pending",
+        "livecodebench_v6": "pending",
+    }
+    assert "| arc | implemented | 4 |" in markdown
+    assert "out/gemma4_12b_arc_results.json" in markdown
+
+
+def test_benchmark_plan_command_parses():
+    args = parse_args(["benchmark-plan", "--suite", "frontier", "--model", "m", "--port", "18080", "--results-dir", "out", "--json"])
+
+    assert args.cmd == "benchmark-plan"
+    assert args.suite == "frontier"
+    assert args.model == "m"
+    assert args.port == 18080
+    assert args.results_dir == "out"
     assert args.json is True
 
 
