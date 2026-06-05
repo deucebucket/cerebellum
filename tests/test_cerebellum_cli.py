@@ -39,6 +39,8 @@ from cerebellum import (
     pipeline_plan_args_from_query,
     pipeline_plan_markdown,
     pipeline_plan_cmd,
+    pipeline_run_cmd,
+    pipeline_run_plan,
     public_audit,
     public_audit_cmd,
     public_audit_markdown,
@@ -480,6 +482,62 @@ def test_pipeline_plan_command_parses():
     assert args.output_dir == "out"
     assert args.benchmark_suite == "release"
     assert args.json is True
+
+
+def test_pipeline_run_command_parses():
+    args = parse_args(["pipeline-run", "--manifest", "pipeline.json", "--from-phase", "ablate", "--until-phase", "benchmark", "--json"])
+
+    assert args.cmd == "pipeline-run"
+    assert args.manifest == "pipeline.json"
+    assert args.from_phase == "ablate"
+    assert args.until_phase == "benchmark"
+    assert args.execute is False
+    assert args.json is True
+
+
+def test_pipeline_run_plan_slices_manifest(tmp_path: Path):
+    manifest = tmp_path / "pipeline.json"
+    manifest.write_text(
+        json.dumps(
+            {
+                "pipeline": "cerebellum",
+                "run_dir": "run",
+                "phases": [
+                    {"name": "imatrix", "status": "planned", "command": "cerebellum imatrix", "outputs": ["imatrix.dat"]},
+                    {"name": "ablate", "status": "planned", "command": "cerebellum run", "outputs": ["state.json"]},
+                    {"name": "benchmark", "status": "planned", "command": "cerebellum benchmark-plan", "outputs": ["benchmark_results"]},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    plan = pipeline_run_plan(manifest, from_phase="ablate", until_phase="benchmark")
+
+    assert plan["schema"] == "cerebellum.pipeline_run.v1"
+    assert plan["dry_run"] is True
+    assert [row["name"] for row in plan["phases"]] == ["ablate", "benchmark"]
+    assert plan["blocked"] is False
+
+
+def test_pipeline_run_cmd_prints_dry_run_and_blocks_execute(tmp_path: Path, capsys):
+    manifest = tmp_path / "pipeline.json"
+    manifest.write_text(
+        json.dumps({"pipeline": "cerebellum", "phases": [{"name": "imatrix", "status": "planned", "command": "cerebellum imatrix"}]}),
+        encoding="utf-8",
+    )
+    args = parse_args(["pipeline-run", "--manifest", str(manifest)])
+
+    pipeline_run_cmd(args)
+    assert "# Cerebellum Pipeline Run" in capsys.readouterr().out
+
+    execute_args = parse_args(["pipeline-run", "--manifest", str(manifest), "--execute"])
+    try:
+        pipeline_run_cmd(execute_args)
+    except SystemExit as exc:
+        assert "execution is not enabled yet" in str(exc)
+    else:
+        raise AssertionError("pipeline-run --execute should be guarded")
 
 
 def test_pipeline_plan_query_args_use_task_profile_defaults():

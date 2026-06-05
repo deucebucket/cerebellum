@@ -388,11 +388,14 @@ launching a new model:
 
 ```bash
 cerebellum pipeline-plan --source-gguf f16.gguf --output-dir ./results --imatrix ./results/imatrix.dat --profile wiki --benchmark-suite release --write ./results/pipeline.json
+cerebellum pipeline-run --manifest ./results/pipeline.json
 ```
 
 The manifest records the imatrix step, Cerebellum search/resume commands, final
 GGUF build command, benchmark plan, finalize step, and package step. It is a
-dry-run contract for the full automator and dashboard queue.
+contract for the full automator and dashboard queue. `pipeline-run` validates
+and prints the manifest as a dry run by default; real execution remains guarded
+until the executor layer is explicitly enabled.
 
 Task-specific variants can be planned with named profiles:
 

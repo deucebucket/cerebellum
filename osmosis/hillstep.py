@@ -2329,6 +2329,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     pipeline_plan_parser.add_argument("--write", default=None, help="write JSON manifest to this path")
     pipeline_plan_parser.add_argument("--json", action="store_true")
 
+    pipeline_run_parser = sub.add_parser("pipeline-run", help="validate or execute a Cerebellum pipeline manifest")
+    pipeline_run_parser.add_argument("--manifest", required=True, help="pipeline-plan JSON manifest")
+    pipeline_run_parser.add_argument("--from-phase", default=None, help="start at this phase name")
+    pipeline_run_parser.add_argument("--until-phase", default=None, help="stop after this phase name")
+    pipeline_run_parser.add_argument("--execute", action="store_true", help="actually run phase commands; dry-run is default")
+    pipeline_run_parser.add_argument("--json", action="store_true")
+
     task_profiles = sub.add_parser("task-profiles", help="list task-specific Cerebellum variant profiles")
     task_profiles.add_argument("--json", action="store_true")
 
@@ -4330,6 +4337,80 @@ def pipeline_plan_cmd(args: argparse.Namespace) -> None:
         print(json.dumps(plan, indent=2, sort_keys=True))
         return
     print(pipeline_plan_markdown(plan), end="")
+
+
+def pipeline_run_plan(
+    manifest_path: Path,
+    from_phase: str | None = None,
+    until_phase: str | None = None,
+) -> dict[str, Any]:
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    phases = manifest.get("phases")
+    if not isinstance(phases, list) or not phases:
+        raise SystemExit("pipeline manifest has no phases")
+    names = [str(phase.get("name")) for phase in phases]
+    if from_phase and from_phase not in names:
+        raise SystemExit(f"unknown --from-phase {from_phase!r}")
+    if until_phase and until_phase not in names:
+        raise SystemExit(f"unknown --until-phase {until_phase!r}")
+    start = names.index(from_phase) if from_phase else 0
+    end = names.index(until_phase) + 1 if until_phase else len(phases)
+    if start >= end:
+        raise SystemExit("--from-phase must come before --until-phase")
+    selected = []
+    blockers = []
+    for index, phase in enumerate(phases[start:end], start=start):
+        command = phase.get("command")
+        row = {
+            "index": index,
+            "name": phase.get("name"),
+            "status": phase.get("status", "planned"),
+            "command": command,
+            "outputs": phase.get("outputs", []),
+        }
+        selected.append(row)
+        if not command:
+            blockers.append({"phase": phase.get("name"), "reason": "missing command"})
+    return {
+        "schema": "cerebellum.pipeline_run.v1",
+        "manifest": str(manifest_path),
+        "pipeline": manifest.get("pipeline"),
+        "run_dir": manifest.get("run_dir"),
+        "dry_run": True,
+        "phases": selected,
+        "blocked": bool(blockers),
+        "blockers": blockers,
+    }
+
+
+def pipeline_run_markdown(plan: dict[str, Any]) -> str:
+    rows = [
+        [str(row["index"]), str(row["name"]), str(row["status"]), str(row["command"] or "-")]
+        for row in plan["phases"]
+    ]
+    parts = [
+        "# Cerebellum Pipeline Run",
+        "",
+        f"manifest: `{plan['manifest']}`",
+        f"mode: `{'dry-run' if plan.get('dry_run') else 'execute'}`",
+        "",
+        markdown_table(["#", "Phase", "Status", "Command"], rows),
+    ]
+    if plan.get("blockers"):
+        parts.extend(["", "## Blockers", "", markdown_table(["Phase", "Reason"], [[row["phase"], row["reason"]] for row in plan["blockers"]])])
+    return "\n".join(parts) + "\n"
+
+
+def pipeline_run_cmd(args: argparse.Namespace) -> None:
+    plan = pipeline_run_plan(Path(args.manifest), from_phase=args.from_phase, until_phase=args.until_phase)
+    if args.execute:
+        raise SystemExit("pipeline-run execution is not enabled yet; omit --execute for dry-run validation")
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+    else:
+        print(pipeline_run_markdown(plan), end="")
+    if plan["blocked"]:
+        raise SystemExit(1)
 
 
 def query_value(qs: dict[str, list[str]], key: str, default: Any = None) -> Any:
@@ -6585,6 +6666,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "pipeline-plan":
         pipeline_plan_cmd(args)
+        return
+    if args.cmd == "pipeline-run":
+        pipeline_run_cmd(args)
         return
     if args.cmd == "task-profiles":
         task_profiles_cmd(args)
