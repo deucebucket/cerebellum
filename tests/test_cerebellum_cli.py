@@ -8,6 +8,8 @@ from pathlib import Path
 from cerebellum import (
     EventLog,
     active_work_status,
+    benchmark_report,
+    benchmark_report_markdown,
     clear_terminal_markers,
     compare_locks,
     build_recovery_plan,
@@ -147,6 +149,44 @@ def test_stop_target_pids_includes_detached_run_processes(tmp_path: Path, monkey
     targets = stop_target_pids(run_dir, events)
 
     assert targets == [101, 100, 300, 400]
+
+
+def test_benchmark_report_compares_result_jsons(tmp_path: Path):
+    baseline = tmp_path / "baseline_arc_results.json"
+    candidate = tmp_path / "candidate_arc_results.json"
+    humaneval = tmp_path / "candidate_humaneval_results.json"
+    baseline.write_text(
+        json.dumps({"benchmark": "arc_challenge", "model": "q4", "accuracy": 80.0, "correct": 8, "total": 10}),
+        encoding="utf-8",
+    )
+    candidate.write_text(
+        json.dumps({"benchmark": "arc_challenge", "model": "cerebellum", "accuracy": 82.5, "correct": 33, "total": 40}),
+        encoding="utf-8",
+    )
+    humaneval.write_text(
+        json.dumps({"benchmark": "humaneval", "model": "cerebellum", "pass_at_1": 0.75, "total_problems": 164}),
+        encoding="utf-8",
+    )
+
+    report = benchmark_report([tmp_path], baseline="q4")
+    markdown = benchmark_report_markdown(report)
+    labeled = benchmark_report([f"v1={tmp_path}"])
+
+    assert report["models"] == ["cerebellum", "q4"]
+    assert labeled["models"] == ["v1"]
+    assert any(row["benchmark"] == "arc_challenge" and row["delta"] == 2.5 for row in report["deltas"])
+    assert "| arc_challenge | accuracy | 82.50% (33/40) | 80.00% (8/10) |" in markdown
+    assert "| humaneval | pass@1 | 75.00% | - |" in markdown
+    assert "## Bars" in markdown
+
+
+def test_benchmark_report_command_parses():
+    args = parse_args(["benchmark-report", "benchmarks/qwen36-27b", "--baseline", "q4", "--json"])
+
+    assert args.cmd == "benchmark-report"
+    assert args.paths == ["benchmarks/qwen36-27b"]
+    assert args.baseline == "q4"
+    assert args.json is True
 
 
 def test_eta_grid_values_includes_wall_clock_completion():

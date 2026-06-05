@@ -2167,6 +2167,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     report.add_argument("--format", default="json,md,csv,infographic")
     report.add_argument("--json", action="store_true")
 
+    benchmark_report_parser = sub.add_parser("benchmark-report", help="compare benchmark result JSON files")
+    benchmark_report_parser.add_argument("paths", nargs="+", help="benchmark result JSON files or directories; use label=PATH to force a model column label")
+    benchmark_report_parser.add_argument("--baseline", help="model name to use for delta calculations")
+    benchmark_report_parser.add_argument("--output", help="write report to this path instead of stdout")
+    benchmark_report_parser.add_argument("--json", action="store_true", help="emit machine-readable JSON instead of Markdown")
+    benchmark_report_parser.add_argument("--no-bars", action="store_true", help="omit ASCII bar chart section")
+
     export = sub.add_parser("export", help="export run data for AI, infographic, or automation")
     export.add_argument("run_dir")
     export.add_argument("--kind", choices=["raw", "ai", "infographic"], default="ai")
@@ -3543,6 +3550,186 @@ def compare_locks_cmd(args: argparse.Namespace) -> None:
         print(f"{row['status']:<16} {row['tensor']}  current={current}  against={against}")
 
 
+def infer_benchmark_name(path: Path, data: dict[str, Any]) -> str:
+    if data.get("benchmark"):
+        return str(data["benchmark"])
+    stem = path.stem.lower()
+    for name in ["humaneval", "evalplus", "arc", "hellaswag", "mmlu_redux", "mmlu", "speed"]:
+        if name in stem:
+            return name
+    return stem
+
+
+def benchmark_metric(data: dict[str, Any]) -> tuple[str, float] | None:
+    if "pass_at_1_pct" in data:
+        return "pass@1", float(data["pass_at_1_pct"])
+    if "pass_at_1" in data:
+        value = float(data["pass_at_1"])
+        return "pass@1", value * 100.0 if value <= 1.0 else value
+    if "accuracy" in data:
+        value = float(data["accuracy"])
+        return "accuracy", value * 100.0 if value <= 1.0 else value
+    if "gen_tok_per_s" in data:
+        return "gen tok/s", float(data["gen_tok_per_s"])
+    if "tokens_per_second" in data:
+        return "tok/s", float(data["tokens_per_second"])
+    if "ppl" in data:
+        return "ppl", float(data["ppl"])
+    if "perplexity" in data:
+        return "ppl", float(data["perplexity"])
+    return None
+
+
+def benchmark_input_specs(paths: list[Any]) -> list[tuple[Path, str | None]]:
+    specs: list[tuple[Path, str | None]] = []
+    for item in paths:
+        text = str(item)
+        if "=" in text and not Path(text).exists():
+            label, path_text = text.split("=", 1)
+            specs.append((Path(path_text), label or None))
+        else:
+            specs.append((Path(text), None))
+    return specs
+
+
+def benchmark_files(paths: list[Any]) -> list[tuple[Path, str | None]]:
+    files: list[tuple[Path, str | None]] = []
+    seen: set[Path] = set()
+    for path, label in benchmark_input_specs(paths):
+        candidates = sorted(path.rglob("*.json")) if path.is_dir() else [path]
+        for candidate in candidates:
+            if not candidate.is_file() or candidate in seen:
+                continue
+            seen.add(candidate)
+            files.append((candidate, label))
+    return files
+
+
+def benchmark_records(paths: list[Any]) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for path, label in benchmark_files(paths):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        metric = benchmark_metric(data)
+        if metric is None:
+            continue
+        metric_name, value = metric
+        records.append(
+            {
+                "model": str(label or data.get("model") or path.parent.name or path.stem),
+                "benchmark": infer_benchmark_name(path, data),
+                "metric": metric_name,
+                "value": value,
+                "correct": data.get("correct"),
+                "total": data.get("total") or data.get("total_problems"),
+                "path": str(path),
+            }
+        )
+    records.sort(key=lambda row: (str(row["benchmark"]), str(row["model"]), str(row["path"])))
+    return records
+
+
+def benchmark_report(paths: list[Any], baseline: str | None = None) -> dict[str, Any]:
+    records = benchmark_records(paths)
+    models = sorted({str(row["model"]) for row in records})
+    benchmarks = sorted({str(row["benchmark"]) for row in records})
+    by_key = {(row["benchmark"], row["model"]): row for row in records}
+    deltas: list[dict[str, Any]] = []
+    for benchmark in benchmarks:
+        baseline_row = by_key.get((benchmark, baseline)) if baseline else None
+        if baseline_row is None and models:
+            baseline_row = next((by_key.get((benchmark, model)) for model in models if by_key.get((benchmark, model))), None)
+        if baseline_row is None:
+            continue
+        for model in models:
+            row = by_key.get((benchmark, model))
+            if row is None or row is baseline_row:
+                continue
+            deltas.append(
+                {
+                    "benchmark": benchmark,
+                    "model": model,
+                    "baseline": baseline_row["model"],
+                    "metric": row["metric"],
+                    "delta": row["value"] - baseline_row["value"],
+                    "value": row["value"],
+                    "baseline_value": baseline_row["value"],
+                }
+            )
+    return {"models": models, "benchmarks": benchmarks, "records": records, "deltas": deltas}
+
+
+def fmt_metric_value(row: dict[str, Any] | None) -> str:
+    if row is None:
+        return "-"
+    value = float(row["value"])
+    metric = str(row["metric"])
+    suffix = "" if "tok/s" in metric or metric == "ppl" else "%"
+    detail = ""
+    if row.get("correct") is not None and row.get("total") is not None:
+        detail = f" ({row['correct']}/{row['total']})"
+    return f"{value:.2f}{suffix}{detail}"
+
+
+def markdown_table(headers: list[str], rows: list[list[str]]) -> str:
+    lines = ["| " + " | ".join(headers) + " |", "| " + " | ".join(["---"] * len(headers)) + " |"]
+    lines.extend("| " + " | ".join(row) + " |" for row in rows)
+    return "\n".join(lines)
+
+
+def ascii_bar(label: str, value: float, max_value: float, width: int = 24) -> str:
+    filled = 0 if max_value <= 0 else int(round((value / max_value) * width))
+    filled = max(0, min(width, filled))
+    return f"{label:<28} [{'#' * filled}{'.' * (width - filled)}] {value:.2f}"
+
+
+def benchmark_report_markdown(report: dict[str, Any], include_bars: bool = True) -> str:
+    records = report["records"]
+    models = report["models"]
+    benchmarks = report["benchmarks"]
+    by_key = {(row["benchmark"], row["model"]): row for row in records}
+    rows: list[list[str]] = []
+    for benchmark in benchmarks:
+        metric = next((str(row["metric"]) for row in records if row["benchmark"] == benchmark), "-")
+        rows.append([benchmark, metric, *[fmt_metric_value(by_key.get((benchmark, model))) for model in models]])
+    parts = ["# Benchmark Comparison", "", markdown_table(["Benchmark", "Metric", *models], rows)]
+    if report["deltas"]:
+        delta_rows = [
+            [row["benchmark"], row["model"], str(row["baseline"]), f"{row['delta']:+.2f}"]
+            for row in report["deltas"]
+        ]
+        parts.extend(["", "## Deltas", "", markdown_table(["Benchmark", "Model", "Baseline", "Delta"], delta_rows)])
+    if include_bars:
+        bar_lines: list[str] = []
+        for benchmark in benchmarks:
+            rows_for_benchmark = [row for row in records if row["benchmark"] == benchmark]
+            if not rows_for_benchmark:
+                continue
+            max_value = max(float(row["value"]) for row in rows_for_benchmark)
+            bar_lines.append(benchmark)
+            bar_lines.extend(ascii_bar(str(row["model"]), float(row["value"]), max_value) for row in rows_for_benchmark)
+        if bar_lines:
+            parts.extend(["", "## Bars", "", "```text", *bar_lines, "```"])
+    return "\n".join(parts) + "\n"
+
+
+def benchmark_report_cmd(args: argparse.Namespace) -> None:
+    report = benchmark_report(args.paths, baseline=args.baseline)
+    if args.json:
+        text = json.dumps(report, indent=2, sort_keys=True)
+    else:
+        text = benchmark_report_markdown(report, include_bars=not args.no_bars)
+    if args.output:
+        Path(args.output).write_text(text, encoding="utf-8")
+        print(args.output)
+        return
+    print(text, end="" if text.endswith("\n") else "\n")
+
+
 def write_report_files(run_dir: Path, report: dict[str, Any], formats: list[str]) -> list[Path]:
     written: list[Path] = []
     if "json" in formats:
@@ -4916,6 +5103,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "report":
         report_cmd(args)
+        return
+    if args.cmd == "benchmark-report":
+        benchmark_report_cmd(args)
         return
     if args.cmd == "export":
         export_cmd(args)
