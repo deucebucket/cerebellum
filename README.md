@@ -162,6 +162,9 @@ cerebellum public-export /tmp/cerebellum-public README.md docs/ benchmark_result
 cerebellum artifact-inventory . --output cerebellum-dev/artifact_inventory.json --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
 cerebellum queue add --kind pipeline --manifest /path/to/pipeline.json
 cerebellum queue list
+cerebellum queue get 1 --tail 40
+cerebellum queue cancel 1 --reason stale
+cerebellum queue retry 1 --priority 10
 cerebellum queue run-next --execute
 cerebellum pipeline-status --manifest /path/to/pipeline.json
 cerebellum benchmark-status --results-dir benchmark_results
@@ -193,10 +196,13 @@ Use `artifact-inventory` before cleanup. It scans file paths and sizes without
 reading log contents, groups legacy model trees and private artifacts into
 storage categories, flags public-risk paths, and writes JSON/Markdown inventory
 reports. The command is preservation-first; it never deletes files.
-Use `queue add/list/get/run-next` to persist planned pipeline, benchmark, or run
-jobs in the Cerebellum SQLite DB before launching execution. `run-next` is a
-dry-run unless `--execute` is passed. The API exposes read-only `/queue` and
-`/queue/job` endpoints for dashboard orchestration.
+Use `queue add/list/get/cancel/retry/run-next` to persist planned pipeline,
+benchmark, or run jobs in the Cerebellum SQLite DB before launching execution.
+`run-next` is a dry-run unless `--execute` is passed. `get --tail N` prints a
+bounded log tail for dashboard/operator inspection. `cancel` only cancels queued
+or failed jobs; `retry` requeues failed, canceled, or completed jobs after
+clearing stale runtime fields. The API exposes read-only `/queue` and
+`/queue/job?tail=N` endpoints for dashboard orchestration.
 Use `pipeline-status` after `pipeline-run --execute` to read
 `pipeline_run_events.jsonl`, summarize complete/running/failed phases, and print
 the resume command for the failed or next pending phase.

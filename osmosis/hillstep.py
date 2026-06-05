@@ -1472,10 +1472,39 @@ def decode_queue_row(row: dict[str, Any]) -> dict[str, Any]:
         row["payload"] = json.loads(payload)
     except json.JSONDecodeError:
         row["payload"] = {"_decode_error": True, "raw": payload}
+    result = row.get("result_json")
+    if result:
+        try:
+            row["result"] = json.loads(str(result))
+        except json.JSONDecodeError:
+            row["result"] = {"_decode_error": True, "raw": result}
     return row
 
 
-def queue_get_job(db: Path, job_id: int) -> dict[str, Any]:
+def tail_text_file(path: Path, lines: int = 40, max_bytes: int = 128_000) -> str:
+    if lines <= 0 or not path.exists() or not path.is_file():
+        return ""
+    size = path.stat().st_size
+    with open(path, "rb") as f:
+        if size > max_bytes:
+            f.seek(max(0, size - max_bytes))
+        data = f.read()
+    text = data.decode("utf-8", errors="replace")
+    return "\n".join(text.splitlines()[-lines:])
+
+
+def queue_attach_log_tail(job: dict[str, Any], tail: int | None = None) -> dict[str, Any]:
+    if not tail:
+        return job
+    log = job.get("log")
+    if not log:
+        return job
+    path = Path(str(log))
+    job["log_tail"] = tail_text_file(path, lines=tail)
+    return job
+
+
+def queue_get_job(db: Path, job_id: int, tail: int | None = None) -> dict[str, Any]:
     if not db.exists():
         raise SystemExit(f"queue job {job_id} not found")
     conn = sqlite3.connect(db)
@@ -1486,7 +1515,7 @@ def queue_get_job(db: Path, job_id: int) -> dict[str, Any]:
     rows = sqlite_rows(db, "SELECT * FROM cerebellum_jobs WHERE id = ?", (job_id,))
     if not rows:
         raise SystemExit(f"queue job {job_id} not found")
-    return decode_queue_row(rows[0])
+    return queue_attach_log_tail(decode_queue_row(rows[0]), tail=tail)
 
 
 def queue_add_job(args: argparse.Namespace) -> dict[str, Any]:
@@ -1595,6 +1624,42 @@ def queue_update_job(
     return queue_get_job(db, job_id)
 
 
+def queue_cancel_job(db: Path, job_id: int, reason: str | None = None) -> dict[str, Any]:
+    job = queue_get_job(db, job_id)
+    if job["status"] not in {"queued", "failed"}:
+        raise SystemExit(f"queue job {job_id} has status {job['status']}; only queued/failed jobs can be canceled")
+    return queue_update_job(db, job_id, status="canceled", finished_at=utc_now(), error=reason or "canceled")
+
+
+def queue_retry_job(db: Path, job_id: int, priority: int | None = None, notes: str | None = None) -> dict[str, Any]:
+    job = queue_get_job(db, job_id)
+    if job["status"] not in {"failed", "canceled", "completed"}:
+        raise SystemExit(f"queue job {job_id} has status {job['status']}; only failed/canceled/completed jobs can be retried")
+    now = utc_now()
+    conn = sqlite3.connect(db)
+    try:
+        ensure_hill_tables(conn)
+        with conn:
+            conn.execute(
+                """
+                UPDATE cerebellum_jobs
+                SET status = 'queued',
+                    priority = COALESCE(?, priority),
+                    notes = COALESCE(?, notes),
+                    started_at = NULL,
+                    finished_at = NULL,
+                    result_json = NULL,
+                    last_error = NULL,
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (priority, notes, now, job_id),
+            )
+    finally:
+        conn.close()
+    return queue_get_job(db, job_id)
+
+
 def queue_execute_command(command: str, log_path: Path) -> dict[str, Any]:
     log_path.parent.mkdir(parents=True, exist_ok=True)
     env_prefix, argv = split_env_prefixed_command(command)
@@ -1681,6 +1746,25 @@ def queue_run_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(parts) + "\n"
 
 
+def queue_action_markdown(payload: dict[str, Any]) -> str:
+    job = payload["jobs"][0] if payload.get("jobs") else None
+    lines = ["# Cerebellum Queue", "", f"db: `{payload['db']}`"]
+    if job:
+        lines.extend(
+            [
+                f"job: `{job['id']}`",
+                f"kind: `{job['kind']}`",
+                f"status: `{job['status']}`",
+                f"label: `{job.get('label') or '-'}`",
+            ]
+        )
+        if job.get("last_error"):
+            lines.append(f"last error: `{job['last_error']}`")
+        if job.get("log_tail"):
+            lines.extend(["", "```text", str(job["log_tail"]), "```"])
+    return "\n".join(lines) + "\n"
+
+
 def queue_cmd(args: argparse.Namespace) -> None:
     db = Path(args.db)
     if args.queue_cmd == "add":
@@ -1688,7 +1772,11 @@ def queue_cmd(args: argparse.Namespace) -> None:
     elif args.queue_cmd == "list":
         payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": queue_list_jobs(db, status=args.status, kind=args.kind, limit=args.limit)}
     elif args.queue_cmd == "get":
-        payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": [queue_get_job(db, args.id)]}
+        payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": [queue_get_job(db, args.id, tail=args.tail)]}
+    elif args.queue_cmd == "cancel":
+        payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": [queue_cancel_job(db, args.id, reason=args.reason)]}
+    elif args.queue_cmd == "retry":
+        payload = {"schema": "cerebellum.queue.v1", "db": str(db), "jobs": [queue_retry_job(db, args.id, priority=args.priority, notes=args.notes)]}
     elif args.queue_cmd == "run-next":
         job = queue_next_job(db, status=args.status, kind=args.kind)
         if job is None:
@@ -1702,6 +1790,8 @@ def queue_cmd(args: argparse.Namespace) -> None:
         print(json.dumps(payload, indent=2, sort_keys=True))
     elif args.queue_cmd == "run-next":
         print(queue_run_markdown(payload), end="")
+    elif args.queue_cmd in {"get", "cancel", "retry"}:
+        print(queue_action_markdown(payload), end="")
     else:
         print(queue_markdown(payload), end="")
 
@@ -2711,6 +2801,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     queue_list.add_argument("--limit", type=int, default=50)
     queue_get = queue_sub.add_parser("get")
     queue_get.add_argument("id", type=int)
+    queue_get.add_argument("--tail", type=int, default=0, help="include the last N log lines when the job has a log")
+    queue_cancel = queue_sub.add_parser("cancel")
+    queue_cancel.add_argument("id", type=int)
+    queue_cancel.add_argument("--reason", default=None)
+    queue_retry = queue_sub.add_parser("retry")
+    queue_retry.add_argument("id", type=int)
+    queue_retry.add_argument("--priority", type=int, default=None)
+    queue_retry.add_argument("--notes", default=None)
     queue_run_next = queue_sub.add_parser("run-next")
     queue_run_next.add_argument("--kind", choices=["pipeline", "benchmark", "run"], default=None)
     queue_run_next.add_argument("--status", default="queued")
@@ -8762,7 +8860,8 @@ class CerebellumAPI(BaseHTTPRequestHandler):
         elif parsed.path == "/queue/job":
             try:
                 job_id = int(qs.get("id", ["0"])[0])
-                self._json({"schema": "cerebellum.queue.v1", "db": str(self.db_path), "jobs": [queue_get_job(self.db_path, job_id)]})
+                tail = int(qs.get("tail", ["0"])[0])
+                self._json({"schema": "cerebellum.queue.v1", "db": str(self.db_path), "jobs": [queue_get_job(self.db_path, job_id, tail=tail)]})
             except (ValueError, SystemExit, OSError, sqlite3.Error) as exc:
                 self._json({"error": str(exc)}, 400)
         elif parsed.path == "/report":
@@ -8984,6 +9083,8 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "rollback_layer": "cerebellum rollback RUN_DIR --last-completed-layer --yes",
                         "backup": "cerebellum backup RUN_DIR --to BACKUP_ROOT",
                         "queue_add": "cerebellum queue add --kind pipeline --manifest pipeline.json",
+                        "queue_cancel": "cerebellum queue cancel JOB_ID --reason stale",
+                        "queue_retry": "cerebellum queue retry JOB_ID --priority 10",
                         "queue_run_next": "cerebellum queue run-next --execute",
                         "benchmark_run": "cerebellum benchmark-run --suite frontier --model MODEL --results-dir benchmark_results --execute",
                         "cpu_offload_smoke": "cerebellum cpu-offload-smoke --source-gguf GLM.gguf --output-dir OUT --json",
@@ -8995,7 +9096,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "run": "/run?run_dir=RUN_DIR",
                         "recover": "/recover?run_dir=RUN_DIR",
                         "queue": "/queue?status=queued",
-                        "queue_job": "/queue/job?id=1",
+                        "queue_job": "/queue/job?id=1&tail=40",
                         "pipeline_plan": "/pipeline-plan?source_gguf=MODEL.gguf&output_dir=OUT",
                         "pipeline_run": "/pipeline-run?manifest=pipeline.json",
                         "pipeline_status": "/pipeline-status?manifest=pipeline.json",
@@ -9033,7 +9134,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/provenance", "params": ["run_dir?", "gguf?"], "returns": "generated/existing cerebellum metadata"},
                         {"path": "/package", "params": ["run_dir"], "returns": "package/upload manifest"},
                         {"path": "/queue", "params": ["status?", "kind?", "limit?"], "returns": "queued Cerebellum jobs"},
-                        {"path": "/queue/job", "params": ["id"], "returns": "single queued Cerebellum job"},
+                        {"path": "/queue/job", "params": ["id", "tail?"], "returns": "single queued Cerebellum job with optional bounded log tail"},
                         {"path": "/system", "params": [], "returns": "host resources and tool availability"},
                         {"path": "/space", "params": ["source_gguf", "scratch?", "margin_gb?"], "returns": "scratch-space plan"},
                         {"path": "/pipeline-plan", "params": ["source_gguf", "output_dir", "task_profile?", "benchmark_suite?"], "returns": "pipeline phase manifest"},

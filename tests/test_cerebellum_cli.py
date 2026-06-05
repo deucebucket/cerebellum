@@ -70,10 +70,12 @@ from cerebellum import (
     package_manifest,
     parse_args,
     queue_add_job,
+    queue_cancel_job,
     queue_cmd,
     queue_get_job,
     queue_list_jobs,
     queue_markdown,
+    queue_retry_job,
     pipeline_plan,
     pipeline_plan_args_from_query,
     pipeline_plan_markdown,
@@ -1180,6 +1182,48 @@ def test_queue_run_next_executes_command_job(tmp_path: Path, capsys):
     assert job["result_json"]
     assert Path(job["log"]).is_file()
     assert output.read_text(encoding="utf-8") == "ok"
+
+
+def test_queue_cancel_retry_and_log_tail(tmp_path: Path, capsys):
+    db = tmp_path / "queue.db"
+    fail_cmd = f"{sys.executable} -c \"print('line1'); print('line2'); raise SystemExit(7)\""
+    add_args = parse_args(["queue", "--db", str(db), "--json", "add", "--kind", "run", "--command", fail_cmd])
+    queue_cmd(add_args)
+    capsys.readouterr()
+
+    run_args = parse_args(["queue", "--db", str(db), "--json", "run-next", "--kind", "run", "--execute"])
+    queue_cmd(run_args)
+    failed_payload = json.loads(capsys.readouterr().out)
+    failed = queue_get_job(db, failed_payload["job"]["id"], tail=1)
+
+    assert failed["status"] == "failed"
+    assert failed["result"]["returncode"] == 7
+    assert failed["log_tail"] == "line2"
+
+    canceled = queue_cancel_job(db, failed["id"], reason="bad command")
+    assert canceled["status"] == "canceled"
+    assert canceled["last_error"] == "bad command"
+
+    retried = queue_retry_job(db, failed["id"], priority=3, notes="retry after fix")
+    assert retried["status"] == "queued"
+    assert retried["priority"] == 3
+    assert retried["notes"] == "retry after fix"
+    assert retried["last_error"] is None
+    assert retried["result_json"] is None
+
+
+def test_queue_cancel_and_retry_parse():
+    cancel = parse_args(["queue", "--db", "queue.db", "cancel", "12", "--reason", "stale"])
+    retry = parse_args(["queue", "--db", "queue.db", "retry", "12", "--priority", "5", "--notes", "resume"])
+    get = parse_args(["queue", "--db", "queue.db", "get", "12", "--tail", "20"])
+
+    assert cancel.queue_cmd == "cancel"
+    assert cancel.id == 12
+    assert cancel.reason == "stale"
+    assert retry.queue_cmd == "retry"
+    assert retry.priority == 5
+    assert retry.notes == "resume"
+    assert get.tail == 20
 
 
 def test_pipeline_run_plan_slices_manifest(tmp_path: Path):
