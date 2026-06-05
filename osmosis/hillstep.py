@@ -2260,6 +2260,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     package.add_argument("--private", action="store_true", help="include raw factory sidecars such as state, events, candidates, decisions, and tensor maps")
     package.add_argument("--json", action="store_true")
 
+    public_audit = sub.add_parser("public-audit", help="scan files for public-release safety risks")
+    public_audit.add_argument("paths", nargs="*", help="files/directories to scan; defaults to tracked files")
+    public_audit.add_argument("--json", action="store_true")
+    public_audit.add_argument("--max-bytes", type=int, default=512_000, help="max bytes to read from each file")
+
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
     schedule.add_argument("--file", default=None)
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
@@ -4829,6 +4834,124 @@ def package_cmd(args: argparse.Namespace) -> None:
         print(f"  {item['name']:<36} {fmt_bytes(item['size_bytes']):>10} -> {item['hf_path']}")
 
 
+PUBLIC_AUDIT_PATH_PATTERNS = [
+    (re.compile(r"(^|/)scripts/"), "private script path"),
+    (re.compile(r"(^|/)tests/"), "test/factory path ignored for public origin"),
+    (re.compile(r"(^|/)osmosis/dashboard/"), "private dashboard path"),
+    (re.compile(r"(^|/)docs/devlog/"), "private devlog path"),
+    (re.compile(r"devlog", re.IGNORECASE), "devlog content/path"),
+    (re.compile(r"ablation", re.IGNORECASE), "raw ablation artifact/path"),
+    (re.compile(r"tensor(_|-)?types|candidate|decision|events\.jsonl|state\.json", re.IGNORECASE), "raw factory state artifact/path"),
+    (re.compile(r"\.env$|\.secret$", re.IGNORECASE), "secret file path"),
+    (re.compile(r"\.(gguf|dat)$", re.IGNORECASE), "large model/imatrix binary path"),
+]
+
+PUBLIC_AUDIT_CONTENT_PATTERNS = [
+    (re.compile(r"(?i)(HF_TOKEN|HUGGINGFACE_HUB_TOKEN|GITHUB_TOKEN|GH_TOKEN|OPENAI_API_KEY)\s*="), "credential environment assignment"),
+    (re.compile(r"\b(hf_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b"), "token-like secret"),
+    (re.compile(r"/var/home/deucebucket|/home/deucebucket|/var/home/[^\s'\"`]+"), "absolute local user path"),
+    (re.compile(r"ai-drive|cerebellum-runs|/games/"), "machine-specific storage path"),
+    (re.compile(r"tensor-selection|selection heuristics|raw ablation|streaming quant internals", re.IGNORECASE), "private method detail"),
+]
+
+
+def tracked_files() -> list[Path]:
+    try:
+        result = subprocess.run(["git", "ls-files"], check=True, capture_output=True, text=True)
+    except Exception:
+        return []
+    return [Path(line) for line in result.stdout.splitlines() if line.strip()]
+
+
+def expand_audit_paths(paths: list[str]) -> list[Path]:
+    if not paths:
+        return [path for path in tracked_files() if path.is_file()]
+    files: list[Path] = []
+    for item in paths:
+        path = Path(item)
+        if path.is_dir():
+            files.extend(p for p in path.rglob("*") if p.is_file() and ".git" not in p.parts)
+        elif path.is_file():
+            files.append(path)
+    seen: set[Path] = set()
+    unique: list[Path] = []
+    for path in files:
+        key = path.resolve()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(path)
+    return unique
+
+
+def public_audit(paths: list[str] | None = None, max_bytes: int = 512_000) -> dict[str, Any]:
+    findings: list[dict[str, Any]] = []
+    files = expand_audit_paths(paths or [])
+    for path in files:
+        text_path = path.as_posix()
+        for pattern, reason in PUBLIC_AUDIT_PATH_PATTERNS:
+            if pattern.search(text_path):
+                findings.append({"path": text_path, "kind": "path", "reason": reason, "severity": "blocker"})
+        try:
+            data = path.read_bytes()[:max_bytes]
+        except Exception:
+            continue
+        if b"\x00" in data[:4096]:
+            continue
+        text = data.decode("utf-8", errors="ignore")
+        for pattern, reason in PUBLIC_AUDIT_CONTENT_PATTERNS:
+            match = pattern.search(text)
+            if match:
+                line_no = text[: match.start()].count("\n") + 1
+                findings.append(
+                    {
+                        "path": text_path,
+                        "kind": "content",
+                        "line": line_no,
+                        "reason": reason,
+                        "severity": "blocker",
+                    }
+                )
+    return {
+        "files_scanned": len(files),
+        "findings": findings,
+        "blocked": bool(findings),
+        "scope": "tracked files" if not paths else "explicit paths",
+    }
+
+
+def public_audit_markdown(report: dict[str, Any]) -> str:
+    rows = [
+        [
+            item["severity"],
+            item["kind"],
+            item["path"],
+            "-" if item.get("line") is None else str(item["line"]),
+            item["reason"],
+        ]
+        for item in report["findings"]
+    ]
+    if not rows:
+        return f"Public audit passed: scanned {report['files_scanned']} files.\n"
+    return "\n".join(
+        [
+            f"Public audit blocked: scanned {report['files_scanned']} files, found {len(rows)} risks.",
+            "",
+            markdown_table(["Severity", "Kind", "Path", "Line", "Reason"], rows),
+        ]
+    ) + "\n"
+
+
+def public_audit_cmd(args: argparse.Namespace) -> None:
+    report = public_audit(args.paths, max_bytes=args.max_bytes)
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print(public_audit_markdown(report), end="")
+    if report["blocked"]:
+        raise SystemExit(1)
+
+
 def system_info() -> dict[str, Any]:
     import platform
 
@@ -5869,6 +5992,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "package":
         package_cmd(args)
+        return
+    if args.cmd == "public-audit":
+        public_audit_cmd(args)
         return
     if args.cmd == "schedule":
         schedule_cmd(args)

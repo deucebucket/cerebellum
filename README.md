@@ -138,6 +138,7 @@ cerebellum provenance --gguf model.gguf
 cerebellum provenance --run-dir /path/to/run --gguf model.gguf --hash-files
 cerebellum finalize --run-dir /path/to/run --gguf model.gguf
 cerebellum package /path/to/run
+cerebellum public-audit README.md docs/benchmark_protocol.md benchmark_results/
 ```
 
 Cerebellum provenance uses visible `cerebellum.*` GGUF metadata keys and report
@@ -148,6 +149,9 @@ compatible `gguf-set-metadata` tool is installed, `--inject` can tag the GGUF.
 includes only release-safe finalize/model-card provenance sidecars. Use
 `--private` only for private dev uploads that intentionally include raw state,
 events, candidates, decisions, or tensor maps.
+Run `public-audit` before anything is staged for `origin`; it exits non-zero
+when it sees private paths, raw factory artifacts, local machine paths, or
+token-like content.
 
 PPL/calibration target is explicit. Use `--profile wiki`, `--profile agentic`,
 `--profile code`, `--profile math`, `--profile dialogue`, `--profile all-around`,

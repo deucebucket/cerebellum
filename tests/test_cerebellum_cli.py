@@ -32,6 +32,9 @@ from cerebellum import (
     pipeline_plan,
     pipeline_plan_markdown,
     pipeline_plan_cmd,
+    public_audit,
+    public_audit_cmd,
+    public_audit_markdown,
     task_profiles_cmd,
     task_profiles_markdown,
     rollback_cmd,
@@ -977,6 +980,59 @@ def test_package_manifest_marks_public_mode(tmp_path: Path):
     assert "run_dir" not in payload
     assert [item["name"] for item in payload["files"]] == ["MODEL_CARD_CEREBELLUM.md"]
     assert "path" not in payload["files"][0]
+
+
+def test_public_audit_blocks_private_paths_and_local_content(tmp_path: Path):
+    safe = tmp_path / "README.md"
+    risky_dir = tmp_path / "scripts"
+    risky_dir.mkdir()
+    risky = risky_dir / "run.sh"
+    safe.write_text("public model card\n", encoding="utf-8")
+    risky.write_text("HF_TOKEN=secret\nmodel path /var/home/deucebucket/ai-drive/model.gguf\n", encoding="utf-8")
+
+    report = public_audit([str(tmp_path)])
+    reasons = {item["reason"] for item in report["findings"]}
+    markdown = public_audit_markdown(report)
+
+    assert report["blocked"] is True
+    assert "private script path" in reasons
+    assert "credential environment assignment" in reasons
+    assert "absolute local user path" in reasons
+    assert "Public audit blocked" in markdown
+
+
+def test_public_audit_passes_clean_explicit_file(tmp_path: Path):
+    safe = tmp_path / "MODEL_CARD.md"
+    safe.write_text("safe benchmark summary\n", encoding="utf-8")
+
+    report = public_audit([str(safe)])
+
+    assert report["blocked"] is False
+    assert public_audit_markdown(report).startswith("Public audit passed")
+
+
+def test_public_audit_command_parses():
+    args = parse_args(["public-audit", "README.md", "--json", "--max-bytes", "100"])
+
+    assert args.cmd == "public-audit"
+    assert args.paths == ["README.md"]
+    assert args.json is True
+    assert args.max_bytes == 100
+
+
+def test_public_audit_cmd_exits_on_findings(tmp_path: Path, capsys):
+    risky = tmp_path / "state.json"
+    risky.write_text("{}", encoding="utf-8")
+    args = parse_args(["public-audit", str(risky)])
+
+    try:
+        public_audit_cmd(args)
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        raise AssertionError("public audit should exit non-zero when blocked")
+
+    assert "Public audit blocked" in capsys.readouterr().out
 
 
 def test_public_report_summary_strips_factory_fields():
