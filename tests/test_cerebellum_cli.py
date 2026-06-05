@@ -182,12 +182,43 @@ def test_benchmark_report_compares_result_jsons(tmp_path: Path):
     assert "## Bars" in markdown
 
 
+def test_benchmark_report_leaderboard_scores_size_density(tmp_path: Path):
+    mmlu_pro = tmp_path / "cerebellum_mmlu_pro_results.json"
+    gpqa = tmp_path / "cerebellum_gpqa_diamond_results.json"
+    lcb = tmp_path / "baseline_livecodebench_v6_results.json"
+    mmlu_pro.write_text(
+        json.dumps({"benchmark": "mmlu_pro", "model": "cerebellum", "accuracy": 0.72, "size_gib": 8.0}),
+        encoding="utf-8",
+    )
+    gpqa.write_text(
+        json.dumps({"benchmark": "gpqa_diamond", "model": "cerebellum", "score": 66.0}),
+        encoding="utf-8",
+    )
+    lcb.write_text(
+        json.dumps({"benchmark": "livecodebench_v6", "model": "baseline", "pass_at_1": 0.5}),
+        encoding="utf-8",
+    )
+
+    report = benchmark_report([tmp_path], suite="frontier", leaderboard=True, sizes={"baseline": 10.0})
+    markdown = benchmark_report_markdown(report, include_bars=False)
+
+    assert report["suite"]["benchmarks"] == ["mmlu_pro", "gpqa_diamond", "mmmlu", "hle_no_tools", "livecodebench_v6"]
+    assert report["leaderboard"][0]["model"] == "cerebellum"
+    assert report["leaderboard"][0]["average_score"] == 69.0
+    assert report["leaderboard"][0]["score_per_gib"] == 8.625
+    assert "| cerebellum | 69.00% | 2 | 8.00 | 8.62 |" in markdown
+    assert "| baseline | 50.00% | 1 | 10.00 | 5.00 |" in markdown
+
+
 def test_benchmark_report_command_parses():
-    args = parse_args(["benchmark-report", "benchmarks/qwen36-27b", "--baseline", "q4", "--json"])
+    args = parse_args(["benchmark-report", "benchmarks/qwen36-27b", "--baseline", "q4", "--leaderboard", "--suite", "frontier", "--size", "q4=8.0", "--json"])
 
     assert args.cmd == "benchmark-report"
     assert args.paths == ["benchmarks/qwen36-27b"]
     assert args.baseline == "q4"
+    assert args.leaderboard is True
+    assert args.suite == "frontier"
+    assert args.size == ["q4=8.0"]
     assert args.json is True
 
 

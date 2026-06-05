@@ -44,6 +44,39 @@ PPL_PROFILES = {
     "dialogue": ["cerebellum_calibration_dialogue.txt"],
     "all-around": ["cerebellum_calibration_combined.txt"],
 }
+BENCHMARK_SUITES = {
+    "release": [
+        "arc",
+        "hellaswag",
+        "mmlu",
+        "mmlu_redux",
+        "humaneval",
+        "evalplus",
+        "ppl",
+    ],
+    "frontier": [
+        "mmlu_pro",
+        "gpqa_diamond",
+        "mmmlu",
+        "hle_no_tools",
+        "livecodebench_v6",
+    ],
+    "full": [
+        "arc",
+        "hellaswag",
+        "mmlu",
+        "mmlu_redux",
+        "humaneval",
+        "evalplus",
+        "mmlu_pro",
+        "gpqa_diamond",
+        "mmmlu",
+        "hle_no_tools",
+        "livecodebench_v6",
+        "ppl",
+        "speed",
+    ],
+}
 LEGACY_PROFILE_ROOTS = [
     Path("/var/home/deucebucket/games/osmosis-quants"),
     Path("/var/home/deucebucket/games"),
@@ -2168,11 +2201,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     report.add_argument("--json", action="store_true")
 
     benchmark_report_parser = sub.add_parser("benchmark-report", help="compare benchmark result JSON files")
-    benchmark_report_parser.add_argument("paths", nargs="+", help="benchmark result JSON files or directories; use label=PATH to force a model column label")
+    benchmark_report_parser.add_argument("paths", nargs="*", help="benchmark result JSON files or directories; use label=PATH to force a model column label")
     benchmark_report_parser.add_argument("--baseline", help="model name to use for delta calculations")
     benchmark_report_parser.add_argument("--output", help="write report to this path instead of stdout")
     benchmark_report_parser.add_argument("--json", action="store_true", help="emit machine-readable JSON instead of Markdown")
     benchmark_report_parser.add_argument("--no-bars", action="store_true", help="omit ASCII bar chart section")
+    benchmark_report_parser.add_argument("--leaderboard", action="store_true", help="include average quality and score/GiB leaderboard")
+    benchmark_report_parser.add_argument("--suite", choices=sorted(BENCHMARK_SUITES), default="full", help="benchmark suite to use for leaderboard averaging")
+    benchmark_report_parser.add_argument("--size", action="append", default=[], help="model size as MODEL=GiB for score/GiB leaderboard")
+    benchmark_report_parser.add_argument("--size-json", help="JSON file with per-model size metadata")
+    benchmark_report_parser.add_argument("--list-suites", action="store_true", help="print built-in benchmark suite names and tasks")
 
     ablation_analyze = sub.add_parser("ablation-analyze", help="analyze ablation PPL JSON/logs and write tensor overrides")
     ablation_analyze.add_argument("input", help="ablation_results.json, log file, or directory of PPL logs")
@@ -3564,10 +3602,44 @@ def infer_benchmark_name(path: Path, data: dict[str, Any]) -> str:
     if data.get("benchmark"):
         return str(data["benchmark"])
     stem = path.stem.lower()
-    for name in ["humaneval", "evalplus", "arc", "hellaswag", "mmlu_redux", "mmlu", "speed"]:
+    for name in [
+        "livecodebench_v6",
+        "livecodebench",
+        "hle_no_tools",
+        "gpqa_diamond",
+        "mmlu_pro",
+        "mmmlu",
+        "humaneval",
+        "evalplus",
+        "arc",
+        "hellaswag",
+        "mmlu_redux",
+        "mmlu",
+        "speed",
+        "ppl",
+    ]:
         if name in stem:
             return name
     return stem
+
+
+def benchmark_key(name: str) -> str:
+    key = name.strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "arc_challenge": "arc",
+        "mmlu_pro": "mmlu_pro",
+        "mmlupro": "mmlu_pro",
+        "gpqa": "gpqa_diamond",
+        "gpqa_diamond": "gpqa_diamond",
+        "hle": "hle_no_tools",
+        "hle_notools": "hle_no_tools",
+        "livecodebench": "livecodebench_v6",
+        "lcb_v6": "livecodebench_v6",
+        "humaneval_plus": "evalplus",
+        "humaneval+": "evalplus",
+        "perplexity": "ppl",
+    }
+    return aliases.get(key, key)
 
 
 def benchmark_metric(data: dict[str, Any]) -> tuple[str, float] | None:
@@ -3583,11 +3655,56 @@ def benchmark_metric(data: dict[str, Any]) -> tuple[str, float] | None:
         return "gen tok/s", float(data["gen_tok_per_s"])
     if "tokens_per_second" in data:
         return "tok/s", float(data["tokens_per_second"])
+    if "score" in data:
+        value = float(data["score"])
+        return "score", value * 100.0 if value <= 1.0 else value
+    if "exact_match" in data:
+        value = float(data["exact_match"])
+        return "exact match", value * 100.0 if value <= 1.0 else value
     if "ppl" in data:
         return "ppl", float(data["ppl"])
     if "perplexity" in data:
         return "ppl", float(data["perplexity"])
     return None
+
+
+def benchmark_size_gib(data: dict[str, Any]) -> float | None:
+    for key in ["size_gib", "size_gb", "gguf_size_gib", "gguf_size_gb", "model_size_gib", "model_size_gb"]:
+        if key in data and data[key] is not None:
+            return float(data[key])
+    for key in ["size_bytes", "gguf_size_bytes", "model_size_bytes"]:
+        if key in data and data[key] is not None:
+            return float(data[key]) / (1024**3)
+    return None
+
+
+def parse_size_specs(specs: list[str]) -> dict[str, float]:
+    sizes: dict[str, float] = {}
+    for spec in specs:
+        if "=" not in spec:
+            raise SystemExit(f"--size must be MODEL=GiB, got {spec!r}")
+        model, value = spec.split("=", 1)
+        sizes[model] = float(value)
+    return sizes
+
+
+def read_size_json(path: str | None) -> dict[str, float]:
+    if not path:
+        return {}
+    data = json.loads(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        raise SystemExit("--size-json must contain an object")
+    if "models" in data and isinstance(data["models"], dict):
+        data = data["models"]
+    sizes: dict[str, float] = {}
+    for model, value in data.items():
+        if isinstance(value, dict):
+            size = benchmark_size_gib(value)
+            if size is not None:
+                sizes[str(model)] = size
+        elif value is not None:
+            sizes[str(model)] = float(value)
+    return sizes
 
 
 def benchmark_input_specs(paths: list[Any]) -> list[tuple[Path, str | None]]:
@@ -3628,14 +3745,17 @@ def benchmark_records(paths: list[Any]) -> list[dict[str, Any]]:
         if metric is None:
             continue
         metric_name, value = metric
+        benchmark = infer_benchmark_name(path, data)
         records.append(
             {
                 "model": str(label or data.get("model") or path.parent.name or path.stem),
-                "benchmark": infer_benchmark_name(path, data),
+                "benchmark": benchmark,
+                "benchmark_key": benchmark_key(benchmark),
                 "metric": metric_name,
                 "value": value,
                 "correct": data.get("correct"),
                 "total": data.get("total") or data.get("total_problems"),
+                "size_gib": benchmark_size_gib(data),
                 "path": str(path),
             }
         )
@@ -3643,7 +3763,55 @@ def benchmark_records(paths: list[Any]) -> list[dict[str, Any]]:
     return records
 
 
-def benchmark_report(paths: list[Any], baseline: str | None = None) -> dict[str, Any]:
+def metric_is_quality_percent(metric: str) -> bool:
+    metric = metric.lower()
+    return metric not in {"ppl", "tok/s", "gen tok/s"} and "tok/s" not in metric
+
+
+def benchmark_leaderboard(records: list[dict[str, Any]], suite: str, sizes: dict[str, float] | None = None) -> list[dict[str, Any]]:
+    suite_keys = set(BENCHMARK_SUITES[suite])
+    sizes = sizes or {}
+    by_model: dict[str, list[dict[str, Any]]] = {}
+    embedded_sizes: dict[str, float] = {}
+    for row in records:
+        model = str(row["model"])
+        size = row.get("size_gib")
+        if size is not None and model not in embedded_sizes:
+            embedded_sizes[model] = float(size)
+        if row["benchmark_key"] not in suite_keys:
+            continue
+        if not metric_is_quality_percent(str(row["metric"])):
+            continue
+        by_model.setdefault(model, []).append(row)
+
+    leaderboard: list[dict[str, Any]] = []
+    for model, rows in by_model.items():
+        if not rows:
+            continue
+        avg = sum(float(row["value"]) for row in rows) / len(rows)
+        size_gib = sizes.get(model, embedded_sizes.get(model))
+        score_per_gib = None if not size_gib else avg / size_gib
+        leaderboard.append(
+            {
+                "model": model,
+                "suite": suite,
+                "average_score": avg,
+                "benchmarks": len(rows),
+                "size_gib": size_gib,
+                "score_per_gib": score_per_gib,
+            }
+        )
+    leaderboard.sort(key=lambda row: (row["average_score"], row["score_per_gib"] or 0.0), reverse=True)
+    return leaderboard
+
+
+def benchmark_report(
+    paths: list[Any],
+    baseline: str | None = None,
+    suite: str = "full",
+    leaderboard: bool = False,
+    sizes: dict[str, float] | None = None,
+) -> dict[str, Any]:
     records = benchmark_records(paths)
     models = sorted({str(row["model"]) for row in records})
     benchmarks = sorted({str(row["benchmark"]) for row in records})
@@ -3670,7 +3838,11 @@ def benchmark_report(paths: list[Any], baseline: str | None = None) -> dict[str,
                     "baseline_value": baseline_row["value"],
                 }
             )
-    return {"models": models, "benchmarks": benchmarks, "records": records, "deltas": deltas}
+    report: dict[str, Any] = {"models": models, "benchmarks": benchmarks, "records": records, "deltas": deltas}
+    if leaderboard:
+        report["suite"] = {"name": suite, "benchmarks": BENCHMARK_SUITES[suite]}
+        report["leaderboard"] = benchmark_leaderboard(records, suite, sizes=sizes)
+    return report
 
 
 def fmt_metric_value(row: dict[str, Any] | None) -> str:
@@ -3713,6 +3885,30 @@ def benchmark_report_markdown(report: dict[str, Any], include_bars: bool = True)
             for row in report["deltas"]
         ]
         parts.extend(["", "## Deltas", "", markdown_table(["Benchmark", "Model", "Baseline", "Delta"], delta_rows)])
+    if report.get("leaderboard") is not None:
+        suite = report.get("suite", {})
+        suite_name = suite.get("name", "full") if isinstance(suite, dict) else "full"
+        leaderboard_rows = []
+        for row in report["leaderboard"]:
+            size = "-" if row.get("size_gib") is None else f"{float(row['size_gib']):.2f}"
+            density = "-" if row.get("score_per_gib") is None else f"{float(row['score_per_gib']):.2f}"
+            leaderboard_rows.append(
+                [
+                    str(row["model"]),
+                    f"{float(row['average_score']):.2f}%",
+                    str(row["benchmarks"]),
+                    size,
+                    density,
+                ]
+            )
+        parts.extend(
+            [
+                "",
+                f"## Leaderboard ({suite_name})",
+                "",
+                markdown_table(["Model", "Avg score", "Benchmarks", "Size GiB", "Score/GiB"], leaderboard_rows),
+            ]
+        )
     if include_bars:
         bar_lines: list[str] = []
         for benchmark in benchmarks:
@@ -3728,7 +3924,25 @@ def benchmark_report_markdown(report: dict[str, Any], include_bars: bool = True)
 
 
 def benchmark_report_cmd(args: argparse.Namespace) -> None:
-    report = benchmark_report(args.paths, baseline=args.baseline)
+    if args.list_suites:
+        payload = {"suites": BENCHMARK_SUITES}
+        if args.json:
+            print(json.dumps(payload, indent=2, sort_keys=True))
+        else:
+            for name, benchmarks in BENCHMARK_SUITES.items():
+                print(f"{name}: {', '.join(benchmarks)}")
+        return
+    if not args.paths:
+        raise SystemExit("benchmark-report requires at least one path unless --list-suites is used")
+    sizes = read_size_json(args.size_json)
+    sizes.update(parse_size_specs(args.size))
+    report = benchmark_report(
+        args.paths,
+        baseline=args.baseline,
+        suite=args.suite,
+        leaderboard=args.leaderboard,
+        sizes=sizes,
+    )
     if args.json:
         text = json.dumps(report, indent=2, sort_keys=True)
     else:

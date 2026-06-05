@@ -335,6 +335,25 @@ Minimum release artifacts for a benchmarked model:
 - exact runtime flags and model file hashes,
 - notes describing whether thinking/reasoning was enabled or disabled.
 
+Cerebellum can turn those JSON artifacts into model-card-ready comparison
+tables and a size-normalized leaderboard:
+
+```bash
+cerebellum benchmark-report benchmark_results/ --leaderboard --suite full --size Cerebellum=7.6 --no-bars
+cerebellum benchmark-report --list-suites
+```
+
+Built-in leaderboard suites:
+
+- `release`: ARC, HellaSwag, MMLU/MMLU-Redux, HumanEval/EvalPlus, PPL.
+- `frontier`: MMLU-Pro, GPQA-Diamond, MMMLU, HLE no-tools, LiveCodeBench v6.
+- `full`: release plus frontier, speed, and PPL reporting.
+
+The leaderboard average uses quality percentage metrics only. PPL and speed
+stay in the comparison table, but they do not get mixed into the average score.
+Use `--size MODEL=GiB` or include `size_gib` / `gguf_size_bytes` in result JSONs
+to populate the score-per-GiB column.
+
 For each released model, keep a reproducibility bundle next to the benchmark
 artifacts when practical:
 
