@@ -137,3 +137,36 @@ Connected imatrix generation to the same Cerebellum project tree used by runs. E
 ## Project browser
 
 Added a project browser so the new imatrix project layout is usable from the CLI and API. Existing runs without `cerebellum_project.json` still show up via run manifest fallback.
+
+## Live Gemma 4 12B resume pass
+
+Resumed `gemma4-12b-cerebellum-q4km-wiki-visible-20260604` after a stale partial
+PPL process. Backed up metadata, cleaned only the partial tensor temp, and
+restarted the run in low-space mode. While monitoring, fixed runner detection
+for `cerebellum resume`, added wall-clock ETA completion time, preserved event
+ID continuity across resumed processes, and redacted secret-like environment
+values from process command display. The live run continued through
+`blk.0.post_attention_norm.weight` q3_K PPL and into q2_K quantization.
+
+## Norm tensor rollback and quant override fix
+
+The live Gemma 4 12B run exposed a real pipeline bug: norm tensors were being
+tested even though llama.cpp leaves `*_norm.weight` tensors unquantized. This
+created no-op candidate GGUFs with repeated PPL/size values. Backed up the bad
+trace, rolled the run from 12 locked tensors back to the last valid 7 locked
+tensors, and resumed from the rebuilt baseline.
+
+Fixed Cerebellum tensor discovery and explicit tensor-file filtering to skip
+quantizer-excluded tensors. Tensor-type files now use exact escaped regex
+patterns for current llama.cpp matching. Watch/recover now anchor active state
+to the latest run epoch after rollback. Post-fix validation on
+`blk.1.ffn_down.weight` produced distinct q3/q2 sizes and PPL deltas.
+
+## Gemma 4 source conversion gotcha
+
+Recorded the separate Gemma 4 12B source-conversion requirement: the HF class is
+`Gemma4UnifiedForConditionalGeneration`, with the text backbone under
+`model.language_model.*`. llama.cpp's Gemma4Model already strips that prefix,
+but the converter must register the architecture name on Gemma4Model before
+building the F16 GGUF. A valid converted source should report
+`general.architecture=gemma4` and llama.cpp-style `blk.*` tensor names.

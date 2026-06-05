@@ -22,5 +22,8 @@ dev = ["pytest", "ruff"]
 cerebellum = "cerebellum.cli:main"
 osmosis = "osmosis.cli:main"
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
 [tool.setuptools.packages.find]
 include = ["osmosis*", "cerebellum*"]

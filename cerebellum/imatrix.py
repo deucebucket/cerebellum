@@ -7,7 +7,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from osmosis.hillstep import default_data_root, slug
+from cerebellum import default_data_root, slug
 
 
 def project_source_root(data_root: Path, family: str, model_name: str, source_name: str) -> Path:

@@ -158,3 +158,33 @@
 - Added `cerebellum project` to inspect Cerebellum family/model/source project trees.
 - Project discovery reads `cerebellum_project.json` and falls back to existing run manifests for older runs.
 - Added read-only `/projects` API endpoint for AI/web clients.
+
+## 2026-06-04 live-run recovery and ETA polish
+
+- Added local wall-clock expected completion time to watch ETA output.
+- Fixed active runner detection for resumed runs so `cerebellum watch` and `recover` report live `resume` jobs correctly.
+- Recovery payloads now distinguish active, interrupted, and idle run states.
+- Event logs now continue existing event IDs across resumed processes.
+- Process command display now redacts secret-like environment variables before showing them in watch/TUI/API payloads.
+- Added `--root` as a project/runs browser alias for `--data-root`.
+
+## 2026-06-04 norm tensor exclusion and exact overrides
+
+- Excluded llama.cpp no-op tensors such as `*_norm.weight` from Cerebellum tensor discovery and explicit tensor-file runs.
+- Changed tensor-type-file output to exact escaped regex patterns so current llama.cpp override matching cannot overmatch dotted tensor names.
+- Tensor-type-file writers now skip excluded/no-op source tensors instead of assigning them override entries.
+- Updated watch/recover to use the latest run epoch after rollback, preventing stale pre-rollback totals, active tensors, and candidate rows from appearing current.
+- Watch now treats `rollback_finish` as a terminal boundary before the next resume.
+- Rolled the live Gemma 4 12B run back to the last valid 7 locked tensors and verified post-fix `blk.1.ffn_down.weight` candidates produce distinct PPL and GGUF sizes.
+
+## 2026-06-04 Gemma 4 source GGUF check
+
+- Added `cerebellum tutorial gemma4-source` documenting the `Gemma4UnifiedForConditionalGeneration` converter registration requirement.
+- Added `cerebellum doctor --source-gguf SOURCE.gguf` inspection for Gemma 4 source GGUF architecture and sample tensor names.
+- Documented that valid Gemma 4 12B source GGUFs should have `general.architecture=gemma4` and llama.cpp-style `blk.*` tensor names after prefix stripping.
+
+## 2026-06-04 GitHub sidecar upload
+
+- Implemented `cerebellum upload github` for package sidecars through `gh api`.
+- Uploads use a dedicated branch named `cerebellum-run-RUN_ID` unless `--branch` is provided.
+- Dry-run output now shows planned GitHub paths under `cerebellum_runs/RUN_ID/`.

@@ -9,6 +9,7 @@ process death or a system lockup.
 from __future__ import annotations
 
 import argparse
+import base64
 import csv
 import hashlib
 import json
@@ -23,11 +24,11 @@ import sys
 import threading
 import time
 import textwrap
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 
@@ -58,6 +59,40 @@ PRECISION_RANK = {
     "f16": 16,
     "bf16": 16,
 }
+NON_QUANTIZABLE_SUBSTRINGS = (
+    "rope",
+    "embd",
+    "_norm.weight",
+    "ffn_gate_inp.weight",
+    "altup",
+    "laurel",
+    "per_layer_model_proj",
+    "ssm_conv1d",
+    "shortconv.conv.weight",
+    "time_mix_first.weight",
+    "time_mix_w0.weight",
+    "time_mix_w1.weight",
+    "time_mix_w2.weight",
+    "time_mix_v0.weight",
+    "time_mix_v1.weight",
+    "time_mix_v2.weight",
+    "time_mix_a0.weight",
+    "time_mix_a1.weight",
+    "time_mix_a2.weight",
+    "time_mix_g1.weight",
+    "time_mix_g2.weight",
+    "time_mix_decay_w1.weight",
+    "time_mix_decay_w2.weight",
+    "time_mix_lerp_fused.weight",
+    "attn_rel_b.weight",
+    ".position_embd",
+    "sam.pos_embd",
+    "sam.neck.",
+    "sam.net_",
+    ".rel_pos",
+    ".patch_embd",
+    ".patch_merger",
+)
 EVENT_SCHEMA_VERSION = 1
 EVENT_FILES = ("cerebellum_events.jsonl", "cerebellum_hill_events.jsonl")
 CANDIDATE_FILES = ("cerebellum_candidates.jsonl", "cerebellum_hill_candidates.jsonl")
@@ -81,6 +116,24 @@ def slug(value: str) -> str:
     value = value.strip().replace("/", "-")
     value = re.sub(r"[^A-Za-z0-9_.-]+", "-", value)
     return value.strip("-") or "unknown"
+
+
+def tensor_type_pattern(name: str) -> str:
+    return f"^{re.escape(name)}$"
+
+
+def tensor_type_line(name: str, qtype: str) -> str:
+    return f"{tensor_type_pattern(name)}={qtype}"
+
+
+def is_quantizable_tensor(name: str) -> bool:
+    if not name.endswith("weight"):
+        return False
+    return not any(part in name for part in NON_QUANTIZABLE_SUBSTRINGS)
+
+
+def quantizable_tensor_names(names: list[str] | set[str] | tuple[str, ...]) -> list[str]:
+    return [name for name in names if is_quantizable_tensor(name)]
 
 
 def atomic_write_json(path: Path, data: dict[str, Any]) -> None:
@@ -107,7 +160,10 @@ class EventLog:
         self.path = path
         self.run_id = run_id
         self.cfg = cfg
-        self._event_id = 0
+        self._event_id = max(
+            [int(row.get("event_id") or 0) for row in read_jsonl(path)],
+            default=0,
+        )
         self._started = time.monotonic()
         self.path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
@@ -143,6 +199,13 @@ def color(text: str, code: str, enabled: bool) -> str:
 
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
+SECRET_ENV_RE = re.compile(
+    r"((?:--env=)?[A-Za-z_][A-Za-z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASS|KEY|AUTH)[A-Za-z0-9_]*=)([^ \t]+)"
+)
+
+
+def sanitize_process_cmd(cmd: str) -> str:
+    return SECRET_ENV_RE.sub(r"\1<redacted>", cmd)
 
 
 def visible_len(text: str) -> int:
@@ -236,6 +299,19 @@ def fmt_seconds(seconds: float | None) -> str:
     return f"{int(hours)}h{int(minutes):02d}m"
 
 
+def fmt_completion_time(seconds: float | None) -> str:
+    if seconds is None:
+        return "-"
+    try:
+        value = float(seconds)
+    except (TypeError, ValueError):
+        return "-"
+    if value < 0:
+        return "-"
+    when = datetime.now().astimezone() + timedelta(seconds=value)
+    return when.strftime("%a %Y-%m-%d %H:%M %Z")
+
+
 def fmt_bytes(size: int | None) -> str:
     if size is None:
         return "-"
@@ -292,7 +368,7 @@ def process_rows_for_run(run_dir: Path) -> list[dict[str, Any]]:
         if "cerebellum watch" in cmd:
             continue
         kind = "process"
-        if "cerebellum run" in cmd:
+        if "cerebellum run" in cmd or "cerebellum resume" in cmd:
             kind = "runner"
         elif cmd.startswith("/usr/bin/sh /usr/bin/distrobox") or cmd.startswith("podman exec"):
             kind = "container"
@@ -309,11 +385,73 @@ def process_rows_for_run(run_dir: Path) -> list[dict[str, Any]]:
                 "pcpu": pcpu,
                 "pmem": pmem,
                 "kind": kind,
-                "cmd": cmd,
+                "cmd": sanitize_process_cmd(cmd),
             }
         )
     rows.sort(key=lambda row: {"runner": 0, "quantize": 1, "ppl": 2, "container": 3}.get(row["kind"], 9))
     return rows
+
+
+def active_work_status(
+    state: dict[str, Any],
+    events: list[dict[str, Any]],
+    processes: list[dict[str, Any]],
+    active: dict[str, Any],
+    warn_seconds: float = 300.0,
+    fail_seconds: float = 900.0,
+) -> dict[str, Any]:
+    status = state.get("run_status")
+    last_event = events[-1] if events else {}
+    last_event_age = event_age_seconds(last_event)
+    active_age = event_age_seconds(active)
+    active_processes = [row for row in processes if row["kind"] in {"quantize", "ppl"}]
+    runner_processes = [row for row in processes if row["kind"] == "runner"]
+    expected_pid = str(active.get("pid") or "")
+    expected_pid_alive = any(row["pid"] == expected_pid for row in processes) if expected_pid else False
+    active_event = str(active.get("event") or "")
+    incomplete_start = active_event in {"tensor_start", "quant_start", "ppl_start"}
+    stale = bool(status == "running" and incomplete_start and not active_processes and not runner_processes)
+
+    health = "idle"
+    reason = "not running"
+    code = "90"
+    if status == "running":
+        if active_processes:
+            health = "active"
+            reason = ", ".join(f"{row['kind']} pid {row['pid']} {row['etime']}" for row in active_processes[:2])
+            code = "32;1"
+        elif runner_processes and last_event_age is not None and last_event_age < warn_seconds:
+            health = "waiting"
+            reason = f"runner alive; last event {fmt_seconds(last_event_age)} ago"
+            code = "33;1"
+        elif runner_processes and last_event_age is not None and last_event_age < fail_seconds:
+            health = "stalled?"
+            reason = f"runner alive but no event for {fmt_seconds(last_event_age)}"
+            code = "33;1"
+        elif runner_processes:
+            health = "failure suspected"
+            reason = f"runner alive, no event for {fmt_seconds(last_event_age)}"
+            code = "31;1"
+        elif stale:
+            health = "interrupted"
+            reason = f"{active_event} has no live process; resume will retest current tensor"
+            code = "31;1"
+        else:
+            health = "failure suspected"
+            reason = "state says running but no runner process found"
+            code = "31;1"
+    return {
+        "health": health,
+        "reason": reason,
+        "code": code,
+        "last_event_age": last_event_age,
+        "active_age": active_age,
+        "active_processes": active_processes,
+        "runner_processes": runner_processes,
+        "stale": stale,
+        "expected_pid": expected_pid or None,
+        "expected_pid_alive": expected_pid_alive,
+    }
 
 
 def gpu_rows() -> list[dict[str, Any]]:
@@ -394,6 +532,7 @@ def eta_grid_values(state: dict[str, Any], active_age: float | None, total: int 
         "avg_tensor": fmt_seconds(avg_tensor),
         "avg_layer": "-" if completed_layers == 0 or avg_tensor is None else fmt_seconds(avg_tensor * 5),
         "total": fmt_seconds(eta),
+        "completion_at": fmt_completion_time(eta),
         "confidence": confidence,
     }
 
@@ -538,12 +677,12 @@ def write_tensor_types_map(source_gguf: Path | None, locked: dict[str, str], sta
             from gguf import GGUFReader
 
             reader = GGUFReader(str(source_gguf))
-            names = [t.name for t in reader.tensors]
+            names = quantizable_tensor_names([t.name for t in reader.tensors])
         except Exception:
             names = []
     if not names:
-        names = sorted(locked)
-    lines = [f"{name}={locked.get(name, start_type)}" for name in names]
+        names = sorted(quantizable_tensor_names(set(locked)))
+    lines = [tensor_type_line(name, locked.get(name, start_type)) for name in names]
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     with open(tmp, "w", encoding="utf-8") as f:
@@ -551,6 +690,30 @@ def write_tensor_types_map(source_gguf: Path | None, locked: dict[str, str], sta
         f.flush()
         os.fsync(f.fileno())
     os.replace(tmp, path)
+
+
+def gguf_field_text(gguf: Path, key: str) -> str | None:
+    try:
+        from gguf import GGUFReader
+    except ImportError:
+        return None
+    try:
+        field = GGUFReader(str(gguf)).fields.get(key)
+    except Exception:
+        return None
+    if field is None:
+        return None
+    parts = getattr(field, "parts", [])
+    if len(parts) >= 5:
+        raw = parts[4]
+        try:
+            return bytes(raw.tolist()).decode("utf-8", errors="replace")
+        except Exception:
+            try:
+                return bytes(raw).decode("utf-8", errors="replace")
+            except Exception:
+                return None
+    return None
 
 
 def first_existing(run_dir: Path, names: tuple[str, ...]) -> Path:
@@ -1049,7 +1212,6 @@ class HillStepper:
             "low_space": self.cfg.low_space,
             "serial_candidates": self.cfg.serial_candidates,
             "prune_measured_candidates": self.cfg.prune_measured_candidates,
-            "hard_free_floor_gb": self.cfg.hard_free_floor_gb,
             "quantize_bin": self.cfg.quantize_bin,
             "perplexity_bin": self.cfg.perplexity_bin,
             "gpu_layers": self.cfg.gpu_layers,
@@ -1099,7 +1261,7 @@ class HillStepper:
         }
         for t in reader.tensors:
             name = t.name
-            if "weight" not in name:
+            if not is_quantizable_tensor(name):
                 continue
             if t.n_bytes < 1000 or "rope" in name or "embd" in name or "output_norm" in name:
                 continue
@@ -1111,7 +1273,7 @@ class HillStepper:
         return self.filter_tensors([name for _, _, name in tensors])
 
     def filter_tensors(self, names: list[str]) -> list[str]:
-        filtered = names
+        filtered = [name for name in names if is_quantizable_tensor(name)]
         if self.cfg.layers is not None:
             filtered = [name for name in filtered if tensor_layer(name) in self.cfg.layers]
         if self.cfg.tensor_regex:
@@ -1170,24 +1332,24 @@ class HillStepper:
         extra = extra or {}
         if self.cfg.tensor_file:
             names = [line.strip() for line in self.cfg.tensor_file.read_text().splitlines() if line.strip()]
-            names = sorted(set(names) | set(locked) | set(extra))
+            names = sorted(quantizable_tensor_names(set(names) | set(locked) | set(extra)))
         else:
             try:
                 from gguf import GGUFReader
                 reader = GGUFReader(str(self.cfg.source_gguf))
-                names = [t.name for t in reader.tensors]
+                names = quantizable_tensor_names([t.name for t in reader.tensors])
             except ImportError:
-                names = sorted(set(locked) | set(extra))
+                names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
             except Exception:
-                names = sorted(set(locked) | set(extra))
+                names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
         if not names:
-            names = sorted(set(locked) | set(extra))
+            names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
         lines = []
         merged = dict(locked)
         merged.update(extra)
         for name in names:
             qtype = merged.get(name, self.cfg.start_type)
-            lines.append(f"{name}={qtype}")
+            lines.append(tensor_type_line(name, qtype))
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
@@ -1206,15 +1368,15 @@ class HillStepper:
         try:
             from gguf import GGUFReader
             reader = GGUFReader(str(self.cfg.source_gguf))
-            names = [t.name for t in reader.tensors]
+            names = quantizable_tensor_names([t.name for t in reader.tensors])
         except Exception:
-            names = sorted(set(locked) | set(extra))
+            names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
         lines = []
         merged = dict(locked)
         merged.update(extra)
         for name in names:
             qtype = merged.get(name, self.cfg.start_type)
-            lines.append(f"{name}={qtype}")
+            lines.append(tensor_type_line(name, qtype))
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp = path.with_suffix(path.suffix + ".tmp")
         with open(tmp, "w", encoding="utf-8") as f:
@@ -1652,6 +1814,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     run.add_argument("--token-embedding-type", default="f16")
     run.add_argument("--noise-pct", type=float, default=0.0)
 
+    sub.add_parser("imatrix", help="generate a Cerebellum/llama.cpp imatrix for quantization")
+
     status = sub.add_parser("status", help="show Cerebellum run status")
     status.add_argument("run_dir")
     status.add_argument("--plain", action="store_true")
@@ -1713,7 +1877,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     recover.add_argument("--json", action="store_true")
 
     runs = sub.add_parser("runs", help="list known runs under a data root")
-    runs.add_argument("--data-root", default=None)
+    runs.add_argument("--data-root", "--root", dest="data_root", default=None)
     runs.add_argument("--family", default=None)
     runs.add_argument("--model", default=None)
     runs.add_argument("--status", default=None)
@@ -1721,7 +1885,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     runs.add_argument("--json", action="store_true")
 
     project = sub.add_parser("project", help="inspect Cerebellum model projects")
-    project.add_argument("--data-root", default=None)
+    project.add_argument("--data-root", "--root", dest="data_root", default=None)
     project.add_argument("--family", default=None)
     project.add_argument("--model", default=None)
     project.add_argument("--source", default=None)
@@ -1757,6 +1921,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     system.add_argument("--json", action="store_true")
 
     doctor = sub.add_parser("doctor", help="check portable Cerebellum setup and explain fixes")
+    doctor.add_argument("--source-gguf", default=None, help="optional source GGUF to inspect for model-specific conversion gotchas")
     doctor.add_argument("--json", action="store_true")
 
     self_test = sub.add_parser("self-test", help="run read-only Cerebellum CLI/API smoke checks")
@@ -1822,7 +1987,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         argv is None
         and len(sys.argv) > 1
         and sys.argv[1] not in {
-            "run", "status", "events", "runs", "schedule", "db", "report",
+            "run", "imatrix", "status", "events", "runs", "schedule", "db", "report",
             "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "finalize", "package", "plan-space",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
             "cleanup", "rollback",
@@ -2237,14 +2402,37 @@ def backup_cmd(args: argparse.Namespace) -> None:
 def build_recovery_plan(run_dir: Path) -> dict[str, Any]:
     state = read_json(run_dir / "state.json", {})
     manifest = read_json(run_dir / "manifest.json", {})
+    events = read_jsonl(first_existing(run_dir, EVENT_FILES))
+    run_start_idx = max((idx for idx, row in enumerate(events) if row.get("event") == "run_start"), default=-1)
+    current_events = events[run_start_idx + 1 :] if run_start_idx >= 0 else events
     locked = state.get("locked", {})
     tmp_root = run_dir / "tmp"
     partials = [str(path) for path in tmp_root.iterdir() if path.is_dir()] if tmp_root.exists() else []
-    runner_active = any(row["kind"] == "runner" for row in process_rows_for_run(run_dir))
+    processes = process_rows_for_run(run_dir)
+    status_model = active_work_status(
+        state,
+        current_events,
+        processes,
+        next(
+            (
+                row
+                for row in reversed(current_events)
+                if row.get("event")
+                in {"baseline_quant_start", "baseline_ppl_start", "tensor_start", "quant_start", "ppl_start"}
+            ),
+            {},
+        ),
+    )
+    runner_active = bool(status_model["runner_processes"])
     plan = {
         "run_dir": str(run_dir),
         "status": state.get("run_status"),
         "runner_active": runner_active,
+        "active_health": status_model["health"],
+        "active_reason": status_model["reason"],
+        "interrupted": bool(status_model["stale"]),
+        "active_pid": status_model["expected_pid"],
+        "active_pid_alive": status_model["expected_pid_alive"],
         "locked_count": len(locked),
         "last_tensor": state.get("last_tensor"),
         "current_ppl": state.get("current_ppl"),
@@ -2260,6 +2448,8 @@ def build_recovery_plan(run_dir: Path) -> dict[str, Any]:
     }
     if runner_active:
         plan["notes"].append("runner is active; do not cleanup partial temp unless intentionally stopping/forcing")
+    if status_model["stale"]:
+        plan["notes"].append("last start event has no live process; resume will retest the partial tensor")
     if partials and not runner_active:
         plan["notes"].append("partial temp exists and can be deleted before resume; current tensor will be retested")
     if state.get("baseline_invalid_after_rollback"):
@@ -2334,6 +2524,7 @@ def recover_cmd(args: argparse.Namespace) -> None:
     print(color("Cerebellum recovery plan", "36;1", True))
     print(f"run_dir      : {plan['run_dir']}")
     print(f"status       : {plan['status']} runner_active={plan['runner_active']}")
+    print(f"health       : {plan['active_health']} - {plan['active_reason']}")
     print(f"locked       : {plan['locked_count']} last={plan['last_tensor']}")
     print(f"ppl          : {plan['current_ppl']}")
     print(f"disk         : {plan['disk_free_gb']} GiB free")
@@ -2380,13 +2571,14 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
     enabled = not args.no_color and not args.plain
     try:
         while True:
-            model = build_watch_model(run_dir)
+            model = build_watch_model(run_dir, args.stall_warn_seconds, args.stall_fail_seconds)
             state = model["state"]
             manifest = model["manifest"]
             active = model["active"]
             candidates = model["candidates"]
             events = model["events"]
             processes = model["active_processes"]
+            health = model["health"]
             gpu_info = model["gpu"]
             terminal_w = shutil.get_terminal_size((118, 40)).columns
             width = max(96, min(132, terminal_w))
@@ -2398,9 +2590,7 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
             print(color("╚" + "═" * (width - 2) + "╝", "36;1", enabled))
             print()
 
-            eta = eta_grid_values(state, model["active_age"], next((row.get("total") for row in reversed(events) if row.get("total")), None))
-            locked = len(state.get("locked", {}))
-            total = next((row.get("total") for row in reversed(events) if row.get("total")), None)
+            eta = eta_grid_values(state, model["active_age"], model["total"])
             progress_left = f"{model['bar']} {model['progress']}  ppl {state.get('current_ppl')}"
             resource_bits = []
             if gpu_info:
@@ -2410,14 +2600,19 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
                 jobs = ",".join(sorted({row["kind"] for row in processes}))
                 resource_bits.append(f"jobs {jobs}")
             else:
-                resource_bits.append("jobs idle")
+                resource_bits.append(f"jobs {health['health']}")
+            job_label = f"{active.get('event')}  age {fmt_seconds(model['active_age'])}"
+            if health["stale"]:
+                job_label = f"interrupted  {active.get('event')} age {fmt_seconds(model['active_age'])}"
             overview = [
                 grid_line(color("progress  ", "90", enabled) + color(progress_left, "32;1", enabled), color("resources  ", "90", enabled) + color(resource_bits[0], "36;1", enabled), width),
                 grid_line(color("cpu/gpu   ", "90", enabled) + color((" | ".join(row["kind"] for row in processes[:3]) if processes else "idle"), "36;1", enabled), color("jobs       ", "90", enabled) + color(("  ".join(resource_bits[1:]) if len(resource_bits) > 1 else "idle"), "36;1", enabled), width),
                 grid_line(color("tensor    ", "90", enabled) + color(f"{active.get('tensor')}  {active.get('level')}", "33;1", enabled), color("disk       ", "90", enabled) + color(f"{disk_free_gb(run_dir):.1f} GiB free", "36", enabled), width),
-                grid_line(color("job       ", "90", enabled) + color(f"{active.get('event')}  age {fmt_seconds(model['active_age'])}", "32;1", enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes_dense(model['baseline_size'])} active {fmt_bytes_dense(model['active_size'])}", "36;1", enabled), width),
-                grid_line(color("storage   ", "90", enabled) + color(f"tmp {fmt_bytes(model['tmp_size'])} artifacts {fmt_bytes(model['artifacts_size'])}", "36;1", enabled), color("floor      ", "90", enabled) + color(f"{manifest.get('hard_free_floor_gb', 10.0)} GiB hard floor", "31;1" if disk_free_gb(run_dir) < 20 else "36", enabled), width),
-                grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", "36;1", enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
+                grid_line(color("job       ", "90", enabled) + color(job_label, health["code"], enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes_dense(model['baseline_size'])} active {fmt_bytes_dense(model['active_size'])}", "36;1", enabled), width),
+                grid_line(color("storage   ", "90", enabled) + color(f"tmp {fmt_bytes(model['tmp_size'])} artifacts {fmt_bytes(model['artifacts_size'])}", "36;1", enabled), color("pid        ", "90", enabled) + color(str(health["expected_pid"] or "-"), health["code"], enabled), width),
+                grid_line(color("health    ", "90", enabled) + color(str(health["reason"]), health["code"], enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
+                grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", "36;1", enabled), color("done       ", "90", enabled) + color(eta["completion_at"], "36;1", enabled), width),
+                grid_line(color("avg layer ", "90", enabled) + color(eta["avg_layer"], "36;1", enabled), color("floor      ", "90", enabled) + color(f"{manifest.get('hard_free_floor_gb', 10.0)} GiB hard floor", "31;1" if disk_free_gb(run_dir) < 20 else "36", enabled), width),
             ]
             print_heavy_box("OPERATIONS", overview, width, "34;1", enabled)
             print()
@@ -2451,24 +2646,45 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
         return
 
 
-def build_watch_model(run_dir: Path) -> dict[str, Any]:
+def build_watch_model(
+    run_dir: Path,
+    stall_warn_seconds: float = 300.0,
+    stall_fail_seconds: float = 900.0,
+) -> dict[str, Any]:
     state = read_json(run_dir / "state.json", {})
     manifest = read_json(run_dir / "manifest.json", {})
     events = read_jsonl(first_existing(run_dir, EVENT_FILES))
     candidates = read_jsonl(first_existing(run_dir, CANDIDATE_FILES))
+    run_start_idx = max((idx for idx, row in enumerate(events) if row.get("event") == "run_start"), default=-1)
+    current_events = events[run_start_idx + 1 :] if run_start_idx >= 0 else events
+    run_start = events[run_start_idx] if run_start_idx >= 0 else {}
+    current_tensors = {row.get("tensor") for row in state.get("tested", []) if row.get("tensor")}
+    active_tensor = next((row.get("tensor") for row in reversed(current_events) if row.get("event") == "tensor_start" and row.get("tensor")), None)
+    if active_tensor:
+        current_tensors.add(active_tensor)
+    visible_candidates = [row for row in candidates if row.get("tensor") in current_tensors] if current_tensors else candidates
     status = state.get("run_status")
-    terminal_events = {"run_stopped", "run_finish", "tensor_interrupted", "signal_received"}
+    terminal_events = {"run_stopped", "run_finish", "tensor_interrupted", "signal_received", "rollback_finish"}
     if status in {"stopped", "complete", "failed"}:
-        active = next((row for row in reversed(events) if row.get("event") in terminal_events), {})
+        active = next((row for row in reversed(current_events) if row.get("event") in terminal_events), {})
     else:
-        active = next((row for row in reversed(events) if row.get("event") in {"tensor_start", "quant_start", "ppl_start"}), {})
-    total = next((row.get("total") for row in reversed(events) if row.get("total")), None)
+        active = next(
+            (
+                row
+                for row in reversed(current_events)
+                if row.get("event")
+                in {"baseline_quant_start", "baseline_ppl_start", "tensor_start", "quant_start", "ppl_start"}
+            ),
+            {},
+        )
+    total = run_start.get("tensors") or next((row.get("total") for row in reversed(current_events) if row.get("total")), None)
     locked = len(state.get("locked", {}))
     bar, progress = progress_bar(locked, total, width=22)
     active_age = event_age_seconds(active)
     last_age = event_age_seconds(events[-1]) if events else None
     processes = process_rows_for_run(run_dir)
     active_processes = [row for row in processes if row["kind"] in {"quantize", "ppl"}]
+    status_model = active_work_status(state, events, processes, active, stall_warn_seconds, stall_fail_seconds)
     eta, eta_basis = estimate_eta(state, active_age, total)
     baseline_path = Path(state.get("baseline_path") or run_dir / "artifacts" / "current_baseline.gguf")
     active_path = active.get("tmp_output") or active.get("output") or active.get("model")
@@ -2476,13 +2692,16 @@ def build_watch_model(run_dir: Path) -> dict[str, Any]:
         "state": state,
         "manifest": manifest,
         "events": events,
-        "candidates": candidates,
+        "candidates": visible_candidates,
+        "all_candidates": candidates,
         "active": active,
         "processes": processes,
         "active_processes": active_processes,
+        "health": status_model,
         "gpu": gpu_rows(),
         "bar": bar,
         "progress": progress,
+        "total": total,
         "active_age": active_age,
         "last_age": last_age,
         "eta": eta,
@@ -2515,18 +2734,19 @@ def tui_watch_cmd(args: argparse.Namespace) -> None:
             for idx, fg in enumerate([curses.COLOR_CYAN, curses.COLOR_GREEN, curses.COLOR_YELLOW, curses.COLOR_MAGENTA, curses.COLOR_RED, curses.COLOR_WHITE], 1):
                 curses.init_pair(idx, fg, -1)
         while True:
-            model = build_watch_model(run_dir)
+            model = build_watch_model(run_dir, args.stall_warn_seconds, args.stall_fail_seconds)
             h, w = stdscr.getmaxyx()
             stdscr.erase()
             state = model["state"]
             manifest = model["manifest"]
             active = model["active"]
+            eta_grid = eta_grid_values(state, model["active_age"], model["total"])
             title = " CEREBELLUM LIVE "
             stdscr.addnstr(0, max(0, (w - len(title)) // 2), title, w - 1, curses.color_pair(1) | curses.A_BOLD)
             summary = [
                 f"run {manifest.get('run_id') or state.get('run_id') or run_dir.name}",
                 f"model {state.get('model_family')}/{state.get('model_name')}  status {state.get('run_status')}  profile {manifest.get('ppl_profile') or state.get('ppl_profile') or 'custom'}",
-                f"progress {model['bar']} {model['progress']}  ppl {state.get('current_ppl')}  eta {model['eta']} ({model['eta_basis']})",
+                f"progress {model['bar']} {model['progress']}  ppl {state.get('current_ppl')}  eta {model['eta']} done {eta_grid['completion_at']} ({model['eta_basis']})",
                 f"active {active.get('event')} {active.get('level')} {active.get('tensor')}  age {fmt_seconds(model['active_age'])}  last event {fmt_seconds(model['last_age'])}",
                 f"sizes current {fmt_bytes_dense(model['baseline_size'])}  active {fmt_bytes_dense(model['active_size'])}  tmp {fmt_bytes_dense(model['tmp_size'])}  artifacts {fmt_bytes_dense(model['artifacts_size'])}  disk {disk_free_gb(run_dir):.1f} GiB free",
             ]
@@ -2863,10 +3083,10 @@ def inspect_gguf_metadata(gguf: Path) -> dict[str, Any]:
         raise SystemExit("gguf Python package is required to inspect GGUF metadata") from exc
     reader = GGUFReader(str(gguf))
     fields: dict[str, Any] = {}
-    for key, field in reader.fields.items():
+    for key, gguf_field in reader.fields.items():
         if not key.startswith("cerebellum."):
             continue
-        value = getattr(field, "contents", None)
+        value = getattr(gguf_field, "contents", None)
         if isinstance(value, list) and len(value) == 1:
             value = value[0]
         if isinstance(value, bytes):
@@ -3349,6 +3569,31 @@ def doctor_cmd(args: argparse.Namespace) -> None:
             found or "not found locally",
             f"Pass --profile custom --corpus FILE, set CEREBELLUM_CORPUS_ROOT, or place a corpus under ./corpora or ~/.cache/cerebellum/corpora. Expected names: {', '.join(candidates)}",
         )
+    if args.source_gguf:
+        source = Path(args.source_gguf)
+        arch = gguf_field_text(source, "general.architecture") if source.exists() else None
+        tensor_sample = ""
+        if source.exists():
+            try:
+                from gguf import GGUFReader
+
+                reader = GGUFReader(str(source))
+                tensor_sample = ",".join(t.name for t in reader.tensors[:8])
+            except Exception:
+                tensor_sample = ""
+        gemma4_ok = arch == "gemma4"
+        add(
+            "source gguf",
+            source.exists(),
+            str(source),
+            "Provide the converted F16/source GGUF used by Cerebellum.",
+        )
+        add(
+            "gemma4 architecture",
+            not args.source_gguf or gemma4_ok or "gemma" not in source.name.lower(),
+            f"general.architecture={arch or 'unknown'} sample_tensors={tensor_sample or 'unreadable'}",
+            "Gemma 4 12B conversion must register Gemma4UnifiedForConditionalGeneration on llama.cpp Gemma4Model so model.language_model.* is stripped and the GGUF architecture is gemma4.",
+        )
     payload = {"ok": all(row["ok"] for row in checks if not row["name"].startswith("profile:")), "checks": checks}
     if args.json:
         print(json.dumps(payload, indent=2, sort_keys=True))
@@ -3382,7 +3627,16 @@ def self_test_payload(run_dir: Path | None = None) -> dict[str, Any]:
         add("run_manifest", bool(manifest), str(run_dir / "manifest.json"))
         if state or manifest:
             recovery = build_recovery_plan(run_dir)
-            add("recover_payload", bool(recovery.get("run_dir")), {"runner_active": recovery.get("runner_active"), "locked_count": recovery.get("locked_count")})
+            add(
+                "recover_payload",
+                bool(recovery.get("run_dir")),
+                {
+                    "runner_active": recovery.get("runner_active"),
+                    "locked_count": recovery.get("locked_count"),
+                    "active_health": recovery.get("active_health"),
+                    "interrupted": recovery.get("interrupted"),
+                },
+            )
             try:
                 report = build_report(run_dir)
                 add("report_payload", bool(report.get("run_id")), {"run_id": report.get("run_id"), "status": report.get("status")})
@@ -3467,7 +3721,7 @@ def plan_space_cmd(args: argparse.Namespace) -> None:
         print(json.dumps(payload, indent=2, sort_keys=True))
         return
     print(f"source: {source} ({source_size / 2**30:.2f} GiB)")
-    for row in rows:
+    for row in payload["rows"]:
         if not row.get("ok"):
             print(f"  {row['path']}: unavailable {row.get('error')}")
         else:
@@ -3506,6 +3760,14 @@ TUTORIALS = {
         "`runs/` stores every Cerebellum run under the same model source.",
         "`cerebellum_project.json` records source identity, imatrix location, layout, and the next command.",
         "This keeps model families separate while preserving queryable long-term research data.",
+    ],
+    "gemma4-source": [
+        "Gemma 4 12B source conversion has a llama.cpp converter gotcha before Cerebellum ever runs.",
+        "The HF class is `Gemma4UnifiedForConditionalGeneration`, wrapping the text backbone at `model.language_model.*`.",
+        "llama.cpp Gemma4Model knows how to strip that prefix, but the architecture name must be registered to that model handler.",
+        "Patch llama.cpp conversion with `@ModelBase.register(\"Gemma4UnifiedForConditionalGeneration\")` on `Gemma4Model` before making the F16 GGUF.",
+        "A good converted source GGUF should report `general.architecture=gemma4` and llama.cpp-style tensor names such as `blk.0.ffn_down.weight`.",
+        "Use `cerebellum doctor --source-gguf SOURCE.gguf` to inspect this before starting a long run.",
     ],
     "low-space": [
         "Use `--scratch-root` when metadata and large GGUF artifacts should live on different drives.",
@@ -3607,12 +3869,115 @@ def auth_cmd(args: argparse.Namespace) -> None:
     print(json.dumps(result, indent=2, sort_keys=True))
 
 
+def github_upload_plan(report: dict[str, Any], files: list[Path], repo: str, branch: str | None = None) -> dict[str, Any]:
+    target_branch = branch or f"cerebellum-run-{report['run_id']}"
+    planned_files = []
+    for path in files:
+        planned_files.append(
+            {
+                "path": str(path),
+                "name": path.name,
+                "size_bytes": path_size(path),
+                "github_path": f"cerebellum_runs/{report['run_id']}/{path.name}",
+            }
+        )
+    return {
+        "target": "github",
+        "repo": repo,
+        "branch": target_branch,
+        "files": planned_files,
+        "report": report,
+    }
+
+
+def gh_json(args: list[str], allow_fail: bool = False) -> dict[str, Any]:
+    proc = subprocess.run(["gh", *args], capture_output=True, text=True)
+    if proc.returncode != 0:
+        if allow_fail:
+            return {"__error__": (proc.stderr or proc.stdout).strip(), "__returncode__": proc.returncode}
+        raise SystemExit((proc.stderr or proc.stdout).strip() or "gh command failed")
+    if not proc.stdout.strip():
+        return {}
+    try:
+        return json.loads(proc.stdout)
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"gh returned non-JSON output: {proc.stdout[-500:]}") from exc
+
+
+def ensure_github_branch(repo: str, branch: str) -> None:
+    ref = gh_json(["api", f"repos/{repo}/git/ref/heads/{quote(branch, safe='')}"], allow_fail=True)
+    if "__error__" not in ref:
+        return
+    repo_info = gh_json(["api", f"repos/{repo}"])
+    default_branch = repo_info.get("default_branch")
+    if not default_branch:
+        raise SystemExit(f"could not determine default branch for {repo}")
+    base_ref = gh_json(["api", f"repos/{repo}/git/ref/heads/{quote(str(default_branch), safe='')}"])
+    sha = ((base_ref.get("object") or {}).get("sha"))
+    if not sha:
+        raise SystemExit(f"could not determine base sha for {repo}:{default_branch}")
+    gh_json(
+        [
+            "api",
+            "--method",
+            "POST",
+            f"repos/{repo}/git/refs",
+            "-f",
+            f"ref=refs/heads/{branch}",
+            "-f",
+            f"sha={sha}",
+        ]
+    )
+
+
+def github_file_sha(repo: str, branch: str, path_in_repo: str) -> str | None:
+    encoded = quote(path_in_repo, safe="/")
+    row = gh_json(["api", f"repos/{repo}/contents/{encoded}?ref={quote(branch, safe='')}"], allow_fail=True)
+    if "__error__" in row:
+        return None
+    sha = row.get("sha")
+    return str(sha) if sha else None
+
+
+def upload_github_sidecars(repo: str, branch: str, files: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    ensure_github_branch(repo, branch)
+    uploaded = []
+    for item in files:
+        path = Path(item["path"])
+        path_in_repo = item["github_path"]
+        encoded_path = quote(path_in_repo, safe="/")
+        content = base64.b64encode(path.read_bytes()).decode("ascii")
+        message = f"data: upload Cerebellum sidecar {path.name}"
+        args = [
+            "api",
+            "--method",
+            "PUT",
+            f"repos/{repo}/contents/{encoded_path}",
+            "-f",
+            f"message={message}",
+            "-f",
+            f"branch={branch}",
+            "-f",
+            f"content={content}",
+        ]
+        sha = github_file_sha(repo, branch, path_in_repo)
+        if sha:
+            args.extend(["-f", f"sha={sha}"])
+        gh_json(args)
+        uploaded.append({"path": str(path), "github_path": path_in_repo, "branch": branch})
+    return uploaded
+
+
 def upload_cmd(args: argparse.Namespace) -> None:
     run_dir = Path(args.run_dir)
     report = build_report(run_dir)
     files = package_files(run_dir)
     if args.dry_run:
-        print(json.dumps({"target": args.target, "repo": args.repo, "files": [str(p) for p in files], "report": report}, indent=2))
+        if args.target == "github" and args.repo:
+            payload = github_upload_plan(report, files, args.repo, args.branch)
+        else:
+            payload = {"target": args.target, "repo": args.repo, "files": [str(p) for p in files], "report": report}
+        print(json.dumps(payload, indent=2))
         return
     if args.target in {"hf", "huggingface"}:
         if not args.repo:
@@ -3639,8 +4004,9 @@ def upload_cmd(args: argparse.Namespace) -> None:
             raise SystemExit("gh CLI not found")
         if not args.repo:
             raise SystemExit("--repo owner/name required for GitHub upload")
-        branch = args.branch or f"cerebellum-run-{report['run_id']}"
-        print(json.dumps({"todo": "github upload requires repo worktree policy; use --dry-run for file list", "branch": branch}, indent=2))
+        plan = github_upload_plan(report, files, args.repo, args.branch)
+        uploaded = upload_github_sidecars(args.repo, plan["branch"], plan["files"])
+        print(json.dumps({"target": "github", "repo": args.repo, "branch": plan["branch"], "uploaded": uploaded}, indent=2))
     else:
         raise SystemExit("target must be hf or github")
 
@@ -3985,6 +4351,8 @@ def run_from_namespace(args: argparse.Namespace) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.cmd == "imatrix":
+        raise SystemExit("use the public cerebellum CLI entrypoint for imatrix generation")
     if args.cmd == "status":
         status_cmd(args)
         return

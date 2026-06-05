@@ -48,7 +48,7 @@ def main():
         from cerebellum.imatrix import main as imatrix_main
         imatrix_main(sys.argv[1:])
     elif command in cerebellum_commands:
-        from osmosis.hillstep import main as hillstep_main
+        from cerebellum import main as hillstep_main
         hillstep_main([command] + sys.argv[1:])
     elif command == "analyze":
         from osmosis.sensitivity import main as analyze_main
@@ -66,10 +66,10 @@ def main():
         from osmosis.dashboard.server import run as dashboard_run
         dashboard_run()
     elif command == "hill":
-        from osmosis.hillstep import main as hillstep_main
+        from cerebellum import main as hillstep_main
         hillstep_main()
     elif command in ("hill-step", "hillstep"):
-        from osmosis.hillstep import main as hillstep_main
+        from cerebellum import main as hillstep_main
         hillstep_main()
     else:
         print(f"Unknown command: {command}")

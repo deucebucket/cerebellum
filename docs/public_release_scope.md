@@ -4,37 +4,48 @@ This repository has two remotes with different jobs.
 
 ## Public `origin`
 
+Current containment status:
+
+- `deucebucket/cerebellum` was made private on 2026-06-05 after audit showed
+  public `origin/main` contained pipeline internals and raw selection artifacts.
+- Do not make `origin` public again from existing history. Re-release from a
+  sanitized branch or rewritten history after review.
+- Assume anything previously public may have been cached or cloned.
+
 Public `origin` should contain:
 
-- the Cerebellum engine files,
-- public docs that explain the manual process,
-- release configurations that let others rebuild the same GGUFs,
-- Cerebellum ablation outputs used to choose release tensor types,
+- model cards and release notes,
 - benchmark summaries and detailed benchmark artifacts intended for release,
-- model-card support files that are safe to publish.
+- reproducible high-level recipes,
+- public CLI surface docs,
+- safe data/results that do not reveal tensor-selection internals,
+- release artifact metadata such as model hashes, runtime flags, and links.
 
 Public `origin` should not contain:
 
+- full automation pipeline code,
+- tensor-selection heuristics,
+- streaming quant internals,
+- raw ablation data when it reveals the method,
 - private pipeline automation,
-- local dashboards or web services,
+- local dashboards, APIs, or web services,
 - credentials or machine-specific paths,
 - unfinished devlogs,
 - one-off experiment scripts,
 - large source GGUFs, generated GGUFs, or imatrix binaries.
 
-Release configuration is public when it is sanitized and reproducible. Examples:
+Safe release metadata can include:
 
-- `ablation_results.json` or `sensitivity_multi.json`,
-- `tensor_types.txt`,
-- allocator arguments,
 - source model ID and source file hashes,
-- imatrix source or hash,
 - final GGUF hash,
 - benchmark runtime flags,
-- result summaries and detailed answer artifacts.
+- result summaries and selected detailed answer artifacts,
+- high-level quant family/size target,
+- model-card provenance statements.
 
-Raw local logs and temporary GGUF paths can stay private. The measured ablation
-JSON and final tensor map should be public for released models.
+Raw local logs, tensor maps, ablation JSON, temporary GGUF paths, and method
+notes stay private unless they are explicitly reviewed and sanitized for a
+specific release.
 
 ## Private `dev`
 
@@ -50,28 +61,25 @@ Private `dev` is the place for:
 
 ## Public Engine Files
 
-The current public engine set is:
-
-```text
-osmosis/cerebellum.py
-osmosis/budget.py
-osmosis/imatrix_stream.py
-osmosis/imatrix_gen.py
-osmosis/micro_quantizer.py
-osmosis/sensitivity_stream.py
-```
-
-The package path remains `osmosis` until the rename is completed. New docs and
-artifacts should use the Cerebellum name unless they are referring to the
-legacy Python package path.
+Public releases should not ship the engine implementation by default. If a
+minimal public CLI is released later, it must expose only the safe user-facing
+surface and avoid private allocator, streaming, ablation, and automation
+internals.
 
 ## Release Checklist
 
-Before pushing public docs or artifacts to `origin`:
+Before making `origin` public again:
 
-- Check for absolute local paths.
-- Check for credentials or tokens.
-- Check that commands match files actually present in public.
-- Check that benchmark numbers link to detailed artifacts.
+- Rebuild the public branch from a sanitized tree, or rewrite history with
+  `git filter-repo` and force-push only after review.
+- Remove engine internals, private scripts, dashboards, automation, raw
+  ablation data, tensor maps, and devlogs.
+- Check for absolute local paths, credentials, tokens, account details, and
+  machine-specific paths.
+- Check that public commands match files actually present in public.
+- Check that benchmark numbers link to safe detailed artifacts.
 - Mark proxy-based results as proxy-based.
-- Keep dashboard and automation notes out of public.
+- Add GitHub Sponsors, Ko-fi, and commission/priority-run links to README and
+  model cards.
+- Keep releasing GGUFs and benchmark artifacts even while the factory remains
+  private.

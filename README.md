@@ -127,7 +127,9 @@ cerebellum api --host 127.0.0.1 --port 8931 --data-root /path/to/cerebellum-runs
 ```
 
 Initial endpoints include `/health`, `/runs`, `/run`, `/events`,
-`/measurements`, `/report`, `/provenance`, and `/db/families`.
+`/measurements`, `/projects`, `/recover`, `/package`, `/system`, `/space`,
+`/tutorial`, `/self-test`, `/commands`, `/schema`, `/report`, `/provenance`,
+and `/db/families`.
 
 Transparent provenance metadata:
 
@@ -509,6 +511,7 @@ Project browsing:
 
 ```bash
 cerebellum project --data-root DATA_ROOT
+cerebellum project --root DATA_ROOT
 cerebellum project --data-root DATA_ROOT --family gemma-4 --json
 ```
 
