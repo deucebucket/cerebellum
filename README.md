@@ -364,6 +364,15 @@ commands, expected summary/detail artifacts, and audit commands. Benchmarks
 without a local runner are explicitly marked pending instead of being silently
 skipped.
 
+Audit detailed artifacts before publishing benchmark numbers:
+
+```bash
+cerebellum benchmark-audit benchmark_results/
+```
+
+The audit fails on empty MCQ responses, unknown MCQ predictions, EvalPlus
+pass-only completions, and malformed JSONL above configured thresholds.
+
 For overnight automation planning, write a full pipeline manifest before
 launching a new model:
 

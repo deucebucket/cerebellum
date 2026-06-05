@@ -2366,6 +2366,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     benchmark_plan_parser.add_argument("--results-dir", default="benchmark_results", help="directory for benchmark artifacts")
     benchmark_plan_parser.add_argument("--json", action="store_true")
 
+    benchmark_audit_parser = sub.add_parser("benchmark-audit", help="audit benchmark detailed artifacts before publishing")
+    benchmark_audit_parser.add_argument("paths", nargs="+", help="detailed JSONL/sample files or directories")
+    benchmark_audit_parser.add_argument("--json", action="store_true")
+    benchmark_audit_parser.add_argument("--fail-empty-pct", type=float, default=2.0)
+    benchmark_audit_parser.add_argument("--fail-unknown-pct", type=float, default=5.0)
+    benchmark_audit_parser.add_argument("--fail-pass-only-pct", type=float, default=5.0)
+
     ablation_analyze = sub.add_parser("ablation-analyze", help="analyze ablation PPL JSON/logs and write tensor overrides")
     ablation_analyze.add_argument("input", help="ablation_results.json, log file, or directory of PPL logs")
     ablation_analyze.add_argument("--baseline-ppl", type=float, help="baseline PPL; required for raw log input")
@@ -4408,6 +4415,177 @@ def benchmark_report_cmd(args: argparse.Namespace) -> None:
     print(text, end="" if text.endswith("\n") else "\n")
 
 
+def benchmark_audit_files(paths: list[str]) -> list[Path]:
+    files: list[Path] = []
+    seen: set[Path] = set()
+    for item in paths:
+        path = Path(item)
+        candidates = sorted(path.rglob("*.jsonl")) if path.is_dir() else [path]
+        for candidate in candidates:
+            if not candidate.is_file():
+                continue
+            key = candidate.resolve()
+            if key in seen:
+                continue
+            seen.add(key)
+            files.append(candidate)
+    return files
+
+
+def evalplus_completion(entry: dict[str, Any]) -> tuple[str, str]:
+    prompt = str(entry.get("prompt") or entry.get("solution") or "")
+    completion = str(entry.get("completion") or "")
+    if not completion and "solution" in entry:
+        solution = str(entry["solution"])
+        if '"""' in solution:
+            completion = solution[solution.rindex('"""') + 3 :]
+        else:
+            completion = solution
+    return prompt, completion
+
+
+def classify_evalplus_completion(completion: str, prompt: str = "") -> str:
+    body = completion.strip()
+    if not body:
+        return "empty"
+    if body in {"pass", "return", "return None", "None", "..."}:
+        return "pass_only"
+    code_lines = []
+    for line in body.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#") or stripped.startswith('"""') or stripped.startswith("'''"):
+            continue
+        code_lines.append(stripped)
+    if not code_lines:
+        return "empty"
+    if all(re.fullmatch(r"(pass|return\s*(None|True|False|0|\d+|\[\]|\{\}|\"\"|'')?)", line) for line in code_lines):
+        return "pass_only"
+    if prompt:
+        prompt_name = re.search(r"^\s*def\s+(\w+)\(", prompt, flags=re.MULTILINE)
+        if prompt_name and body.count(f"def {prompt_name.group(1)}(") > 0:
+            return "prompt_echo"
+    return "attempt"
+
+
+def audit_jsonl_file(path: Path) -> dict[str, Any]:
+    counters: dict[str, int] = {}
+    total = 0
+    samples: list[dict[str, Any]] = []
+    kind = "jsonl"
+    for line_no, line in enumerate(path.read_text(encoding="utf-8", errors="ignore").splitlines(), 1):
+        if not line.strip():
+            continue
+        try:
+            entry = json.loads(line)
+        except json.JSONDecodeError:
+            counters["json_error"] = counters.get("json_error", 0) + 1
+            samples.append({"line": line_no, "category": "json_error", "preview": line[:160]})
+            continue
+        if not isinstance(entry, dict):
+            continue
+        total += 1
+        if "correct" in entry or "predicted" in entry or "raw_response" in entry:
+            kind = "mcq"
+            predicted = str(entry.get("predicted") or entry.get("prediction") or "").strip()
+            raw = str(entry.get("raw_response") or entry.get("response") or entry.get("content") or "")
+            correct = bool(entry.get("correct"))
+            if correct:
+                counters["correct"] = counters.get("correct", 0) + 1
+            else:
+                counters["wrong"] = counters.get("wrong", 0) + 1
+                if len(samples) < 30:
+                    samples.append({"line": line_no, "category": "wrong", "predicted": predicted or "?", "preview": raw[:160]})
+            if not raw.strip():
+                counters["empty"] = counters.get("empty", 0) + 1
+            if predicted in {"", "?"}:
+                counters["unknown"] = counters.get("unknown", 0) + 1
+        elif "completion" in entry or "solution" in entry or "task_id" in entry:
+            kind = "evalplus"
+            prompt, completion = evalplus_completion(entry)
+            category = classify_evalplus_completion(completion, prompt)
+            counters[category] = counters.get(category, 0) + 1
+            if category != "attempt" and len(samples) < 30:
+                samples.append({"line": line_no, "category": category, "task_id": entry.get("task_id"), "preview": completion[:160]})
+        else:
+            counters["unrecognized"] = counters.get("unrecognized", 0) + 1
+    return {"path": str(path), "kind": kind, "total": total, "counts": counters, "samples": samples}
+
+
+def pct(count: int, total: int) -> float:
+    return 0.0 if total <= 0 else (count / total) * 100.0
+
+
+def benchmark_audit(paths: list[str], fail_empty_pct: float = 2.0, fail_unknown_pct: float = 5.0, fail_pass_only_pct: float = 5.0) -> dict[str, Any]:
+    files = benchmark_audit_files(paths)
+    rows = [audit_jsonl_file(path) for path in files]
+    failures: list[dict[str, Any]] = []
+    for row in rows:
+        total = int(row["total"])
+        counts = row["counts"]
+        empty_pct = pct(int(counts.get("empty", 0)), total)
+        unknown_pct = pct(int(counts.get("unknown", 0)), total)
+        pass_only_pct = pct(int(counts.get("pass_only", 0)), total)
+        if empty_pct > fail_empty_pct:
+            failures.append({"path": row["path"], "reason": "empty responses above threshold", "value_pct": empty_pct, "threshold_pct": fail_empty_pct})
+        if unknown_pct > fail_unknown_pct:
+            failures.append({"path": row["path"], "reason": "unknown MCQ predictions above threshold", "value_pct": unknown_pct, "threshold_pct": fail_unknown_pct})
+        if pass_only_pct > fail_pass_only_pct:
+            failures.append({"path": row["path"], "reason": "pass-only EvalPlus completions above threshold", "value_pct": pass_only_pct, "threshold_pct": fail_pass_only_pct})
+        if counts.get("json_error"):
+            failures.append({"path": row["path"], "reason": "JSONL parse errors", "count": counts["json_error"]})
+    return {"files": rows, "failures": failures, "blocked": bool(failures)}
+
+
+def benchmark_audit_markdown(report: dict[str, Any]) -> str:
+    rows = []
+    for row in report["files"]:
+        counts = row["counts"]
+        total = int(row["total"])
+        rows.append(
+            [
+                row["path"],
+                row["kind"],
+                str(total),
+                str(counts.get("correct", counts.get("attempt", 0))),
+                f"{pct(int(counts.get('empty', 0)), total):.1f}%",
+                f"{pct(int(counts.get('unknown', 0)), total):.1f}%",
+                f"{pct(int(counts.get('pass_only', 0)), total):.1f}%",
+            ]
+        )
+    parts = [
+        "Benchmark audit " + ("blocked" if report["blocked"] else "passed"),
+        "",
+        markdown_table(["Path", "Kind", "Total", "Correct/attempt", "Empty", "Unknown", "Pass-only"], rows),
+    ]
+    if report["failures"]:
+        failure_rows = [
+            [
+                item["path"],
+                item["reason"],
+                f"{item.get('value_pct', item.get('count', 0)):.1f}" if isinstance(item.get("value_pct", item.get("count", 0)), float) else str(item.get("count", "")),
+                "-" if item.get("threshold_pct") is None else f"{float(item['threshold_pct']):.1f}%",
+            ]
+            for item in report["failures"]
+        ]
+        parts.extend(["", "## Failures", "", markdown_table(["Path", "Reason", "Value", "Threshold"], failure_rows)])
+    return "\n".join(parts) + "\n"
+
+
+def benchmark_audit_cmd(args: argparse.Namespace) -> None:
+    report = benchmark_audit(
+        args.paths,
+        fail_empty_pct=args.fail_empty_pct,
+        fail_unknown_pct=args.fail_unknown_pct,
+        fail_pass_only_pct=args.fail_pass_only_pct,
+    )
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+    else:
+        print(benchmark_audit_markdown(report), end="")
+    if report["blocked"]:
+        raise SystemExit(1)
+
+
 PPL_RE = re.compile(r"Final estimate:\s*PPL\s*=\s*([0-9]+(?:\.[0-9]+)?)")
 
 
@@ -6034,6 +6212,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "benchmark-plan":
         benchmark_plan_cmd(args)
+        return
+    if args.cmd == "benchmark-audit":
+        benchmark_audit_cmd(args)
         return
     if args.cmd == "ablation-analyze":
         ablation_analyze_cmd(args)

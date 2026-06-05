@@ -10,6 +10,9 @@ from cerebellum import (
     active_work_status,
     ablation_analyze_cmd,
     analyze_ablation_input,
+    benchmark_audit,
+    benchmark_audit_cmd,
+    benchmark_audit_markdown,
     benchmark_plan,
     benchmark_plan_markdown,
     benchmark_report,
@@ -267,6 +270,75 @@ def test_benchmark_plan_command_parses():
     assert args.port == 18080
     assert args.results_dir == "out"
     assert args.json is True
+
+
+def test_benchmark_audit_flags_mcq_empty_and_unknown(tmp_path: Path):
+    detail = tmp_path / "arc_detailed.jsonl"
+    detail.write_text(
+        "\n".join(
+            [
+                json.dumps({"correct": True, "predicted": "A", "raw_response": "A"}),
+                json.dumps({"correct": False, "predicted": "?", "raw_response": ""}),
+                json.dumps({"correct": False, "predicted": "?", "raw_response": ""}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = benchmark_audit([str(detail)], fail_empty_pct=50.0, fail_unknown_pct=50.0)
+    markdown = benchmark_audit_markdown(report)
+
+    assert report["blocked"] is True
+    assert report["files"][0]["kind"] == "mcq"
+    assert report["files"][0]["counts"]["unknown"] == 2
+    assert "empty responses above threshold" in {item["reason"] for item in report["failures"]}
+    assert "Benchmark audit blocked" in markdown
+
+
+def test_benchmark_audit_flags_evalplus_pass_only(tmp_path: Path):
+    samples = tmp_path / "model_evalplus_samples.jsonl"
+    samples.write_text(
+        "\n".join(
+            [
+                json.dumps({"task_id": "HumanEval/0", "prompt": "def f(x):\n", "completion": "return x + 1"}),
+                json.dumps({"task_id": "HumanEval/1", "prompt": "def g(x):\n", "completion": "pass"}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    report = benchmark_audit([str(samples)], fail_pass_only_pct=10.0)
+
+    assert report["blocked"] is True
+    assert report["files"][0]["kind"] == "evalplus"
+    assert report["files"][0]["counts"]["pass_only"] == 1
+    assert report["failures"][0]["reason"] == "pass-only EvalPlus completions above threshold"
+
+
+def test_benchmark_audit_cmd_exits_on_blocked(tmp_path: Path, capsys):
+    detail = tmp_path / "arc_detailed.jsonl"
+    detail.write_text(json.dumps({"correct": False, "predicted": "?", "raw_response": ""}) + "\n", encoding="utf-8")
+    args = parse_args(["benchmark-audit", str(detail), "--fail-empty-pct", "0"])
+
+    try:
+        benchmark_audit_cmd(args)
+    except SystemExit as exc:
+        assert exc.code == 1
+    else:
+        raise AssertionError("benchmark-audit should exit non-zero when blocked")
+
+    assert "Benchmark audit blocked" in capsys.readouterr().out
+
+
+def test_benchmark_audit_command_parses():
+    args = parse_args(["benchmark-audit", "results", "--json", "--fail-empty-pct", "1.5"])
+
+    assert args.cmd == "benchmark-audit"
+    assert args.paths == ["results"]
+    assert args.json is True
+    assert args.fail_empty_pct == 1.5
 
 
 def test_pipeline_plan_builds_full_manifest(tmp_path: Path):
