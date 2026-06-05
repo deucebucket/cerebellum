@@ -3390,6 +3390,15 @@ def test_artifact_inventory_categorizes_legacy_files(tmp_path: Path):
     assert report["type_counts"]["gguf"] == 1
     assert report["type_counts"]["benchmark"] == 1
     assert report["type_counts"]["tensor_map"] == 1
+    assert len(report["files"]) == 6
+    assert {row["path"] for row in report["files"]} == {
+        "cerebellum-dev/DEVLOG_2026-06-03_gemma4-12b.md",
+        "cerebellum_logo.png",
+        "osmosis-gemma4-e2b/benchmark_results/e2b_arc_results.json",
+        "osmosis-gemma4-e2b/cerebellum_v2_overrides.txt",
+        "osmosis-gemma4-e2b/model.gguf",
+        "osmosis-gemma4-e2b/server.log",
+    }
     assert buckets["osmosis-gemma4-e2b"]["public_risk_files"] >= 2
     assert any(item["path"].endswith("server.log") for item in report["cleanup_candidates"])
     assert "Cerebellum Artifact Inventory" in markdown
@@ -3406,6 +3415,7 @@ def test_artifact_inventory_command_writes_outputs(tmp_path: Path, capsys):
 
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload["schema"] == "cerebellum.artifact_inventory.v1"
+    assert payload["files"][0]["path"] == "README.md"
     assert markdown.read_text(encoding="utf-8").startswith("# Cerebellum Artifact Inventory")
     out = capsys.readouterr().out
     assert "artifact inventory JSON" in out
@@ -3421,6 +3431,28 @@ def test_artifact_inventory_command_parses():
     assert args.markdown == "inventory.md"
     assert args.top == 5
     assert args.json is True
+
+
+def test_artifact_inventory_records_all_files_beyond_top(tmp_path: Path):
+    for idx in range(5):
+        (tmp_path / f"file-{idx}.log").write_text(f"{idx}\n", encoding="utf-8")
+
+    report = artifact_inventory(tmp_path, top=2)
+
+    assert len(report["cleanup_candidates"]) == 2
+    assert len(report["files"]) == 5
+    assert {row["path"] for row in report["files"]} == {f"file-{idx}.log" for idx in range(5)}
+    assert all(row["cleanup_reason"] for row in report["files"])
+
+
+def test_artifact_inventory_cli_validates_root(tmp_path: Path):
+    missing = tmp_path / "missing"
+    try:
+        artifact_inventory_cmd(parse_args(["artifact-inventory", str(missing)]))
+    except SystemExit as exc:
+        assert "root does not exist" in str(exc)
+    else:
+        raise AssertionError("artifact-inventory should reject missing roots")
 
 
 def test_artifact_inventory_api_query_args_validate(tmp_path: Path):

@@ -8302,12 +8302,24 @@ def artifact_bucket_name(root: Path, path: Path) -> str:
     return rel.parts[0] if rel.parts else "."
 
 
+def validate_artifact_inventory_root(root: Path, *, allow_broad: bool = False) -> Path:
+    root = root.expanduser().resolve()
+    if not root.exists():
+        raise ValueError(f"root does not exist: {root}")
+    if not root.is_dir():
+        raise ValueError(f"root must be a directory: {root}")
+    if root == Path(root.anchor) and not allow_broad:
+        raise ValueError("filesystem root inventory requires allow_broad=true")
+    return root
+
+
 def artifact_inventory(root: Path, top: int = 25) -> dict[str, Any]:
-    root = root.resolve()
+    root = validate_artifact_inventory_root(root, allow_broad=True)
     buckets: dict[str, dict[str, Any]] = {}
     large_files: list[dict[str, Any]] = []
     cleanup_candidates: list[dict[str, Any]] = []
     public_risk_examples: list[dict[str, Any]] = []
+    file_manifest: list[dict[str, Any]] = []
     totals = {
         "files": 0,
         "bytes": 0,
@@ -8328,6 +8340,16 @@ def artifact_inventory(root: Path, top: int = 25) -> dict[str, Any]:
         storage = artifact_storage_category(file_type, rel_text)
         risks = artifact_public_risks(rel_text)
         cleanup_reason = artifact_cleanup_reason(rel_text)
+        file_manifest.append(
+            {
+                "path": rel_text,
+                "size_bytes": stat.st_size,
+                "type": file_type,
+                "storage_category": storage,
+                "public_risks": risks,
+                "cleanup_reason": cleanup_reason,
+            }
+        )
         bucket_name = artifact_bucket_name(root, path)
         bucket = buckets.setdefault(
             bucket_name,
@@ -8370,6 +8392,7 @@ def artifact_inventory(root: Path, top: int = 25) -> dict[str, Any]:
             large_files.append({"path": rel_text, "size_bytes": stat.st_size, "type": file_type, "storage_category": storage, "public_risks": risks})
     bucket_rows = sorted(buckets.values(), key=lambda row: row["bytes"], reverse=True)
     large_files.sort(key=lambda row: row["size_bytes"], reverse=True)
+    file_manifest.sort(key=lambda row: row["path"])
     return {
         "schema": "cerebellum.artifact_inventory.v1",
         "root": str(root),
@@ -8378,6 +8401,7 @@ def artifact_inventory(root: Path, top: int = 25) -> dict[str, Any]:
         "totals": totals,
         "type_counts": dict(sorted(type_counts.items())),
         "storage_counts": dict(sorted(storage_counts.items())),
+        "files": file_manifest,
         "buckets": bucket_rows,
         "largest_buckets": bucket_rows[:top],
         "large_files": large_files[:top],
@@ -8447,7 +8471,11 @@ def artifact_inventory_markdown(report: dict[str, Any]) -> str:
 
 
 def artifact_inventory_cmd(args: argparse.Namespace) -> None:
-    report = artifact_inventory(Path(args.root), top=max(1, args.top))
+    try:
+        root = validate_artifact_inventory_root(Path(args.root))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    report = artifact_inventory(root, top=max(1, args.top))
     if args.output:
         Path(args.output).write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     if args.markdown:
@@ -8475,13 +8503,7 @@ def artifact_inventory_args_from_query(qs: dict[str, list[str]]) -> argparse.Nam
         raise ValueError("top must be at least 1")
     if top > 100:
         raise ValueError("top must be 100 or lower")
-    root = Path(root_value).expanduser().resolve()
-    if not root.exists():
-        raise ValueError(f"root does not exist: {root}")
-    if not root.is_dir():
-        raise ValueError(f"root must be a directory: {root}")
-    if root == Path(root.anchor) and not query_bool(qs, "allow_broad"):
-        raise ValueError("filesystem root inventory requires allow_broad=true")
+    root = validate_artifact_inventory_root(Path(root_value), allow_broad=query_bool(qs, "allow_broad"))
     return argparse.Namespace(root=str(root), top=top)
 
 
