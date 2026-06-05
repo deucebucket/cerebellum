@@ -29,6 +29,9 @@ from cerebellum import (
     package_files,
     package_manifest,
     parse_args,
+    pipeline_plan,
+    pipeline_plan_markdown,
+    pipeline_plan_cmd,
     rollback_cmd,
     resolve_run_dir,
     public_report_summary,
@@ -258,6 +261,79 @@ def test_benchmark_plan_command_parses():
     assert args.model == "m"
     assert args.port == 18080
     assert args.results_dir == "out"
+    assert args.json is True
+
+
+def test_pipeline_plan_builds_full_manifest(tmp_path: Path):
+    source = tmp_path / "model-f16.gguf"
+    output = tmp_path / "out"
+    args = parse_args(
+        [
+            "pipeline-plan",
+            "--source-gguf",
+            str(source),
+            "--output-dir",
+            str(output),
+            "--profile",
+            "wiki",
+            "--model-name",
+            "Gemma 4 12B IT",
+            "--imatrix",
+            str(output / "custom.imatrix"),
+            "--low-space",
+            "--benchmark-suite",
+            "frontier",
+        ]
+    )
+
+    plan = pipeline_plan(args)
+    markdown = pipeline_plan_markdown(plan)
+    phases = {row["name"]: row for row in plan["phases"]}
+
+    assert list(phases) == ["imatrix", "ablate", "resume", "build-final-gguf", "benchmark", "finalize", "package"]
+    assert "cerebellum imatrix" in phases["imatrix"]["command"]
+    assert "cerebellum run" in phases["ablate"]["command"]
+    assert "--profile wiki" in phases["ablate"]["command"]
+    assert "--low-space" in phases["ablate"]["command"]
+    assert "cerebellum resume" in phases["resume"]["command"]
+    assert "--tensor-type-file" in phases["build-final-gguf"]["command"]
+    assert "benchmark-plan --suite frontier" in phases["benchmark"]["command"]
+    assert "cerebellum finalize" in phases["finalize"]["command"]
+    assert "--repo-name" not in phases["finalize"]["command"]
+    assert "cerebellum package" in phases["package"]["command"]
+    assert str(output / "gemma-4-12b-it-cerebellum.gguf") == plan["final_gguf"]
+    assert "# Cerebellum Pipeline Plan" in markdown
+
+
+def test_pipeline_plan_command_writes_json(tmp_path: Path, capsys):
+    manifest = tmp_path / "pipeline.json"
+    args = parse_args(
+        [
+            "pipeline-plan",
+            "--source-gguf",
+            str(tmp_path / "m.gguf"),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--write",
+            str(manifest),
+        ]
+    )
+
+    pipeline_plan_cmd(args)
+
+    assert capsys.readouterr().out.strip() == str(manifest)
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+    assert data["pipeline"] == "cerebellum"
+    assert data["phases"][0]["name"] == "imatrix"
+
+
+def test_pipeline_plan_command_parses():
+    args = parse_args(["pipeline-plan", "--source-gguf", "m.gguf", "--output-dir", "out", "--benchmark-suite", "release", "--json"])
+
+    assert args.cmd == "pipeline-plan"
+    assert args.source_gguf == "m.gguf"
+    assert args.output_dir == "out"
+    assert args.benchmark_suite == "release"
     assert args.json is True
 
 

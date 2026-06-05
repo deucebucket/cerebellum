@@ -2223,6 +2223,35 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
     schedule.add_argument("--dry-run", action="store_true", help="validate and print jobs without running them")
 
+    pipeline_plan_parser = sub.add_parser("pipeline-plan", help="write a full Cerebellum pipeline command manifest")
+    pipeline_plan_parser.add_argument("--source-gguf", required=True)
+    pipeline_plan_parser.add_argument("--output-dir", required=True)
+    pipeline_plan_parser.add_argument("--imatrix", default=None, help="existing or planned imatrix path; defaults to OUTPUT_DIR/imatrix.dat")
+    pipeline_plan_parser.add_argument("--corpus", default=None)
+    pipeline_plan_parser.add_argument("--profile", choices=["wiki", "agentic", "code", "math", "dialogue", "all-around", "custom"], default="custom")
+    pipeline_plan_parser.add_argument("--family", default=None)
+    pipeline_plan_parser.add_argument("--model-name", default=None)
+    pipeline_plan_parser.add_argument("--source-name", default=None)
+    pipeline_plan_parser.add_argument("--run-name", default=None)
+    pipeline_plan_parser.add_argument("--run-dir", default=None)
+    pipeline_plan_parser.add_argument("--data-root", default=None)
+    pipeline_plan_parser.add_argument("--scratch-root", default=None)
+    pipeline_plan_parser.add_argument("--base-type", default="Q4_K_M")
+    pipeline_plan_parser.add_argument("--start-type", default="q4_K")
+    pipeline_plan_parser.add_argument("--levels", default=",".join(DEFAULT_LEVELS))
+    pipeline_plan_parser.add_argument("--quantize-bin", default=DEFAULT_QUANTIZE)
+    pipeline_plan_parser.add_argument("--perplexity-bin", default=DEFAULT_PERPLEXITY)
+    pipeline_plan_parser.add_argument("--gpu-layers", type=int, default=99)
+    pipeline_plan_parser.add_argument("--ctx-size", type=int, default=2048)
+    pipeline_plan_parser.add_argument("--chunks", type=int, default=None)
+    pipeline_plan_parser.add_argument("--distrobox", default=None)
+    pipeline_plan_parser.add_argument("--low-space", action="store_true")
+    pipeline_plan_parser.add_argument("--benchmark-suite", choices=sorted(BENCHMARK_SUITES), default="release")
+    pipeline_plan_parser.add_argument("--benchmark-port", type=int, default=8084)
+    pipeline_plan_parser.add_argument("--repo-name", default=None)
+    pipeline_plan_parser.add_argument("--write", default=None, help="write JSON manifest to this path")
+    pipeline_plan_parser.add_argument("--json", action="store_true")
+
     system = sub.add_parser("system", help="inspect local resources and tool availability")
     system.add_argument("--json", action="store_true")
 
@@ -3861,6 +3890,195 @@ def benchmark_plan_cmd(args: argparse.Namespace) -> None:
         print(json.dumps(plan, indent=2, sort_keys=True))
         return
     print(benchmark_plan_markdown(plan), end="")
+
+
+def shell_join(parts: list[Any]) -> str:
+    return " ".join(shlex.quote(str(part)) for part in parts if part is not None and str(part) != "")
+
+
+def optional_flag(parts: list[str], flag: str, value: Any) -> None:
+    if value is not None:
+        parts.extend([flag, str(value)])
+
+
+def bool_flag(parts: list[str], flag: str, enabled: bool) -> None:
+    if enabled:
+        parts.append(flag)
+
+
+def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
+    output_dir = Path(args.output_dir)
+    run_dir = Path(args.run_dir) if args.run_dir else output_dir / "run"
+    imatrix = Path(args.imatrix) if args.imatrix else output_dir / "imatrix.dat"
+    source = Path(args.source_gguf)
+    model_label = slug(args.model_name or source.stem).lower()
+    final_gguf = output_dir / f"{model_label}-cerebellum.gguf"
+    benchmark_dir = output_dir / "benchmark_results"
+
+    run_parts = [
+        "cerebellum",
+        "run",
+        "--source-gguf",
+        str(source),
+        "--run-dir",
+        str(run_dir),
+        "--profile",
+        args.profile,
+        "--base-type",
+        args.base_type,
+        "--start-type",
+        args.start_type,
+        "--levels",
+        args.levels,
+        "--imatrix",
+        str(imatrix),
+        "--quantize-bin",
+        args.quantize_bin,
+        "--perplexity-bin",
+        args.perplexity_bin,
+        "--gpu-layers",
+        str(args.gpu_layers),
+        "--ctx-size",
+        str(args.ctx_size),
+    ]
+    optional_flag(run_parts, "--corpus", args.corpus)
+    optional_flag(run_parts, "--family", args.family)
+    optional_flag(run_parts, "--model-name", args.model_name)
+    optional_flag(run_parts, "--source-name", args.source_name)
+    optional_flag(run_parts, "--run-name", args.run_name)
+    optional_flag(run_parts, "--data-root", args.data_root)
+    optional_flag(run_parts, "--scratch-root", args.scratch_root)
+    optional_flag(run_parts, "--chunks", args.chunks)
+    optional_flag(run_parts, "--distrobox", args.distrobox)
+    bool_flag(run_parts, "--low-space", args.low_space)
+
+    final_quant_parts = [
+        args.quantize_bin,
+        "--allow-requantize",
+        "--token-embedding-type",
+        "f16",
+        "--tensor-type-file",
+        str(run_dir / "artifacts" / "final_types.txt"),
+    ]
+    if imatrix:
+        final_quant_parts.extend(["--imatrix", str(imatrix)])
+    final_quant_parts.extend([str(source), str(final_gguf), args.base_type])
+
+    if args.distrobox:
+        final_quant_command = shell_join(["distrobox", "enter", args.distrobox, "--", *final_quant_parts])
+    else:
+        final_quant_command = shell_join(final_quant_parts)
+
+    finalize_parts = [
+        "cerebellum",
+        "finalize",
+        "--run-dir",
+        str(run_dir),
+        "--gguf",
+        str(final_gguf),
+        "--output-dir",
+        str(output_dir / "finalize"),
+    ]
+    optional_flag(finalize_parts, "--repo-name", args.repo_name)
+    phases = [
+        {
+            "name": "imatrix",
+            "status": "planned",
+            "command": shell_join(["cerebellum", "imatrix", "--model", source, "--output", imatrix]),
+            "outputs": [str(imatrix)],
+        },
+        {
+            "name": "ablate",
+            "status": "planned",
+            "command": shell_join(run_parts),
+            "outputs": [str(run_dir / "state.json"), str(run_dir / "artifacts" / "final_types.txt")],
+        },
+        {
+            "name": "resume",
+            "status": "available",
+            "command": shell_join(["cerebellum", "resume", run_dir, "--low-space"] if args.low_space else ["cerebellum", "resume", run_dir]),
+            "outputs": [str(run_dir / "COMPLETE")],
+        },
+        {
+            "name": "build-final-gguf",
+            "status": "planned",
+            "command": final_quant_command,
+            "outputs": [str(final_gguf)],
+        },
+        {
+            "name": "benchmark",
+            "status": "planned",
+            "command": shell_join(
+                [
+                    "cerebellum",
+                    "benchmark-plan",
+                    "--suite",
+                    args.benchmark_suite,
+                    "--model",
+                    model_label,
+                    "--port",
+                    args.benchmark_port,
+                    "--results-dir",
+                    benchmark_dir,
+                ]
+            ),
+            "outputs": [str(benchmark_dir)],
+        },
+        {
+            "name": "finalize",
+            "status": "planned",
+            "command": shell_join(finalize_parts),
+            "outputs": [str(output_dir / "finalize")],
+        },
+        {
+            "name": "package",
+            "status": "planned",
+            "command": shell_join(["cerebellum", "package", run_dir, "--output", output_dir / "package_manifest.json"]),
+            "outputs": [str(output_dir / "package_manifest.json")],
+        },
+    ]
+    return {
+        "pipeline": "cerebellum",
+        "source_gguf": str(source),
+        "output_dir": str(output_dir),
+        "run_dir": str(run_dir),
+        "imatrix": str(imatrix),
+        "final_gguf": str(final_gguf),
+        "benchmark_suite": args.benchmark_suite,
+        "phases": phases,
+    }
+
+
+def pipeline_plan_markdown(plan: dict[str, Any]) -> str:
+    rows = [[row["name"], row["status"], row["command"]] for row in plan["phases"]]
+    output_rows = []
+    for row in plan["phases"]:
+        for output in row.get("outputs", []):
+            output_rows.append([row["name"], output])
+    parts = [
+        "# Cerebellum Pipeline Plan",
+        "",
+        f"source: `{plan['source_gguf']}`",
+        f"run: `{plan['run_dir']}`",
+        f"final: `{plan['final_gguf']}`",
+        "",
+        markdown_table(["Phase", "Status", "Command"], rows),
+    ]
+    if output_rows:
+        parts.extend(["", "## Outputs", "", markdown_table(["Phase", "Path"], output_rows)])
+    return "\n".join(parts) + "\n"
+
+
+def pipeline_plan_cmd(args: argparse.Namespace) -> None:
+    plan = pipeline_plan(args)
+    if args.write:
+        Path(args.write).write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(args.write)
+        return
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+        return
+    print(pipeline_plan_markdown(plan), end="")
 
 
 def benchmark_input_specs(paths: list[Any]) -> list[tuple[Path, str | None]]:
@@ -5579,6 +5797,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "schedule":
         schedule_cmd(args)
+        return
+    if args.cmd == "pipeline-plan":
+        pipeline_plan_cmd(args)
         return
     if args.cmd == "system":
         system_cmd(args)

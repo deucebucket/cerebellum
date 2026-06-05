@@ -360,6 +360,17 @@ commands, expected summary/detail artifacts, and audit commands. Benchmarks
 without a local runner are explicitly marked pending instead of being silently
 skipped.
 
+For overnight automation planning, write a full pipeline manifest before
+launching a new model:
+
+```bash
+cerebellum pipeline-plan --source-gguf f16.gguf --output-dir ./results --imatrix ./results/imatrix.dat --profile wiki --benchmark-suite release --write ./results/pipeline.json
+```
+
+The manifest records the imatrix step, Cerebellum search/resume commands, final
+GGUF build command, benchmark plan, finalize step, and package step. It is a
+dry-run contract for the full automator and dashboard queue.
+
 For each released model, keep a reproducibility bundle next to the benchmark
 artifacts when practical:
 
