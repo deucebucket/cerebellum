@@ -33,6 +33,7 @@ from cerebellum import (
     benchmark_plan_cmd,
     benchmark_plan_markdown,
     benchmark_postprocess_cmd,
+    benchmark_records,
     benchmark_run_cmd,
     benchmark_run_execute,
     benchmark_run_markdown,
@@ -332,6 +333,31 @@ def test_benchmark_report_compares_result_jsons(tmp_path: Path):
     assert "## Bars" in markdown
 
 
+def test_benchmark_records_read_evalplus_chat_summary_fields(tmp_path: Path):
+    summary = tmp_path / "model_evalplus_chat_results.json"
+    summary.write_text(
+        json.dumps(
+            {
+                "benchmark": "evalplus_humaneval_plus_chat",
+                "model": "model",
+                "pass_at_1_base": 91.46,
+                "pass_at_1_plus": 89.63,
+                "total_problems": 164,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    records = benchmark_records([tmp_path])
+    manifest = benchmark_manifest([tmp_path], suite="release-local", model="model")
+
+    assert records[0]["benchmark_key"] == "evalplus"
+    assert records[0]["metric"] == "pass@1 plus"
+    assert records[0]["value"] == 89.63
+    assert "evalplus" in manifest["measured_benchmarks"]
+    assert "evalplus" not in manifest["missing_measured"]
+
+
 def test_benchmark_report_leaderboard_scores_size_density(tmp_path: Path):
     mmlu_pro = tmp_path / "cerebellum_mmlu_pro_results.json"
     gpqa = tmp_path / "cerebellum_gpqa_diamond_results.json"
@@ -461,10 +487,12 @@ def test_benchmark_report_api_query_args_validate():
 
 def test_benchmark_plan_lists_commands_and_pending_frontier():
     release = benchmark_plan("release", model="gemma4_12b", port=18080, results_dir="out")
+    release_local = benchmark_plan("release-local", model="gemma4_12b", port=18080, results_dir="out")
     markdown = benchmark_plan_markdown(release)
     frontier = benchmark_plan("frontier", model="gemma4_12b", port=18080, results_dir="out")
 
     arc = next(row for row in release["rows"] if row["benchmark"] == "arc")
+    speed = next(row for row in release_local["rows"] if row["benchmark"] == "speed")
     humaneval = next(row for row in release["rows"] if row["benchmark"] == "humaneval")
     frontier_status = {row["benchmark"]: row["status"] for row in frontier["rows"]}
     mmlu_pro = next(row for row in frontier["rows"] if row["benchmark"] == "mmlu_pro")
@@ -477,6 +505,9 @@ def test_benchmark_plan_lists_commands_and_pending_frontier():
     assert "BENCH_PORT=18080" in arc["command"]
     assert "BENCH_WORKERS=4" in arc["command"]
     assert "scripts/benchmark_arc.py" in arc["command"]
+    assert release_local["readiness"]["ready"] is True
+    assert release_local["readiness"]["implemented"] == 5
+    assert "scripts/benchmark_perf.py" in speed["command"]
     assert humaneval["workers"] == 1
     assert "BENCH_MAX_TOKENS=4096" in humaneval["command"]
     assert frontier_status == {
@@ -2396,6 +2427,10 @@ def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, 
             "reference": "Q5_K",
             "matches_reference": False,
             "status": "candidate_diverges_reference",
+            "dynamic_status": "demoted",
+            "baseline_bits": 4.0,
+            "candidate_bits": 3.0,
+            "bits_delta": -1.0,
             "quantizable": True,
         }
     ]
@@ -2409,6 +2444,10 @@ def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, 
             "reference": "Q5_K",
             "matches_reference": False,
             "status": "changed",
+            "dynamic_status": "demoted",
+            "baseline_bits": 4.0,
+            "candidate_bits": 3.0,
+            "bits_delta": -1.0,
             "quantizable": True,
         },
         {
@@ -2420,6 +2459,10 @@ def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, 
             "reference": "Q5_K",
             "matches_reference": True,
             "status": "changed",
+            "dynamic_status": "promoted",
+            "baseline_bits": 4.0,
+            "candidate_bits": 5.0,
+            "bits_delta": 1.0,
             "quantizable": True,
         },
     ]
@@ -2428,9 +2471,10 @@ def test_compare_gguf_types_reports_type_component_layer_deltas(tmp_path: Path, 
     assert "## Dynamic Quant Profile" in markdown
     assert "| promoted | 1 |" in markdown
     assert "| demoted | 1 |" in markdown
+    assert "| blk.0.attn_q.weight | Q4_K | Q3_K | demoted | -1.00 |" in markdown
+    assert "| blk.0.ffn_down.weight | Q4_K | Q5_K | promoted | +1.00 |" in markdown
     assert "## Reference Map Mismatches" in markdown
     assert "| blk.0.attn_q.weight | attn_q | Q4_K | Q3_K | Q5_K | candidate_diverges_reference |" in markdown
-    assert "| blk.0.attn_q.weight | Q4_K | Q3_K | changed |" in markdown
 
 
 def test_compare_locks_filters_non_quantizable_entries():

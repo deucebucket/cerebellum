@@ -81,6 +81,27 @@ def test_validate_only_exits_before_required_paths(monkeypatch, capsys):
     assert payload["rowblock_safe"] is True
 
 
+def test_validate_only_blocks_unsupported_layout_before_required_paths(monkeypatch, capsys):
+    module = load_rowblocks_module()
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        ["ablate_rowblocks.py", "--target-tensor", "blk.4.attn_qkv", "--validate-only"],
+    )
+
+    try:
+        module.main()
+    except SystemExit as exc:
+        assert exc.code == 6
+    else:
+        raise AssertionError("unsafe validate-only should exit explicitly")
+
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["target_tensor"] == "blk.4.attn_qkv.weight"
+    assert payload["blocked"] is True
+    assert "unresolved Q/K/V physical storage ordering" in payload["unsupported_layout_reason"]
+
+
 def test_missing_run_paths_point_to_validate_only(monkeypatch, capsys):
     module = load_rowblocks_module()
     monkeypatch.setattr(sys, "argv", ["ablate_rowblocks.py", "--target-tensor", "blk.10.ffn_gate.weight"])

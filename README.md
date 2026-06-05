@@ -427,6 +427,7 @@ tables and a size-normalized leaderboard:
 cerebellum benchmark-report benchmark_results/ --leaderboard --suite full --size Cerebellum=7.6 --weight gpqa_diamond=2 --no-bars
 cerebellum benchmark-report --list-suites
 cerebellum benchmark-plan --suite release --model Cerebellum --port 8084 --results-dir benchmark_results
+cerebellum benchmark-plan --suite release-local --model Cerebellum --port 8084 --results-dir benchmark_results --require-ready
 cerebellum benchmark-plan --suite capability --model Cerebellum --port 8084 --results-dir benchmark_results
 cerebellum benchmark-manifest benchmark_results/ --suite release --model Cerebellum --output benchmark_results/manifest.json --require-complete --json
 ```
@@ -434,6 +435,9 @@ cerebellum benchmark-manifest benchmark_results/ --suite release --model Cerebel
 Built-in leaderboard suites:
 
 - `release`: ARC, HellaSwag, MMLU/MMLU-Redux, HumanEval/EvalPlus, PPL.
+- `release-local`: implemented local runners for ARC, HellaSwag, MMLU-Redux,
+  EvalPlus chat, and speed. Use this for `benchmark-run --execute` when PPL is
+  measured separately and standard MMLU is still represented by MMLU-Redux.
 - `frontier`: MMLU-Pro, GPQA-Diamond, MMMLU, HLE no-tools, LiveCodeBench v6.
 - `capability`: frontier plus AIME 2025, IFEval, BFCL v3, SWE-bench Verified,
   and Aider Polyglot.
@@ -453,10 +457,12 @@ commands, expected summary/detail artifacts, and audit commands. Benchmarks
 without a local runner are explicitly marked pending instead of being silently
 skipped.
 Use `benchmark-run --execute --postprocess` for unattended release runs that
-should produce sidecars immediately after the benchmark commands succeed:
+should produce sidecars immediately after the benchmark commands succeed. The
+strict `release` suite remains the publish gate and may include external or
+pending evidence; `release-local` is the runnable local subset:
 
 ```bash
-cerebellum benchmark-run --suite release --model Cerebellum --results-dir benchmark_results --execute --postprocess --require-complete --leaderboard --size Cerebellum=7.6
+cerebellum benchmark-run --suite release-local --model Cerebellum --results-dir benchmark_results --execute --postprocess --require-complete --leaderboard --size Cerebellum=7.6
 cerebellum benchmark-postprocess benchmark_results --suite release --model Cerebellum --require-complete --leaderboard --size Cerebellum=7.6
 ```
 

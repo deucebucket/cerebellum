@@ -56,6 +56,13 @@ BENCHMARK_SUITES = {
         "evalplus",
         "ppl",
     ],
+    "release-local": [
+        "arc",
+        "hellaswag",
+        "mmlu_redux",
+        "evalplus",
+        "speed",
+    ],
     "frontier": [
         "mmlu_pro",
         "gpqa_diamond",
@@ -98,6 +105,7 @@ BENCHMARK_SUITES = {
 }
 BENCHMARK_SUITE_PURPOSES = {
     "release": "model-card release proof: classic MCQ, code, PPL, and detailed audit artifacts",
+    "release-local": "implemented local release run: ARC, HellaSwag, MMLU-Redux, EvalPlus chat, and speed",
     "frontier": "frontier public leaderboard core: MMLU-Pro, GPQA-Diamond, MMMLU, HLE no-tools, and LiveCodeBench v6",
     "capability": "expanded capability board: frontier core plus math, instruction following, tools, SWE, and coding agent checks",
     "full": "complete Cerebellum report: release, frontier/capability checks, speed, and PPL reporting",
@@ -4652,6 +4660,22 @@ def compare_gguf_types(
         baseline_type = base_tensors.get(name)
         candidate_type = cand_tensors.get(name)
         reference_type = reference_tensors.get(name)
+        baseline_bits = quant_type_bits(baseline_type)
+        candidate_bits = quant_type_bits(candidate_type)
+        if baseline_type is None:
+            dynamic_status = "missing_baseline"
+        elif candidate_type is None:
+            dynamic_status = "missing_candidate"
+        elif baseline_bits is None or candidate_bits is None:
+            dynamic_status = "changed_unknown"
+        elif candidate_bits > baseline_bits:
+            dynamic_status = "promoted"
+        elif candidate_bits < baseline_bits:
+            dynamic_status = "demoted"
+        elif baseline_type != candidate_type:
+            dynamic_status = "changed_equal_bits"
+        else:
+            dynamic_status = "same"
         candidate_matches_reference = (
             reference_type is not None
             and normalize_quant_type_name(candidate_type) == normalize_quant_type_name(reference_type)
@@ -4669,6 +4693,10 @@ def compare_gguf_types(
                 "reference": reference_type,
                 "matches_reference": candidate_matches_reference if reference_type is not None else None,
                 "status": "missing_baseline" if baseline_type is None else "missing_candidate" if candidate_type is None else "changed",
+                "dynamic_status": dynamic_status,
+                "baseline_bits": baseline_bits,
+                "candidate_bits": candidate_bits,
+                "bits_delta": None if baseline_bits is None or candidate_bits is None else candidate_bits - baseline_bits,
                 "quantizable": is_quantizable_tensor(name),
             }
         )
@@ -4786,12 +4814,13 @@ def compare_gguf_types_markdown(report: dict[str, Any]) -> str:
             row["tensor"],
             "-" if row.get("baseline") is None else str(row["baseline"]),
             "-" if row.get("candidate") is None else str(row["candidate"]),
-            str(row["status"]),
+            str(row.get("dynamic_status") or row["status"]),
+            "-" if row.get("bits_delta") is None else f"{float(row['bits_delta']):+.2f}",
         ]
         for row in report.get("tensor_type_changes", [])[:80]
     ]
     if tensor_rows:
-        parts.extend(["", "## Tensor Type Changes", "", markdown_table(["Tensor", "Baseline", "Candidate", "Status"], tensor_rows)])
+        parts.extend(["", "## Tensor Type Changes", "", markdown_table(["Tensor", "Baseline", "Candidate", "Dynamic status", "Bits delta"], tensor_rows)])
     if not type_rows and not component_rows and not layer_rows and not tensor_rows:
         parts.append("\nNo tensor type distribution differences detected.")
     return "\n".join(parts) + "\n"
@@ -4942,12 +4971,17 @@ def benchmark_key(name: str) -> str:
         "lcb_v6": "livecodebench_v6",
         "humaneval_plus": "evalplus",
         "humaneval+": "evalplus",
+        "evalplus_humaneval_plus_chat": "evalplus",
         "perplexity": "ppl",
     }
     return aliases.get(key, key)
 
 
 def benchmark_metric(data: dict[str, Any]) -> tuple[str, float] | None:
+    if data.get("pass_at_1_plus") is not None:
+        return "pass@1 plus", float(data["pass_at_1_plus"])
+    if data.get("pass_at_1_base") is not None:
+        return "pass@1 base", float(data["pass_at_1_base"])
     if "pass_at_1_pct" in data:
         return "pass@1", float(data["pass_at_1_pct"])
     if "pass_at_1" in data:
