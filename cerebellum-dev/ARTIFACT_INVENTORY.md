@@ -6,6 +6,14 @@ This is a preservation-first inventory. Nothing in this file is approval to
 delete data. Cleanup means categorize, move to safer storage, deduplicate, or
 exclude from public release after a verified backup exists.
 
+Regenerate a current scan with:
+
+```bash
+cerebellum artifact-inventory . \
+  --output cerebellum-dev/artifact_inventory.json \
+  --markdown cerebellum-dev/ARTIFACT_INVENTORY.md
+```
+
 ## Policy
 
 - Keep legacy Cerebellum and Osmosis-era evidence unless a separate cleanup plan
@@ -276,8 +284,10 @@ These are not approved for deletion. They are candidates for separate review:
 ## Next Inventory Tasks
 
 1. Hash all GGUF/imatrix binaries and attach source/model/purpose metadata.
-2. Produce per-model manifests for Gemma 4, Qwen, and Granite trees.
-3. Identify canonical benchmark result bundles and mark duplicate logs.
-4. Mark public-safe candidates that can be exported through `public-export`.
-5. Decide an archive layout on the game drive or another backup target before
+2. Run `cerebellum artifact-inventory` after major cleanup/archive moves and
+   keep the JSON output as the machine-readable manifest.
+3. Produce per-model manifests for Gemma 4, Qwen, and Granite trees.
+4. Identify canonical benchmark result bundles and mark duplicate logs.
+5. Mark public-safe candidates that can be exported through `public-export`.
+6. Decide an archive layout on the game drive or another backup target before
    moving any heavy artifacts.

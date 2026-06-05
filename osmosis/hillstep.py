@@ -2366,6 +2366,13 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     public_export.add_argument("--json", action="store_true")
     public_export.add_argument("--max-bytes", type=int, default=512_000, help="max bytes to audit from each file")
 
+    inventory = sub.add_parser("artifact-inventory", help="inventory legacy Cerebellum artifacts without deleting anything")
+    inventory.add_argument("root", nargs="?", default=".", help="workspace root to scan")
+    inventory.add_argument("--output", default=None, help="optional JSON output path")
+    inventory.add_argument("--markdown", default=None, help="optional Markdown output path")
+    inventory.add_argument("--top", type=int, default=25, help="number of largest buckets/files to show")
+    inventory.add_argument("--json", action="store_true")
+
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
     schedule.add_argument("--file", default=None)
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
@@ -6152,6 +6159,237 @@ def public_audit_cmd(args: argparse.Namespace) -> None:
         raise SystemExit(1)
 
 
+ARTIFACT_TYPE_PATTERNS = [
+    ("gguf", re.compile(r"\.gguf$", re.IGNORECASE)),
+    ("imatrix", re.compile(r"(imatrix).*\.(dat|gguf)$", re.IGNORECASE)),
+    ("benchmark", re.compile(r"benchmark_results|benchmark|humaneval|evalplus|arc|hellaswag|mmlu|gpqa|hle|livecodebench", re.IGNORECASE)),
+    ("ablation", re.compile(r"ablation|candidate|measurement|ppl|perplexity|rowblock|brain_scan", re.IGNORECASE)),
+    ("tensor_map", re.compile(r"tensor(_|-)?types|override|final_types|locked|types\.txt", re.IGNORECASE)),
+    ("dev_note", re.compile(r"README|DEVLOG|SPEC|ISSUE|FULL_EXPERIMENT|research|findings|COMPARISON|DESIGN", re.IGNORECASE)),
+    ("script_tool", re.compile(r"\.(py|sh)$|(^|/)(scripts|tools|tool_tests)/", re.IGNORECASE)),
+    ("checkpoint", re.compile(r"\.(pt|pth|safetensors)$|checkpoint", re.IGNORECASE)),
+    ("database", re.compile(r"\.(sqlite|sqlite3|db)$|(^|/)db/", re.IGNORECASE)),
+    ("log", re.compile(r"\.(log|out|pid)$|server", re.IGNORECASE)),
+    ("cache", re.compile(r"__pycache__|\.cache|_cache|unsloth_compiled_cache|\.pytest_cache|\.ruff_cache", re.IGNORECASE)),
+    ("image", re.compile(r"\.(png|jpg|jpeg|webp)$", re.IGNORECASE)),
+]
+
+ARTIFACT_RISK_PATTERNS = [
+    (re.compile(r"(^|/)cerebellum-dev/|(^|/)scripts/|(^|/)tests/|(^|/)db/|\.opencode/", re.IGNORECASE), "private factory/control-plane path"),
+    (re.compile(r"devlog|SPEC_|ISSUE_|FULL_EXPERIMENT|research_log|DEVELOPER_LOG", re.IGNORECASE), "private dev note or strategy"),
+    (re.compile(r"ablation|candidate|events\.jsonl|state\.json|tensor(_|-)?types|override|rowblock", re.IGNORECASE), "raw selection or ablation artifact"),
+    (re.compile(r"agent_bench|harm_check|steering|user_bench_results|refusal", re.IGNORECASE), "private behavior/test artifact"),
+    (re.compile(r"\.cache|__pycache__|\.sqlite3|\.db|\.pid|\.log$|server", re.IGNORECASE), "local state, cache, or log"),
+    (re.compile(r"\.gguf$|imatrix.*\.(dat|gguf)$", re.IGNORECASE), "large binary requiring provenance before release"),
+]
+
+CLEANUP_CANDIDATE_PATTERNS = [
+    (re.compile(r"__pycache__|\.pytest_cache|\.ruff_cache|unsloth_compiled_cache|\.cache", re.IGNORECASE), "cache"),
+    (re.compile(r"\.pid$|watch_\d+|taildrop", re.IGNORECASE), "local transient"),
+    (re.compile(r"\.log$|\.out$", re.IGNORECASE), "log; preserve only if tied to a canonical result"),
+]
+
+
+def artifact_file_type(path_text: str) -> str:
+    for name, pattern in ARTIFACT_TYPE_PATTERNS:
+        if pattern.search(path_text):
+            return name
+    return "other"
+
+
+def artifact_storage_category(file_type: str, path_text: str) -> str:
+    if file_type in {"gguf", "imatrix"}:
+        return "archive/binaries"
+    if file_type == "benchmark":
+        return "archive/benchmarks"
+    if file_type in {"ablation", "tensor_map"}:
+        return "archive/ablation"
+    if file_type in {"dev_note", "script_tool"} or "cerebellum-dev/" in path_text:
+        return "archive/devnotes"
+    if file_type in {"cache", "log"}:
+        return "scratch/cache"
+    if file_type == "image":
+        return "public-candidates"
+    return "archive/legacy-models"
+
+
+def artifact_public_risks(path_text: str) -> list[str]:
+    return [reason for pattern, reason in ARTIFACT_RISK_PATTERNS if pattern.search(path_text)]
+
+
+def artifact_cleanup_reason(path_text: str) -> str | None:
+    for pattern, reason in CLEANUP_CANDIDATE_PATTERNS:
+        if pattern.search(path_text):
+            return reason
+    return None
+
+
+def artifact_bucket_name(root: Path, path: Path) -> str:
+    rel = path.relative_to(root)
+    return rel.parts[0] if rel.parts else "."
+
+
+def artifact_inventory(root: Path, top: int = 25) -> dict[str, Any]:
+    root = root.resolve()
+    buckets: dict[str, dict[str, Any]] = {}
+    large_files: list[dict[str, Any]] = []
+    cleanup_candidates: list[dict[str, Any]] = []
+    public_risk_examples: list[dict[str, Any]] = []
+    totals = {
+        "files": 0,
+        "bytes": 0,
+        "public_risk_files": 0,
+        "cleanup_candidate_files": 0,
+    }
+    type_counts: dict[str, int] = {}
+    storage_counts: dict[str, int] = {}
+    for path in root.rglob("*"):
+        if ".git" in path.parts or not path.is_file():
+            continue
+        try:
+            stat = path.stat()
+        except OSError:
+            continue
+        rel_text = path.relative_to(root).as_posix()
+        file_type = artifact_file_type(rel_text)
+        storage = artifact_storage_category(file_type, rel_text)
+        risks = artifact_public_risks(rel_text)
+        cleanup_reason = artifact_cleanup_reason(rel_text)
+        bucket_name = artifact_bucket_name(root, path)
+        bucket = buckets.setdefault(
+            bucket_name,
+            {
+                "path": bucket_name,
+                "files": 0,
+                "bytes": 0,
+                "types": {},
+                "storage_categories": {},
+                "public_risk_files": 0,
+                "cleanup_candidate_files": 0,
+                "example_keep": [],
+                "example_risks": [],
+            },
+        )
+        bucket["files"] += 1
+        bucket["bytes"] += stat.st_size
+        bucket["types"][file_type] = bucket["types"].get(file_type, 0) + 1
+        bucket["storage_categories"][storage] = bucket["storage_categories"].get(storage, 0) + 1
+        totals["files"] += 1
+        totals["bytes"] += stat.st_size
+        type_counts[file_type] = type_counts.get(file_type, 0) + 1
+        storage_counts[storage] = storage_counts.get(storage, 0) + 1
+        if risks:
+            totals["public_risk_files"] += 1
+            bucket["public_risk_files"] += 1
+            risk_row = {"path": rel_text, "reasons": risks[:3], "storage_category": storage}
+            if len(bucket["example_risks"]) < 5:
+                bucket["example_risks"].append(risk_row)
+            if len(public_risk_examples) < top:
+                public_risk_examples.append(risk_row)
+        if cleanup_reason:
+            totals["cleanup_candidate_files"] += 1
+            bucket["cleanup_candidate_files"] += 1
+            if len(cleanup_candidates) < top:
+                cleanup_candidates.append({"path": rel_text, "reason": cleanup_reason, "size_bytes": stat.st_size})
+        if file_type in {"benchmark", "tensor_map", "ablation", "dev_note", "gguf", "imatrix"} and len(bucket["example_keep"]) < 5:
+            bucket["example_keep"].append({"path": rel_text, "type": file_type, "storage_category": storage})
+        if stat.st_size >= 100 * 1024 * 1024:
+            large_files.append({"path": rel_text, "size_bytes": stat.st_size, "type": file_type, "storage_category": storage, "public_risks": risks})
+    bucket_rows = sorted(buckets.values(), key=lambda row: row["bytes"], reverse=True)
+    large_files.sort(key=lambda row: row["size_bytes"], reverse=True)
+    return {
+        "schema": "cerebellum.artifact_inventory.v1",
+        "root": str(root),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "policy": "preservation-first; this report never approves deletion",
+        "totals": totals,
+        "type_counts": dict(sorted(type_counts.items())),
+        "storage_counts": dict(sorted(storage_counts.items())),
+        "buckets": bucket_rows,
+        "largest_buckets": bucket_rows[:top],
+        "large_files": large_files[:top],
+        "public_risk_examples": public_risk_examples[:top],
+        "cleanup_candidates": cleanup_candidates[:top],
+        "notes": [
+            "Raw ablation data, tensor maps, devlogs, scripts, dashboards, local paths, caches, and logs stay private.",
+            "Public candidates still require public-audit and human review before origin/HF publication.",
+            "Cleanup candidates require a verified backup and separate cleanup plan before deletion.",
+        ],
+    }
+
+
+def artifact_inventory_markdown(report: dict[str, Any]) -> str:
+    bucket_rows = [
+        [
+            row["path"],
+            str(row["files"]),
+            fmt_bytes(row["bytes"]),
+            str(row["public_risk_files"]),
+            str(row["cleanup_candidate_files"]),
+            ", ".join(f"{key}:{value}" for key, value in sorted(row["types"].items())[:5]),
+        ]
+        for row in report["largest_buckets"]
+    ]
+    large_rows = [
+        [row["path"], fmt_bytes(row["size_bytes"]), row["type"], row["storage_category"]]
+        for row in report["large_files"]
+    ]
+    risk_rows = [
+        [row["path"], row["storage_category"], "; ".join(row["reasons"])]
+        for row in report["public_risk_examples"]
+    ]
+    cleanup_rows = [
+        [row["path"], fmt_bytes(row["size_bytes"]), row["reason"]]
+        for row in report["cleanup_candidates"]
+    ]
+    parts = [
+        "# Cerebellum Artifact Inventory",
+        "",
+        f"root: `{report['root']}`",
+        f"generated: `{report['generated_at']}`",
+        f"policy: `{report['policy']}`",
+        "",
+        markdown_table(
+            ["Metric", "Value"],
+            [
+                ["files", str(report["totals"]["files"])],
+                ["size", fmt_bytes(report["totals"]["bytes"])],
+                ["public-risk files", str(report["totals"]["public_risk_files"])],
+                ["cleanup-candidate files", str(report["totals"]["cleanup_candidate_files"])],
+            ],
+        ),
+        "",
+        "## Largest Buckets",
+        "",
+        markdown_table(["Path", "Files", "Size", "Risk", "Cleanup", "Top Types"], bucket_rows),
+    ]
+    if large_rows:
+        parts.extend(["", "## Large Files", "", markdown_table(["Path", "Size", "Type", "Storage"], large_rows)])
+    if risk_rows:
+        parts.extend(["", "## Public-Risk Examples", "", markdown_table(["Path", "Storage", "Reasons"], risk_rows)])
+    if cleanup_rows:
+        parts.extend(["", "## Cleanup Candidates", "", markdown_table(["Path", "Size", "Reason"], cleanup_rows)])
+    parts.extend(["", "## Notes", "", *[f"- {note}" for note in report["notes"]]])
+    return "\n".join(parts) + "\n"
+
+
+def artifact_inventory_cmd(args: argparse.Namespace) -> None:
+    report = artifact_inventory(Path(args.root), top=max(1, args.top))
+    if args.output:
+        Path(args.output).write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if args.markdown:
+        Path(args.markdown).write_text(artifact_inventory_markdown(report), encoding="utf-8")
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+    if args.output:
+        print(f"artifact inventory JSON: {args.output}")
+    if args.markdown:
+        print(f"artifact inventory Markdown: {args.markdown}")
+    if not args.output and not args.markdown:
+        print(artifact_inventory_markdown(report), end="")
+
+
 def repo_relative_path(path: Path) -> Path:
     try:
         return path.resolve().relative_to(Path.cwd().resolve())
@@ -7307,6 +7545,9 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "public-export":
         public_export_cmd(args)
+        return
+    if args.cmd == "artifact-inventory":
+        artifact_inventory_cmd(args)
         return
     if args.cmd == "schedule":
         schedule_cmd(args)

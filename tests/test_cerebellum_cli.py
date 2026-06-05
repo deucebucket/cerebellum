@@ -10,6 +10,9 @@ from cerebellum import (
     active_work_status,
     ablation_analyze_cmd,
     analyze_ablation_input,
+    artifact_inventory,
+    artifact_inventory_cmd,
+    artifact_inventory_markdown,
     benchmark_audit,
     benchmark_audit_cmd,
     benchmark_audit_markdown,
@@ -1655,6 +1658,61 @@ def test_public_export_cmd_copies_manifest_and_files(tmp_path: Path, monkeypatch
     assert manifest["schema"] == "cerebellum.public_export.v1"
     assert manifest["files"][0]["path"] == "README.md"
     assert "manifest:" in capsys.readouterr().out
+
+
+def test_artifact_inventory_categorizes_legacy_files(tmp_path: Path):
+    legacy = tmp_path / "osmosis-gemma4-e2b"
+    benches = legacy / "benchmark_results"
+    benches.mkdir(parents=True)
+    (legacy / "cerebellum_v2_overrides.txt").write_text("blk.11.ffn_gate.weight=Q2_K\n", encoding="utf-8")
+    (legacy / "server.log").write_text("local server log\n", encoding="utf-8")
+    (legacy / "model.gguf").write_bytes(b"gguf")
+    (benches / "e2b_arc_results.json").write_text('{"accuracy":0.7}\n', encoding="utf-8")
+    dev = tmp_path / "cerebellum-dev"
+    dev.mkdir()
+    (dev / "DEVLOG_2026-06-03_gemma4-12b.md").write_text("raw ablation note\n", encoding="utf-8")
+    (tmp_path / "cerebellum_logo.png").write_bytes(b"png")
+
+    report = artifact_inventory(tmp_path, top=10)
+    markdown = artifact_inventory_markdown(report)
+    buckets = {row["path"]: row for row in report["buckets"]}
+
+    assert report["schema"] == "cerebellum.artifact_inventory.v1"
+    assert report["totals"]["files"] == 6
+    assert report["type_counts"]["gguf"] == 1
+    assert report["type_counts"]["benchmark"] == 1
+    assert report["type_counts"]["tensor_map"] == 1
+    assert buckets["osmosis-gemma4-e2b"]["public_risk_files"] >= 2
+    assert any(item["path"].endswith("server.log") for item in report["cleanup_candidates"])
+    assert "Cerebellum Artifact Inventory" in markdown
+    assert "osmosis-gemma4-e2b" in markdown
+
+
+def test_artifact_inventory_command_writes_outputs(tmp_path: Path, capsys):
+    (tmp_path / "README.md").write_text("public card\n", encoding="utf-8")
+    output = tmp_path / "inventory.json"
+    markdown = tmp_path / "inventory.md"
+    args = parse_args(["artifact-inventory", str(tmp_path), "--output", str(output), "--markdown", str(markdown), "--top", "3"])
+
+    artifact_inventory_cmd(args)
+
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload["schema"] == "cerebellum.artifact_inventory.v1"
+    assert markdown.read_text(encoding="utf-8").startswith("# Cerebellum Artifact Inventory")
+    out = capsys.readouterr().out
+    assert "artifact inventory JSON" in out
+    assert "artifact inventory Markdown" in out
+
+
+def test_artifact_inventory_command_parses():
+    args = parse_args(["artifact-inventory", ".", "--output", "inventory.json", "--markdown", "inventory.md", "--top", "5", "--json"])
+
+    assert args.cmd == "artifact-inventory"
+    assert args.root == "."
+    assert args.output == "inventory.json"
+    assert args.markdown == "inventory.md"
+    assert args.top == 5
+    assert args.json is True
 
 
 def test_public_report_summary_strips_factory_fields():
