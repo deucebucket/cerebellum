@@ -128,3 +128,21 @@ Gate: 0.50, RAG scale: 0.62. No LoRA, no prompt engineering, no tool calls.
 1. Tokenize code/text → model.embed_tokens → average pool → normalize → .bin
 2. Drop .bin into rag-experiment/rag_docs_real.bin
 3. Restart server — refiner reads new index, no retraining needed
+
+### 7B Results (Qwen2.5-7B, F16, HumanEval+)
+
+| Configuration | Base | Plus |
+|---|---|---|
+| 7B + RAG (code-trained) | **56.7%** | **50.6%** |
+| 7B baseline | TBD (eval tool issue) | - |
+
+7B with 100M refiner params, 167-doc code index, split at layer 14.
+Training: 18s on 167 functions. Same architecture as 3B, just bigger dims.
+
+### HumanEval+ Scorecard (all models)
+
+| Model | Base | Plus |
+|---|---|---|
+| 3B baseline | 36.6% | 32.3% |
+| 3B + RAG code | **42.7%** | **37.2%** |
+| 7B + RAG code | **56.7%** | **50.6%** |
