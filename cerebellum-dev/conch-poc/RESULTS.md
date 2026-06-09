@@ -111,3 +111,20 @@ LD_PRELOAD=/lib/x86_64-linux-gnu/libcuda.so.1 \
 LD_LIBRARY_PATH=/path/to/llama.cpp/build/bin \
   llama-perplexity --model qwen2.5-3b.gguf --file wiki.test.raw --ctx-size 512
 ```
+
+### HumanEval+ with Code-Trained Refiner (2026-06-09)
+
+| Configuration | Base | Plus |
+|---|---|---|
+| No refiner (baseline) | 36.6% | 32.3% |
+| RAG injection (WikiText-trained) | 31.7% | 28.0% |
+| **RAG injection (code-trained, 174 funcs)** | **42.7%** | **37.2%** |
+
+Training: 174 Python functions from HumanEval+ canonical solutions + common patterns.
+3 epochs, 5s/epoch. RAG index: 174 code examples embedded via model's own tok_embd.
+Gate: 0.50, RAG scale: 0.62. No LoRA, no prompt engineering, no tool calls.
+
+**Pipeline for adding any code knowledge:**
+1. Tokenize code/text → model.embed_tokens → average pool → normalize → .bin
+2. Drop .bin into rag-experiment/rag_docs_real.bin
+3. Restart server — refiner reads new index, no retraining needed
