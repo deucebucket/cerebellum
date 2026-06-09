@@ -292,3 +292,42 @@ Self-contained FAISS experiment in `rag-experiment/`:
 - inject_rag(h) stub: query projection → top-3 FAISS → context projection → h + ctx
 - Python venv, faiss-cpu, no CUDA conflicts
 - Ready for integration into C++ refiner loop
+
+---
+
+## 2026-06-09 (continued): Inline RAG Injection Test
+
+### RAG Document Loading — Works
+
+Successfully loaded 300 normalized token embedding vectors (2048-dim) from the
+model's own `embed_tokens.weight` into GPU memory alongside the refiner weights.
+The vectors were exported as `rag-experiment/rag_docs.bin` using safetensors.
+
+Loading pipeline: `ggml_backend_alloc_ctx_tensors_from_buft` on CUDA0, data
+copied via `ggml_backend_tensor_set`. Confirmed: "loaded RAG index: 300 docs x
+2048 dim on CUDA0" at init. No crash. No memory issue.
+
+### RAG Injection Approaches Tested
+
+**Softmax-weighted docs:** Computed similarity via `ggml_mul_mat(rag_docs, x)`
+→ softmax → weighted sum via `ggml_transpose + ggml_mul_mat`. Works but
+produces near-uniform weights for random token embeddings — effectively a no-op.
+PPL unchanged at 8.1883 regardless of scale (0.05 to 0.5).
+
+**Single doc injection via ggml_repeat:** Attempted to broadcast a single
+document vector [n_embd] to match hidden state shape [n_embd, n_tokens].
+Crash: CUDA error in ggml_backend_cuda_synchronize. ggml_repeat doesn't
+handle this broadcast pattern correctly on CUDA backend.
+
+### Findings
+
+1. **Index loading infrastructure is proven.** FAISS isn't needed in C++ —
+   the document matrix on GPU plus ggml_mul_mat gives similarity search natively.
+2. **Additive injection works** — the softmax-weighted path runs without crash
+   and doesn't degrade PPL. The issue is semantic: random token embeddings
+   carry no useful signal.
+3. **For semantic injection**, documents must be embedded from actual text
+   using tok_embd, not random token vectors. The index needs real content.
+4. **Broadcasting** for additive injection needs a different ggml approach —
+   `ggml_repeat` fails on CUDA. Alternatives: `ggml_reshape` + `ggml_add`
+   with compatible shapes, or using `ggml_mul_mat` with a projection.
