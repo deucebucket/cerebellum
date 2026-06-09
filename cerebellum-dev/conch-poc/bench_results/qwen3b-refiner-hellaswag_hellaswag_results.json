@@ -1,0 +1,8 @@
+{
+  "benchmark": "hellaswag",
+  "model": "qwen3b-refiner-hellaswag",
+  "accuracy": 7.6,
+  "total": 10042,
+  "elapsed_seconds": 754.7,
+  "timestamp": "2026-06-09 05:00"
+}

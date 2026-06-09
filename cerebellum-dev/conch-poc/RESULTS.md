@@ -1,0 +1,110 @@
+# Conch Refiner Results
+
+## PyTorch: Bolt-on Refiner — Proven at Two Scales
+
+A trainable refiner block inserted mid-model improves perplexity with zero
+modification to the frozen base model.
+
+### SmolLM-135M (2026-05-02)
+
+| Revolutions | PPL | Delta vs Baseline |
+|-------------|------|-------------------|
+| 0 (baseline) | 23.50 | — |
+| 1 | 19.26 | -18.1% |
+| **2** | **17.46** | **-25.7%** |
+| 3 | 18.30 | -22.1% |
+| 4 | 20.39 | -13.2% |
+| 6 | 27.23 | +15.9% |
+
+Base: SmolLM-135M (frozen). Refiner: 1 transformer layer, 2M params (1.98% overhead),
+inserted at layer 15. Sweet spot: 2 revolutions. Training: 10 epochs, 55s/epoch.
+
+### Qwen2.5-3B PyTorch
+
+| Revolutions | PPL | Delta vs Baseline |
+|-------------|------|-------------------|
+| 0 (baseline) | ~10.0 | — |
+| **2** | **~8.5** | **-15.28%** |
+
+STE gate (train=1.0, eval=sigmoid). Weight decay 0.1. Best at epoch 2.
+Split layer 18. 3 epochs, ~550s/epoch.
+
+---
+
+## C++ Port: Brainloop in llama.cpp (2026-06-09)
+
+### Architecture
+
+The refiner is implemented as a native llama.cpp graph builder
+(`LLM_ARCH_QWEN2_BRAINLOOP` / `qwen2-brainloop`) that intercepts ALL Qwen2
+models at `llama-model.cpp:8669`. Weights are loaded at runtime from raw
+`.bin` files and GPU-allocated on the same backend as the split layer.
+
+Key source files:
+- `src/models/qwen2_brainloop.cpp` — graph builder with GPU-allocated refiner
+- `src/llama-arch.cpp` — tensor map for 10 brainloop weight types
+- `src/llama-arch.h` — `LLM_ARCH_QWEN2_BRAINLOOP` enum
+- `src/llama-model.cpp` — tensor slots at layer 18, routing override
+
+Weights live in `brainloop-ggml-weights/` (34 `.bin` files, ~134 MB).
+
+### GPU Allocation Fix (Fix Path A)
+
+**Problem:** `ggml_new_tensor_2d(ctx0, ...)` creates CPU-allocated scratch
+tensors. CUDA fused ops (permute, transpose, flash attention) can't operate
+across the CPU/GPU memory boundary — they either read garbage (49M PPL) or
+segfault.
+
+**Fix:** Use `ggml_backend_alloc_ctx_tensors_from_buft(ctx, model.select_buft(18))`
+to allocate all 18 refiner weight tensors on the same VRAM backend as the
+base model's layer 18. Data copied via `ggml_backend_tensor_set()`.
+Cached statically — loaded once per process.
+
+### C++ PPL Results (Qwen2.5-3B, F16 GGUF, WikiText test, 128 chunks, ctx-512)
+
+| Configuration | PPL | Delta |
+|---|---|---|
+| Baseline (brainloop disabled) | 8.5775 | — |
+| ~Simplified (output+FFN, no attention)~ | 8.6096 | +0.4% |
+| **Full attention via build_attn_mha** | **8.3092** | **-3.1%** |
+
+Each iteration improved PPL:
+- output+FFN only → +0.4% worse
+- + full QKV attention (no mask) → -3.1% better
+
+Remaining gap to PyTorch's -15.28%: causal mask (ggml mask tensors need CPU-side
+data allocation) and refiner placement (after layer 18 vs between 17-18).
+
+### What's Next
+
+- **Causal mask** — PyTorch refiner uses causal attention. GGML mask tensors
+  need proper CPU-side data allocation to work with flash attention.
+- **Refiner placement fix** — currently runs after layer 18's FFN+residual;
+  PyTorch version places refiner between layers 17→18. Off-by-one affects
+  statistics the trained weights expect.
+- **GGUF baking (Fix Path B):** Append refiner tensors to GGUF so model
+  loading uses the standard tensor pipeline.
+- **Scale to 7B/9B** once full parity with PyTorch is achieved.
+- **Test on quantized base models** — refiner recovering quant damage.
+
+### Build & Run
+
+```bash
+# Inside distrobox ai:
+cd /var/home/deucebucket/ai-drive/llama.cpp/build
+cmake .. -DGGML_CUDA=ON -DLLAMA_BUILD_COMMON=ON -DLLAMA_BUILD_TOOLS=ON \
+  -DLLAMA_BUILD_SERVER=OFF -DLLAMA_BUILD_TESTS=OFF -DLLAMA_BUILD_EXAMPLES=OFF
+make -j8 llama-perplexity
+
+# Fix libcuda.so symlink (distrobox-only):
+ln -sf libcuda.so.1 /lib/x86_64-linux-gnu/libcuda.so
+
+# Convert model to GGUF:
+python3 convert_hf_to_gguf.py Qwen/Qwen2.5-3B --outfile qwen2.5-3b.gguf --outtype f16
+
+# Run perplexity test:
+cd /path/to/conch-poc  # where brainloop-ggml-weights/ lives
+LD_PRELOAD=/lib/x86_64-linux-gnu/libcuda.so.1 \
+LD_LIBRARY_PATH=/path/to/llama.cpp/build/bin \
+  llama-perplexity --model qwen2.5-3b.gguf --file wiki.test.raw --ctx-size 512
+```

@@ -1,0 +1,8 @@
+{
+  "benchmark": "arc_challenge",
+  "model": "qwen3b-refiner-arc",
+  "accuracy": 4.35,
+  "total": 1172,
+  "elapsed_seconds": 41.4,
+  "timestamp": "2026-06-09 04:16"
+}
