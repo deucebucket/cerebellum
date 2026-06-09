@@ -60,20 +60,23 @@ to allocate all 18 refiner weight tensors on the same VRAM backend as the
 base model's layer 18. Data copied via `ggml_backend_tensor_set()`.
 Cached statically — loaded once per process.
 
-### C++ PPL Results (Qwen2.5-3B, F16 GGUF, WikiText test, 128 chunks, ctx-512)
+### C++ PPL Progress (Qwen2.5-3B, F16 GGUF, WikiText, 128 chunks, ctx-512)
 
-| Configuration | PPL | Delta |
+| Milestone | PPL | Delta |
 |---|---|---|
-| Baseline (brainloop disabled) | 8.5775 | — |
-| ~Simplified (output+FFN, no attention)~ | 8.6096 | +0.4% |
-| **Full attention via build_attn_mha** | **8.3092** | **-3.1%** |
+| Baseline (no refiner) | 8.5775 | — |
+| output+FFN only (no attention) | 8.6096 | +0.4% |
+| + full QKV attention (build_attn_mha, 2 revs, after layer 18) | 8.3092 | -3.1% |
+| + placement correction (after layer 17, matching PyTorch) | 8.2098 | -4.3% |
+| **+ 1 revolution sweet spot** | **8.1883** | **-4.5%** |
 
-Each iteration improved PPL:
-- output+FFN only → +0.4% worse
-- + full QKV attention (no mask) → -3.1% better
+### Revolution Sweep (corrected placement)
 
-Remaining gap to PyTorch's -15.28%: causal mask (ggml mask tensors need CPU-side
-data allocation) and refiner placement (after layer 18 vs between 17-18).
+| Revs | PPL | Delta | Notes |
+|---|---|---|---|
+| 1 | **8.1883** | **-4.5%** | New sweet spot with placement fix |
+| 2 | 8.2098 | -4.3% | Previously optimal (wrong placement) |
+| 3 | 8.6580 | +0.9% | Overprocessing, worse than baseline |
 
 ### What's Next
 

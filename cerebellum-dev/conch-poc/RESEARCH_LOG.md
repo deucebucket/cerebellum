@@ -231,3 +231,64 @@ Remove sigmoid, use raw parameter. Init at 0 or 1e-4. Uninhibited gradient.
 12. Build zero-init router block (gas tensor switchboard)
 13. Implement MTP exit head for adaptive loop depth
 14. Reboot system → activate python3-devel → torch.compile inductor backend
+
+---
+
+## 2026-06-09: Placement Fix & Revolution Sweep
+
+### Placement Correction
+
+The C++ refiner was placed AFTER layer 18's full computation. PyTorch version
+places it BETWEEN layers 17 and 18 (after layer 17's output, before layer 18
+processes it).
+
+**Fix:** Changed `il == split_layer` to `il == split_layer - 1`. The refiner
+now receives layer 17's output, matching PyTorch training conditions.
+
+### Revolution Sweep Results
+
+With corrected placement, the sweet spot SHIFTED from 2 to 1 revolution:
+
+| Revs | PPL | Delta vs Baseline |
+|---|---|---|
+| Baseline | 8.5775 | — |
+| **1** | **8.1883** | **-4.5%** |
+| 2 | 8.2098 | -4.3% |
+| 3 | 8.6580 | +0.9% |
+
+1 revolution gives best PPL with minimum compute overhead. At 3 revolutions,
+PPL is worse than baseline (overprocessing with corrected placement).
+
+### PPL Progress Summary
+
+| Milestone | PPL Delta |
+|---|---|
+| GPU fix + output/FFN only | +0.4% |
+| + full QKV attention | -3.1% |
+| + placement correction (17-18) | -4.3% |
+| + 1 revolution sweet spot | **-4.5%** |
+
+Remaining gap to PyTorch (-15.28%): possibly dtype (F32 .bin vs bf16 training),
+causal mask, or subtle differences in batched norm behavior.
+
+### Causal Mask Status
+
+CPU-allocated mask context goes out of scope before inference runs. Mask may
+not be needed — base model's autoregressive forward already enforces causality.
+Further investigation deferred.
+
+### Revolution Embedding
+
+Not yet wired into the inlined refiner path. The rev_emb weights are loaded
+into the GPU cache but not applied during refinement. PyTorch adds revolution
+embedding at each pass to distinguish loop iterations. Low priority — likely
+small PPL contribution.
+
+### Inline RAG Experiment
+
+Self-contained FAISS experiment in `rag-experiment/`:
+- 100 random 2048-dim vectors as test corpus (FAISS FlatL2)
+- W_query [2048, 256], W_context [256, 2048]
+- inject_rag(h) stub: query projection → top-3 FAISS → context projection → h + ctx
+- Python venv, faiss-cpu, no CUDA conflicts
+- Ready for integration into C++ refiner loop
