@@ -55,7 +55,13 @@ Conch POC has evolved from a simple layer-sharing experiment to a sophisticated 
 2. **Sharp Attention (Entropy Regularization):** By penalizing entropy in the refiner's attention heads, we force the model to sharpen its focus on injected context, significantly reducing "parametric bleed" (hallucinations).
 3. **Contrastive Trust:** Training with explicit refusal targets ("I don't know") when context is missing prevents the model from hallucinating generic answers when the RAG system fails to provide relevant data.
 
-### Next Steps
-- **Weight-Baking:** Physically fusing learned delta vectors into the base model weights to create vanilla-compatible GGUF models.
-- **Static Unroll Hack:** Modifying GGUF metadata to execute shared refiner blocks multiple times without custom C++ runners.
-- **Python Standard Library RAG:** Scaling the trust mechanism to 2,000+ Python symbols to achieve expert-level coding assistance in a 3B model.
+### Final Accomplishments & GGUF Pipeline
+- **Weight-Baking:** Physically fusing learned delta vectors into the base model weights to create vanilla-compatible GGUF models. Proven via `weight_bake_poc.py` (Elena Vasquez canary injection).
+- **Static Unroll Hack:** Modified GGUF metadata (`unroll_vanilla_gguf.py`) to execute shared refiner blocks natively on vanilla `llama.cpp` releases by creating a continuous 38-layer execution graph.
+- **Python Standard Library RAG:** Scaled the trust mechanism to 2,000+ Python symbols, extracting their Delta Vectors (`python_deltas.bin`) for consumption by the custom C++ GGUF builder.
+
+### How to Build the GGUF (For C++ Team)
+1. Train the Knowledge Fusion Refiners: `python train_fusion_patched.py`
+2. Extract the Python Library Delta Vectors: `python extract_python_deltas.py`
+3. Export the trained parameters (Refiners + Projections): `python export_fusion.py`
+4. Provide `python_deltas.bin` and the `fusion-ggml-weights` directory to your C++ GGUF generator to embed the 1D bias tensors and Refiner logic permanently into your final release binary.
