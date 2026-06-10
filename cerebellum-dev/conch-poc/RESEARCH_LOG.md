@@ -558,3 +558,52 @@ Every injection mechanism shows the same behavior:
 The fix is the same for all mechanisms: train the refiner WITH the injection
 present. The model learns to route to the injected context at the right layers.
 
+
+---
+
+## Next: Auxiliary Loss for Injection Trust
+
+### Concept
+
+Train the refiner with an auxiliary loss that directly rewards using injected
+information:
+
+```
+loss_total = loss_next_token + lambda * loss_injection
+loss_injection = -log P(target_fact_tokens | hidden + injection)
+```
+
+When a fact is injected (e.g., "Dr. Elena Vasquez at Zurich Quantum Institute"),
+we know the target tokens. Penalize the refiner when it outputs generic
+hallucinations. Reward it when it outputs the injected fact.
+
+### Approach
+
+1. Build fact corpus with paired (prompt, injected_fact, target_output)
+2. During training, inject the fact at layer 17 (RAG + Cartridge)
+3. Compute standard cross-entropy loss
+4. Add auxiliary loss: boost probability of target fact tokens
+5. The refiner learns "injected info = truth, output it verbatim"
+
+### Expected Outcome
+
+Same 33M params, same training time (27s/epoch on 3B). The refiner learns to
+TRUST injections as authoritative. Should pass the XR-777 canary test.
+
+
+
+## 2026-06-10: Breakthrough — Representation Engineering vs. Refiner Training
+
+### The Delta Vector Discovery
+Empirical probing (probe_delta.py) shows that the knowledge of a novel fact (e.g., 'Elena Vasquez') is perfectly captured in the residual stream delta between a model that has seen the context and one that hasn't. This 'Delta Vector' is high-fidelity and contains the precise semantic signal needed for correct generation.
+
+### Why Refiners Fail (Initially)
+Untrained refiners fail to utilize raw injections because the frozen downstream layers treat the injected math as noise. Training with LM loss is too slow and noisy to force the necessary geometric alignment.
+
+### The New Path: Delta Prediction Training
+We are pivoting to train the refiners as Delta Predictors. The target is no longer just the next token, but the extracted high-fidelity Delta Vector at the final layer. This supervised task should yield much faster alignment.
+
+### Weight-Baking for Portability
+We demonstrated that injecting the delta at Layer 34/35 successfully influences the output. By physically adding this delta to the weights (Weight-Baking), we can achieve permanent knowledge injection that is compatible with vanilla llama.cpp / GGUF.
+
+

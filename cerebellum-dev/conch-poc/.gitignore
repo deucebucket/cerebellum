@@ -1,0 +1,32 @@
+# AI research files
+GEMINI.md
+MEMORY.md
+research_prompt_*.md
+canary_*.pt
+canary_*.bin
+python_train_corpus.pt
+python_lib_docs.pt
+python_lib_rag.bin
+extract_control_vector.py
+probe_delta.py
+test_delta_injection.py
+test_signal.py
+build_canary_corpus.py
+build_python_corpus.py
+build_python_index.py
+geminichat-*.txt
+
+# Checkpoints
+checkpoints-*/
+dual_refiner.pt
+*.pt
+*.bin
+*.gguf
+*.raw
+*.raw.txt
+*.log
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class

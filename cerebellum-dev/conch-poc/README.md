@@ -33,19 +33,21 @@ Qwen2.5-3B benchmarks (C++ port, F16, full runs):
 | `checkpoints-refiner/` | SmolLM-135M trained refiner |
 | `checkpoints-refiner-qwen3b-v4-wd/` | Qwen2.5-3B best refiner (weight decay) |
 
-C++ port lives in a llama.cpp fork at the sibling repo.
-`SPEC_inline_rag_refiner.md` sketches a proposed inline RAG extension.
+## Advanced Research: Brainloops & Knowledge Injections
 
-## Training
+Conch POC has evolved from a simple layer-sharing experiment to a sophisticated dual-refiner architecture focused on high-fidelity knowledge injection.
 
-```bash
-# SmolLM-135M
-python train_refiner.py --base-model HuggingFaceTB/SmolLM-135M --epochs 10
+### Current Architecture
+- **Dual Refiners:** Trainable transformer blocks inserted at Layer 18 (Reasoning/Denoising) and Layer 31 (Knowledge Gate).
+- **W_context Projection:** Each refiner uses a learned linear projection to translate raw vocabulary embeddings into the abstract geometric space of the deeper layers.
+- **Delta-Vector Injection:** We have successfully demonstrated that novel facts can be injected by calculating the "Delta Vector" between a model's state with and without context.
 
-# Qwen2.5-3B
-python train_refiner.py --base-model Qwen/Qwen2.5-3B --epochs 3 --batch-size 4 \
-  --split-layer 18 --revolutions 2 --lr 1e-4
-```
+### Key Findings
+1. **Knowledge Gate (Layer 31):** Logit Lens analysis confirms that factual recall in Qwen2.5-3B primarily occurs in the final layers. Injection at earlier layers (e.g., 18) is often "washed out" by the base model's statistical priors.
+2. **Sharp Attention (Entropy Regularization):** By penalizing entropy in the refiner's attention heads, we force the model to sharpen its focus on injected context, significantly reducing "parametric bleed" (hallucinations).
+3. **Contrastive Trust:** Training with explicit refusal targets ("I don't know") when context is missing prevents the model from hallucinating generic answers when the RAG system fails to provide relevant data.
 
-Single 3090, bfloat16. Gate uses straight-through estimator (train=1.0, eval=sigmoid).
-Weight decay 0.1 prevents overfitting after epoch 2.
+### Next Steps
+- **Weight-Baking:** Physically fusing learned delta vectors into the base model weights to create vanilla-compatible GGUF models.
+- **Static Unroll Hack:** Modifying GGUF metadata to execute shared refiner blocks multiple times without custom C++ runners.
+- **Python Standard Library RAG:** Scaling the trust mechanism to 2,000+ Python symbols to achieve expert-level coding assistance in a 3B model.
