@@ -30,16 +30,18 @@ def main():
     dataset = get_human_eval_plus()
     samples = []
     
-    print(f"Running HumanEval+ on {len(dataset)} problems (BASELINE)...")
+    print(f"Running HumanEval+ on {len(dataset)} problems (10 SAMPLES, DUMMY REST)...")
     count = 0
     for task_id, problem in tqdm(dataset.items()):
-        solution = generate_sample(model, tokenizer, problem['prompt'])
+        if count < 10:
+            solution = generate_sample(model, tokenizer, problem['prompt'])
+        else:
+            solution = "return None"
         samples.append({
             "task_id": task_id,
             "completion": solution
         })
         count += 1
-        if count >= 5: break # Just a few for check
 
     output_file = "humaneval_samples_baseline.jsonl"
     with open(output_file, "w") as f:

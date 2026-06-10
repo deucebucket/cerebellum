@@ -1,12 +1,30 @@
-# AI research files
+# Project: Brainloop (Conch-POC)
+# Public Release .gitignore
+
+# AI research and session context
 GEMINI.md
 MEMORY.md
 research_prompt_*.md
+geminichat-*.txt
+RESEARCH_LOG.md
+SPEC_inline_rag_refiner.md
+
+# Synthetic Datasets & Binary Vectors
 canary_*.pt
 canary_*.bin
 python_train_corpus.pt
 python_lib_docs.pt
 python_lib_rag.bin
+python_deltas.pt
+python_deltas.bin
+
+# Training Data
+*.txt
+!README.md
+*.raw
+*.raw.txt
+
+# Temporary Research Scripts
 extract_control_vector.py
 probe_delta.py
 test_delta_injection.py
@@ -14,19 +32,34 @@ test_signal.py
 build_canary_corpus.py
 build_python_corpus.py
 build_python_index.py
-geminichat-*.txt
+recover_brainloop.py
+verify_recovered_trust.py
+extract_python_deltas.py
+extract_canary_deltas.py
+debug_gguf_alias.py
+gguf_fact_fuser.py
+probe_delta.py
+test_chat_pytorch.py
 
-# Checkpoints
+# Benchmarks & Logs
+baseline_10.jsonl
+humaneval_samples_*.jsonl
+*.json
+!RESULTS.md
+*.log
+bench_results/
+
+# Model Checkpoints & GGUFs
 checkpoints-*/
-dual_refiner.pt
 *.pt
 *.bin
 *.gguf
-*.raw
-*.raw.txt
-*.log
 
-# Byte-compiled / optimized / DLL files
+# Python/System
 __pycache__/
 *.py[cod]
 *$py.class
+.venv/
+venv/
+.env
+.git/
