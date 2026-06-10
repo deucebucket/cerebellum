@@ -3,107 +3,109 @@ import torch
 import os
 import numpy as np
 
-def unroll_fused_gguf(gguf_in, ckpt_path, gguf_out):
-    print(f"Reading {gguf_in}...")
+def unroll_cloned_gguf(gguf_in, ckpt_path, gguf_out):
+    print(f"[*] Reading {gguf_in}...")
     reader = gguf.GGUFReader(gguf_in)
     
-    # Load refiner weights
-    print(f"Loading {ckpt_path}...")
-    ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
-    # ckpt is {'l18': state_dict, 'l31': state_dict}
+    ckpt = None
+    if ckpt_path and os.path.exists(ckpt_path):
+        print(f"[*] Loading trained parameters from {ckpt_path}...")
+        ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
     
-    # 1. Update block count
-    orig_blocks = int(reader.fields["qwen2.block_count"].parts[-1][0])
+    # Get architecture
+    arch_field = reader.fields.get("general.architecture")
+    arch = bytes(arch_field.parts[-1]).decode('utf-8').strip('\x00')
+    
+    bk_key = "qwen2.block_count" if "qwen2.block_count" in reader.fields else "llama.block_count"
+    orig_blocks = int(reader.fields[bk_key].parts[-1][0])
     new_blocks = orig_blocks + 2
-    print(f"Blocks: {orig_blocks} -> {new_blocks}")
+    print(f"[*] Blocks: {orig_blocks} -> {new_blocks}")
     
-    arch_parts = reader.fields["general.architecture"].parts[-1]
-    arch = bytes(arch_parts).decode('utf-8').strip('\x00')
-    print(f"Architecture: {arch}")
     writer = gguf.GGUFWriter(gguf_out, arch)
     
-    # 2. Copy KVs and update block count
-    writer.add_uint32("qwen2.block_count", new_blocks)
-    writer.add_uint32("qwen2.context_length", 131072)
-    writer.add_uint32("qwen2.embedding_length", 2048)
-    writer.add_uint32("qwen2.feed_forward_length", 11008)
-    writer.add_uint32("qwen2.attention.head_count", 16)
-    writer.add_uint32("qwen2.attention.head_count_kv", 16)
-    writer.add_float32("qwen2.attention.layer_norm_rms_epsilon", 1e-6)
-    writer.add_uint32("tokenizer.ggml.tokens", 151936) # Dummy, adjust if needed
+    # 1. Defensively Copy Metadata
+    print("[*] Cloning metadata...")
+    for name, field in reader.fields.items():
+        if name in ["GGUF.version", "GGUF.tensor_count", "GGUF.kv_count", "general.architecture"]:
+            continue
+        
+        if name == bk_key:
+            writer.add_uint32(name, new_blocks)
+            continue
 
-    # 3. Layer Mapping
-    # Layer Mapping Logic
-    # 0..17   -> blk.0..17
-    # NEW 18  -> blk.18 (Refiner L18)
-    # 18..30  -> blk.19..31
-    # NEW 32  -> blk.32 (Refiner L31)
-    # 31..35  -> blk.33..37
+        try:
+            # Re-add based on type
+            vtype = field.types[0]
+            val_parts = field.parts[-1]
+            
+            if vtype == gguf.GGUFValueType.UINT32:
+                writer.add_uint32(name, int(val_parts[0]))
+            elif vtype == gguf.GGUFValueType.FLOAT32:
+                writer.add_float32(name, float(val_parts[0]))
+            elif vtype == gguf.GGUFValueType.STRING:
+                writer.add_string(name, bytes(val_parts).decode('utf-8').strip('\x00'))
+            elif vtype == gguf.GGUFValueType.BOOL:
+                writer.add_bool(name, bool(val_parts[0]))
+            elif vtype == gguf.GGUFValueType.ARRAY:
+                # Array handling is the trickiest
+                # We'll use the field.data if it's available and valid
+                if name == "tokenizer.ggml.tokens":
+                    tokens = [bytes(s).decode('utf-8').strip('\x00') for s in field.data]
+                    writer.add_token_list(tokens)
+                elif name == "tokenizer.ggml.token_type":
+                    writer.add_array(name, field.data.tolist() if hasattr(field.data, 'tolist') else field.data)
+                elif name == "tokenizer.ggml.merges":
+                    merges = [bytes(s).decode('utf-8').strip('\x00') for s in field.data]
+                    writer.add_array(name, merges)
+                else:
+                    writer.add_array(name, field.data)
+            else:
+                # Try raw copy as fallback
+                writer.add_key_value(name, field.types, field.data)
+        except Exception as e:
+            print(f"  [!] Failed to copy KV '{name}': {e}")
+
+    # 2. Layer Remapping & Physical Cloning
+    print("[*] Remapping and CLONING tensors...")
+    base_tensors = {t.name: t for t in reader.tensors}
     
-    def get_new_name(old_name):
-        if not old_name.startswith("blk."): return old_name
-        parts = old_name.split('.')
-        idx = int(parts[1])
-        if idx <= 17:
-            new_idx = idx
-        elif idx <= 30:
-            new_idx = idx + 1
-        else:
-            new_idx = idx + 2
+    def get_new_idx(old_idx):
+        if old_idx <= 17: return old_idx
+        if old_idx <= 30: return old_idx + 1
+        return old_idx + 2
+
+    # Write all remapped base tensors
+    for name, tensor in base_tensors.items():
+        if not name.startswith("blk."):
+            writer.add_tensor(name, tensor.data, raw_shape=tensor.shape, raw_dtype=tensor.tensor_type)
+            continue
+            
+        parts = name.split('.')
+        new_idx = get_new_idx(int(parts[1]))
         parts[1] = str(new_idx)
-        return ".".join(parts)
+        writer.add_tensor(".".join(parts), tensor.data, raw_shape=tensor.shape, raw_dtype=tensor.tensor_type)
 
-    print("Remapping layers...")
-    for tensor in reader.tensors:
-        new_name = get_new_name(tensor.name)
-        writer.add_tensor(new_name, tensor.data)
-        
-    # 4. Add Refiner Tensors
-    def add_refiner(layer_key, target_gguf_idx):
-        sd = ckpt[layer_key]
-        # sd names: layer.input_layernorm.weight, layer.self_attn.q_proj.weight, etc.
-        # GGUF names: blk.N.attn_norm.weight, blk.N.attn_q.weight, etc.
-        
-        mapping = {
-            'layer.input_layernorm.weight': 'attn_norm.weight',
-            'layer.self_attn.q_proj.weight': 'attn_q.weight',
-            'layer.self_attn.q_proj.bias': 'attn_q.bias',
-            'layer.self_attn.k_proj.weight': 'attn_k.weight',
-            'layer.self_attn.k_proj.bias': 'attn_k.bias',
-            'layer.self_attn.v_proj.weight': 'attn_v.weight',
-            'layer.self_attn.v_proj.bias': 'attn_v.bias',
-            'layer.self_attn.o_proj.weight': 'attn_output.weight',
-            'layer.post_attention_layernorm.weight': 'ffn_norm.weight',
-            'layer.mlp.gate_proj.weight': 'ffn_gate.weight',
-            'layer.mlp.up_proj.weight': 'ffn_up.weight',
-            'layer.mlp.down_proj.weight': 'ffn_down.weight',
-        }
-        
-        for torch_name, gguf_suffix in mapping.items():
-            if torch_name in sd:
-                full_gguf_name = f"blk.{target_gguf_idx}.{gguf_suffix}"
-                data = sd[torch_name].detach().cpu().float().numpy()
-                writer.add_tensor(full_gguf_name, data)
-                
-        # Scale the final projections by the gate?
-        # No, for unrolled vanilla, we'll just use gate=1.0 for now, 
-        # or we manually scale the weights if gate < 1.0.
-        gate = torch.sigmoid(sd['gate']).item()
-        print(f"Refiner {layer_key} gate: {gate:.4f}")
-        # Note: In vanilla GGUF, we don't have the gated residual: h = h + gate*(f(h)-h)
-        # We have: h = h + f(h).
-        # So we should scale ALL weights in the layer by 'gate' to simulate the effect.
-        # This is a bit complex. For now, let's just add them as is.
+    # Physically clone layers
+    def clone_layer(source_idx, target_idx):
+        print(f"[+] Cloning Block {source_idx} -> Block {target_idx}")
+        for name, tensor in base_tensors.items():
+            if name.startswith(f"blk.{source_idx}."):
+                parts = name.split('.')
+                parts[1] = str(target_idx)
+                writer.add_tensor(".".join(parts), tensor.data, raw_shape=tensor.shape, raw_dtype=tensor.tensor_type)
 
-    add_refiner('l18', 18)
-    add_refiner('l31', 32)
-    
-    print(f"Writing to {gguf_out}...")
+    clone_layer(17, 18)
+    clone_layer(31, 32)
+
+    print(f"[*] Writing GGUF: {gguf_out}")
     writer.write_header_to_file()
     writer.write_kv_data_to_file()
     writer.write_tensors_to_file()
     writer.close()
-    print("Done!")
+    print("[+] Done!")
 
 if __name__ == "__main__":
-    unroll_fused_gguf('qwen2.5-3b-brainloop.gguf', 'checkpoints-fusion-patched/fused_refiners.pt', 'qwen2.5-3b-unrolled.gguf')
+    # Remove old output to avoid permission/size issues
+    if os.path.exists('qwen2.5-3b-unrolled-identity.gguf'):
+        os.remove('qwen2.5-3b-unrolled-identity.gguf')
+    unroll_cloned_gguf('qwen2.5-3b-brainloop.gguf', None, 'qwen2.5-3b-unrolled-identity.gguf')

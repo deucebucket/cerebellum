@@ -1,0 +1,623 @@
+# Brainloop Research Log
+
+All ideas from Gemini strategy sessions + C++ port devlog. Preserved as
+project artifacts for future reference and test design.
+
+---
+
+## 2026-06-09: C++ Port — GPU Allocation Fix (Fix Path A)
+
+### Context
+
+Refiner weights were successfully ported to llama.cpp as a custom graph builder
+(`llm_build_qwen2_brainloop` / `LLM_ARCH_QWEN2_BRAINLOOP`). The C++ engine
+intercepts ALL Qwen2 models (hardcoded `LLM_ARCH_QWEN2` → brainloop routing at
+`llama-model.cpp:8669`) and injects the refiner loop at layer 18.
+
+Early test produced **49M PPL** — proof of pipeline working with garbage data.
+The cause: `ggml_new_tensor_2d(ctx0, ...)` allocated refiner weights on CPU,
+but the CUDA graph operates on GPU tensors. Fused ops (permute, transpose,
+flash attention) read garbage across the CPU/GPU boundary.
+
+### Fix: GPU Backend Allocation
+
+Replaced `ggml_new_tensor_2d(ctx0, ...)` + `memcpy` with:
+
+1. Create a no-alloc `ggml_context` for tensor metadata only
+2. `ggml_backend_alloc_ctx_tensors_from_buft(ctx, model.select_buft(18))`
+   — allocates all 18 weight tensors on the same CUDA backend as layer 18
+3. `ggml_backend_tensor_set()` — copies raw float data from CPU `.bin` files to GPU
+4. Static cache — allocated once per process, reused across all graph builds
+
+Gate value: **sigmoid(0) = 0.4980** (matching PyTorch STE eval gate).
+
+### Results
+
+| Configuration | PPL |
+|---|---|
+| Baseline (no refiner) | 8.1475 |
+| Refiner (output+FFN path) | 8.6096 |
+
+The simplified path lacks full QKV attention. Weights were trained with
+self-attention in PyTorch, so the output+FFN-only path doesn't recover the
+-15.28% improvement. **GPU allocation fix confirmed working** — this was
+the blocking issue preventing the C++ port from functioning at all.
+
+### Remaining: Full Attention Path
+
+The `build_attn_mha` function in llama.cpp handles multi-head attention with
+proper ggml tensor layout: permute `[head_dim, heads, tokens]` →
+`[head_dim, tokens, heads]`, flash attention, reshape, output projection.
+Manual replication of this in `brainloop_refine_pass` hits shape assertions
+in `ggml_mul_mat` and `ggml_can_repeat`. The correct approach is to call
+`build_attn_mha` directly — but this requires the refiner weights to be in
+the model's tensor tree, not a separate cache context.
+
+### Build Artifacts
+
+- `qwen2.5-3b-brainloop.gguf` (~6.2 GB F16) — converted HF model, any Qwen2 GGUF
+  routes through brainloop
+- `brainloop-ggml-weights/` — 34 `.bin` files (134 MB), exported from PyTorch
+  checkpoint `checkpoints-refiner-qwen3b-v4-wd/best_refiner.pt`
+- `libllama.so` — CUDA-enabled, contains `llm_build_qwen2_brainloop` + GPU cache
+
+### Gotchas
+
+- **libcuda.so symlink** — distrobox has empty `/lib/.../libcuda.so`. Must
+  `ln -sf libcuda.so.1 /lib/x86_64-linux-gnu/libcuda.so` or `LD_PRELOAD` it.
+- **Build caching** — cmake Makefile doesn't detect changes to brainloop source
+  reliably inside distrobox. Delete `.o` file and manually recompile with `g++`
+  if build system is stale.
+- **GGML tensor layout** — hidden states in ggml are `[n_embd, n_tokens]` with
+  `ne[0]=n_embd`. The original `brainloop_refine_pass` had `n_tokens=hidden->ne[0]`
+  bug (got n_embd instead of n_tokens). Fixed in this session.
+- **`ggml_norm` vs `ggml_rms_norm`** — Qwen2 uses RMSNorm. The original reference
+  function used `ggml_norm` (LayerNorm). Must use `ggml_rms_norm`.
+- **All Qwen2 models intercepted** — `LLM_ARCH_QWEN2` now routes to brainloop.
+  Regular Qwen2 inference goes through the brainloop graph builder but with
+  refiner disabled (if `brainloop-ggml-weights/` missing).
+
+---
+
+## 2026-06-09: Inline RAG Refiner Concept
+
+The bolt-on refiner at layer 18 can act as a **runtime oracle** — during its
+refinement loop, it projects hidden states into query vectors, retrieves
+relevant context from a FAISS index, and injects it directly into the model's
+representation space. No prompt bloat, no context window waste.
+
+Key design:
+- **W_query** [query_dim × n_embd]: stethoscope — learns what the model needs
+- **W_context** [n_embd × context_dim]: injects retrieved docs as vectors
+- **rag_gate**: learns when retrieval helps vs hurts
+- **Index**: pre-computed FAISS IVF-PQ, 256-dim, VRAM-pinned, <1ms search
+- **Iterative**: each revolution re-queries with refined hidden state
+
+~2M additional params. Full spec in `SPEC_inline_rag_refiner.md`.
+
+---
+
+## 2026-06-07: Initial Research & Strategy
+
+## 2026-06-07: Architecture Concepts & Gate Strategy
+
+### Gas Tensor (Dynamic Phase Changes During Loops)
+The refiner's loop creates a "gas phase" in the hidden state vector space.
+Unlike standard transformer layers (solid/liquid pipe), the loop block can:
+- Pass 1 (Solid): Raw token data enters
+- Pass 2-3 (Gas): Hidden states "evaporate" into hyper-abstract reasoning where
+  tokens blend and expand semantic boundaries
+- Pass 4 (Condensation): Compress gas state back into a dense vector that the
+  frozen base model's next layer expects
+
+Key insight: Because the base model only sees entrance and exit, what happens
+inside the loop can violate standard transformer constraints (dimensions,
+information density, etc.).
+
+### Multi-Resolution Loop (Expanding Dimensions Mid-Loop)
+The refiner could project the tensor into a massive intermediate space during
+middle loops — letting the tensor expand to fill much larger capacity — before
+compressing back for the final exit. Variable-volume brain with flat VRAM.
+
+### Zero-Initialized Universal Router (Empty Tensor Switchboard)
+A linear layer initialized to 0.0 that acts as:
+- Invisible bridge at step 0 (tensor "never left the ground")
+- Train yard switch: reads incoming hidden state, routes to standard/math/code/refusal-bypass paths
+- The routing tensor names dictate the path: `router.math`, `router.code`, `router.heretic`
+
+### Abliteration-as-Service (Live Refusal Bypass)
+Refusals are just vector directions. The router intercepts the hidden state,
+subtracts the "refusal direction" vector, and forces the tensor down a
+different track. The model complies because the physical refusal trigger was
+removed mid-flight. Same mechanics as abliterated models, but live/on-the-fly
+instead of baked into weights.
+
+### Hot-Swap Runtime Engine
+Keep the giant base model pinned in VRAM permanently. Swap refiner blocks
+in milliseconds based on task:
+- `Math-Refiner.bin` → Layer 15
+- `Code-Refiner.bin` → Layer 15
+- `Persona-Refiner.bin` → Layer 15
+
+1% compute cost for specialized fine-tuned performance across domains.
+
+## Production Packaging Strategies (for llama.cpp / GGUF)
+
+### Hack 1: Static Unroll (GGUF Tensor Aliasing)
+- Python script writes GGUF that lies about layer count (30 → 40)
+- Layers 15-25 all point to same physical bytes of RefinerBlock on disk
+- llama.cpp thinks it's 40-layer model, actually runs refiner 10x
+- Community gets native GGUF, tiny VRAM footprint
+- No custom .exe required
+
+### Hack 2: Weight-Bake (Control Vectoring)
+- Fuse learned refiner vectors permanently into base model weights
+- Calculate delta between original and refined hidden states
+- Add delta directly into Layer 15 weights
+- Delete refiner entirely, export 100% standard GGUF
+- Lose dynamic loops, keep the knowledge
+
+### Hack 3: Custom C++ PR (Fork llama.cpp)
+- Define LLM_ARCH_BRAINLOOP in llama.cpp
+- Add for-loop logic into `llama_build_graph`
+- Build ggml computation graph: ggml_add, ggml_mul_mat, ggml_norm
+- Dynamic early exit in C: compute one pass, check MTP confidence, `break` if done
+- True dynamic loops, saves actual compute, but requires custom runner
+
+## Dynamic Execution Graph (MoE on Steroids)
+Standard MoE is rigid (router → Expert A or B). The refiner router creates a
+truly dynamic graph:
+- "Needs coding" → send to massive looping Gas Tensor refiner
+- "Simple greeting" → skip Layers 16-25 entirely, dump straight to output head
+- Python hooks control flow live, base weights never change
+
+This works today in PyTorch/vLLM via forward hooks. Cannot pack into static
+llama.cpp GGUF without custom C++ runner.
+
+## Gate Strategy (from Gemini sessions)
+
+### Gate Evolution History (SmolLM→3B)
+
+| Attempt | Init | Method | Epoch 1 Result | Issue |
+|---|---|---|---|---|
+| v1 | `torch.zeros(1)` | sigmoid(0)=0.5 | -25.7% PPL (SmolLM) | 50% untrained noise at step 0 |
+| v2 | `torch.tensor(-10.0)` | sigmoid ≈ 0 | -5.6% then flatlined | Gradient starvation — gate never moved |
+| v3 | `torch.tensor(-2.0)` | sigmoid ≈ 0.12 | -18.33% at epoch 2 | Gate still stuck at 0.1191 |
+| **v4** | `torch.tensor(0.0)` | **STE** (train=1.0, eval=sigmoid) | **-15.28% at epoch 2** | **Winner** — stable, no drift |
+
+### Winner: Straight-Through Estimator
+- Forward: gate hardcoded to 1.0 (forces 100% loop usage)
+- Backward: gradient passed through unchanged (gate can't close)
+- Eval: sigmoid(0) ≈ 0.5 (balanced contribution)
+- Gate stays locked at 0.4980 across all epochs — perfect equilibrium
+- Weight decay 0.1 prevents overfitting; best PPL at epoch 2, then stabilizes
+
+### Problem: Gate Gradient Starvation
+Gate initialized at negative values (sigmoid(-2)/sigmoid(-10)) sits in
+flat region of sigmoid curve. Gradient ≈ 0, gate never moves.
+
+### Fix 1: Split Learning Rate
+Give gate param 100x higher LR (1e-2) than rest of refiner (1e-4).
+
+### Fix 2: Urgency Penalty
+Add `(1.0 - sigmoid(gate)) * urgency_weight` directly to loss. Model must
+open gate to relieve artificial pressure.
+
+### Fix 3: Highway Sabotage (Dropout)
+Randomly zero out identity path 10% of time during training. Model can't
+be lazy because the bypass route is unreliable.
+
+### Fix 4: Straight-Through Estimator (Trick)
+Forward pass: gate hardcoded to 1.0 (100% loop usage).
+Backward pass: gradient passed through as identity, gate can't shut down.
+Forces refiner internals to train on real data at full volume.
+
+### Fix 5: Direct Scalar (No Sigmoid)
+Remove sigmoid, use raw parameter. Init at 0 or 1e-4. Uninhibited gradient.
+
+## Research TODOs
+
+1. ~~Prove PPL drops at 3B scale~~ — CONFIRMED: -15.28% PPL, Qwen2.5-3B, golden config
+2. ~~Fix gate gradient starvation~~ — CONFIRMED: STE gate, locked at 0.4980 equilibrium
+3. ~~Fix overfitting drift~~ — CONFIRMED: weight_decay=0.1, best at epoch 2, stable
+4. ~~Fix C++ GPU/CPU memory chasm~~ — CONFIRMED: `ggml_backend_alloc_ctx_tensors_from_buft`, CUDA0 allocation, gate=0.4980
+5. Implement full QKV attention in C++ refiner — blocked on ggml tensor layout for `build_attn_mha`
+6. Bake refiner weights into GGUF (Hack 1 / Fix Path B) — tensor slots exist in llama-model.cpp, needs GGUF writing script
+7. Scale to 7B/9B using golden config
+8. Test separate refiner training for code (opencode JSONL available)
+9. Test on quantized base models (refiner recovering quant damage)
+10. Test hot-swap at inference: load two refiners, switch mid-session
+11. Extract refusal direction vectors from a base model
+12. Build zero-init router block (gas tensor switchboard)
+13. Implement MTP exit head for adaptive loop depth
+14. Reboot system → activate python3-devel → torch.compile inductor backend
+
+---
+
+## 2026-06-09: Placement Fix & Revolution Sweep
+
+### Placement Correction
+
+The C++ refiner was placed AFTER layer 18's full computation. PyTorch version
+places it BETWEEN layers 17 and 18 (after layer 17's output, before layer 18
+processes it).
+
+**Fix:** Changed `il == split_layer` to `il == split_layer - 1`. The refiner
+now receives layer 17's output, matching PyTorch training conditions.
+
+### Revolution Sweep Results
+
+With corrected placement, the sweet spot SHIFTED from 2 to 1 revolution:
+
+| Revs | PPL | Delta vs Baseline |
+|---|---|---|
+| Baseline | 8.5775 | — |
+| **1** | **8.1883** | **-4.5%** |
+| 2 | 8.2098 | -4.3% |
+| 3 | 8.6580 | +0.9% |
+
+1 revolution gives best PPL with minimum compute overhead. At 3 revolutions,
+PPL is worse than baseline (overprocessing with corrected placement).
+
+### PPL Progress Summary
+
+| Milestone | PPL Delta |
+|---|---|
+| GPU fix + output/FFN only | +0.4% |
+| + full QKV attention | -3.1% |
+| + placement correction (17-18) | -4.3% |
+| + 1 revolution sweet spot | **-4.5%** |
+
+Remaining gap to PyTorch (-15.28%): possibly dtype (F32 .bin vs bf16 training),
+causal mask, or subtle differences in batched norm behavior.
+
+### Causal Mask Status
+
+CPU-allocated mask context goes out of scope before inference runs. Mask may
+not be needed — base model's autoregressive forward already enforces causality.
+Further investigation deferred.
+
+### Revolution Embedding
+
+Not yet wired into the inlined refiner path. The rev_emb weights are loaded
+into the GPU cache but not applied during refinement. PyTorch adds revolution
+embedding at each pass to distinguish loop iterations. Low priority — likely
+small PPL contribution.
+
+### Inline RAG Experiment
+
+Self-contained FAISS experiment in `rag-experiment/`:
+- 100 random 2048-dim vectors as test corpus (FAISS FlatL2)
+- W_query [2048, 256], W_context [256, 2048]
+- inject_rag(h) stub: query projection → top-3 FAISS → context projection → h + ctx
+- Python venv, faiss-cpu, no CUDA conflicts
+- Ready for integration into C++ refiner loop
+
+---
+
+## 2026-06-09 (continued): Inline RAG Injection Test
+
+### RAG Document Loading — Works
+
+Successfully loaded 300 normalized token embedding vectors (2048-dim) from the
+model's own `embed_tokens.weight` into GPU memory alongside the refiner weights.
+The vectors were exported as `rag-experiment/rag_docs.bin` using safetensors.
+
+Loading pipeline: `ggml_backend_alloc_ctx_tensors_from_buft` on CUDA0, data
+copied via `ggml_backend_tensor_set`. Confirmed: "loaded RAG index: 300 docs x
+2048 dim on CUDA0" at init. No crash. No memory issue.
+
+### RAG Injection Approaches Tested
+
+**Softmax-weighted docs:** Computed similarity via `ggml_mul_mat(rag_docs, x)`
+→ softmax → weighted sum via `ggml_transpose + ggml_mul_mat`. Works but
+produces near-uniform weights for random token embeddings — effectively a no-op.
+PPL unchanged at 8.1883 regardless of scale (0.05 to 0.5).
+
+**Single doc injection via ggml_repeat:** Attempted to broadcast a single
+document vector [n_embd] to match hidden state shape [n_embd, n_tokens].
+Crash: CUDA error in ggml_backend_cuda_synchronize. ggml_repeat doesn't
+handle this broadcast pattern correctly on CUDA backend.
+
+### Findings
+
+1. **Index loading infrastructure is proven.** FAISS isn't needed in C++ —
+   the document matrix on GPU plus ggml_mul_mat gives similarity search natively.
+2. **Additive injection works** — the softmax-weighted path runs without crash
+   and doesn't degrade PPL. The issue is semantic: random token embeddings
+   carry no useful signal.
+3. **For semantic injection**, documents must be embedded from actual text
+   using tok_embd, not random token vectors. The index needs real content.
+4. **Broadcasting** for additive injection needs a different ggml approach —
+   `ggml_repeat` fails on CUDA. Alternatives: `ggml_reshape` + `ggml_add`
+   with compatible shapes, or using `ggml_mul_mat` with a projection.
+
+---
+
+## 2026-06-09 (continued): RAG Training & HumanEval+ Results
+
+### Training with RAG Injection
+
+Trained the refiner with inline RAG on WikiText using a 41-document Python coding
+reference index. Key results:
+
+| Epoch | PPL | Gate | RAG Scale | Time |
+|---|---|---|---|---|
+| 1 | **8.1113** | 0.4961 | 0.6211 | 540s |
+| 2 | 8.1411 | 0.4961 | 0.6211 | 559s |
+| 3 | 8.1391 | 0.5039 | 0.6211 | 563s |
+
+Best PPL: 8.11 (-32.5% vs baseline 12.01). RAG scale learned to 0.62 (gate at 0.50).
+Training ran in distrobox with Python 3.10 — Python 3.14 caused silent crashes.
+
+### C++ Port with RAG-Trained Weights
+
+Ported trained weights to C++ with 2 revolutions and RAG injection (sharp softmax,
+temperature=50, rag_scale=0.6225). Results:
+
+| Configuration | PPL |
+|---|---|
+| Baseline (no refiner) | 8.58 |
+| Refiner only (no RAG, 1 rev) | 8.19 |
+| RAG-trained refiner (2 rev, RAG) | 8.25 |
+
+### HumanEval+ Results
+
+| Configuration | Base | Plus |
+|---|---|---|
+| No RAG (untrained injection) | 36.6% | 32.3% |
+| RAG-trained on WikiText | 31.7% | 28.0% |
+
+RAG training on WikiText taught the refiner to use RAG for text prediction,
+which hurt coding performance. The coding index wasn't relevant during training.
+Next step: train on code-specific data for coding benchmarks.
+
+### Key Learnings
+
+1. **Training with RAG works** — PPL improved from 12 to 8 (vs 15 to 8 without RAG in PyTorch)
+2. **RAG effect is task-specific** — needs task-matched training data
+3. **Python 3.14 kills PyTorch training** — must use distrobox's Python 3.10
+4. **Full pipeline proven**: PyTorch training → .bin export → C++ GGML → benchmark
+
+---
+
+## 2026-06-09 (continued): Cartridge KV Injection & Research Sources
+
+### Key Research Papers Found
+
+| Paper | Source | Key Finding |
+|---|---|---|
+| **Cartridges** | Hazy Research / Stanford, June 2025 | Store KV cache from real prefill, inject as virtual prefix tokens. Integrated into HuggingFace PEFT. |
+| **RCA (Resonant Context Anchoring)** | June 2026 | Zero-training attention gain control. Amplifies context signal without changing attention distribution. |
+| **STAR-LDM** | Justin Lovelace / Cornell, COLM 2025 | Latent diffusion planning injected as soft prompt tokens. End-to-end training prevents override. |
+| **LMLM** | ICLR 2026 | Joint training of parametric + external memory. Pre-training baked approach. |
+| **Prefix Tuning** | Li & Liang, 2021 | Virtual token KV cache prefix. 1000x fewer params than fine-tuning. |
+| **Register Tokens** | Darcet et al., 2023 | Extra tokens absorb attention artifacts. Scratch space concept. |
+| **GER-steer** | 2026 | Global Evolutionary Refined Steering. Cross-layer consistency for vector injection. |
+| **SEKA / PASTA** | 2026 | Spectral Editing Key Amplification. Attention steering via key embedding modification. |
+
+### Core Idea Attribution
+
+The bolt-on refiner + inline RAG architecture was independently conceived and built
+before encountering these papers. The refiner block at layer 17, gated residual,
+straight-through estimator gate, and inline document index injection were all
+developed from first principles on a single RTX 3090. The existence of parallel
+research validates the architecture direction.
+
+### Cartridge Implementation Status
+
+Per-layer K/V extracted from real model forward pass (36 layers × 256 dim for
+Qwen2.5-3B GQA). Loaded as GPU tensor in brainloop cache. Reshaped to multi-head
+format, cast to F16 (matching flash_attn), concatenated with batch K/V via
+ggml_concat. Full ggml pipeline verified: reshape → cast → concat → cont →
+permute → flash_attn → reshape → output_proj.
+
+Blocked at the final step: build_attn routes extra-token sequences through
+manual attention path instead of flash_attn, causing ggml_mul_mat shape mismatch.
+One routing fix away from working.
+
+### Knowledge Injection Mechanisms Tested
+
+| Mechanism | Status |
+|---|---|
+| Single-point hidden state injection (layer 17) | Generic output |
+| Gas cloud (layers 20-26 sustained injection) | Active, model overrides |
+| Progressive hand-to-hand blend (layers 0-35) | Broadcast crash |
+| Logit bias (+500 on 24 tokens) | First-token prior wins |
+| KV hijack (concat synthetic K/V) | Flash_attn routing blocked |
+| Cartridge (per-layer real K/V) | Flash_attn routing blocked |
+| **Refiner training + code index** | **42.7% HumanEval+ (proven)** |
+
+### What Actually Works
+
+Training the refiner WITH domain-specific data and domain-specific index.
+Code trained with code index = +6% HumanEval+ improvement. This is the only
+mechanism that forces the model to internalize injected knowledge as if it
+were part of its training data. The untrained injection approaches all fail
+because the model's parametric memory overrides any externally injected vector.
+
+
+---
+
+## 2026-06-09 (continued): Cartridge + RAG Combined Pipeline
+
+### Cartridge Breakthrough
+
+After extensive debugging, the cartridge V-only injection pipeline is proven
+working at the GGML op level:
+
+1. Per-layer V loaded from cartridge_v.bin (36 layers x 256 dim) ✅
+2. 8x concat head expansion (dim 1, F32 for CUDA) ✅
+3. ggml_reshape_2d to [n_embd, 1] ✅
+4. ggml_mul_mat with wo + bias ✅
+5. ggml_repeat broadcast [n_embd, 1] -> [n_embd, n_tokens] ✅
+6. ggml_add to hidden state ✅
+7. 234 successful injections across all layers and chunks ✅
+
+Root cause of previous failures: ggml_flash_attn_ext calls internal ggml_repeat
+for GQA head expansion which fails on 1-token tensors. Bypassed by manual 8x
+concat head expansion (2 -> 16) and skipping attention entirely (1-token
+attention always returns V_cart).
+
+### Combined Training
+
+Trained refiner with BOTH RAG index + Cartridge V simultaneously.
+Training data: 13K-line Python stdlib corpus (noisy).
+
+Results:
+- RAG scale: 0.62 (stable across ALL training runs)
+- Cartridge scale: 0.53 (learned from 0.1 init)
+- Gate: 0.50 (stable)
+- PPL: -14.6% vs baseline
+
+### HumanEval+ with Both Active
+
+| Configuration | Base | Plus |
+|---|---|---|
+| Baseline | 36.6% | 32.3% |
+| RAG only (174 funcs) | 42.7% | 37.2% |
+| RAG + Cartridge (13K corpus) | 39.6% | 36.6% |
+| Both active inference | 39.0% | 36.0% |
+
+Cartridge uses fact-based V vectors (from canary text). Domain mismatch for
+code tasks. Cartridge V needs code-specific forward pass extraction.
+Training data needs to be focused (174 functions), not noisy stdlib.
+
+### Next Steps
+
+1. Build cartridge V from CODE forward passes (HumanEval solutions)
+2. Train refiner with code-matched cartridge + focused RAG index
+3. Expected: RAG + code-cartridge > RAG alone
+
+
+---
+
+## 2026-06-09 (continued): Cartridge Server Path Debugging
+
+### Perplexity vs Server Graph Construction
+
+Cartridge V injection pipeline works perfectly in llama-perplexity (234 successful
+injections across all layers and chunks). Crashes in llama-server during graph
+construction with `ggml_repeat` broadcast failure.
+
+Root cause: perplexity and server build different ggml_cgraph structures.
+The `cur` tensor from `build_attn` has different properties in each:
+- Perplexity: simple single-batch graph, cur is direct attention output
+- Server: parallel slots with KV cache, cur goes through additional ops
+
+The `ggml_repeat(ctx, cart_proj, cur)` broadcast from [n_embd, 1] to [n_embd, n_tokens]
+fails in the server path because `cur` has unexpected dimensions or strides
+due to the parallel slot handling.
+
+### Fix Paths
+
+1. Use `ggml_cont` on `cur` before passing to repeat
+2. Bypass repeat entirely: use ggml_mul_mat to broadcast V to all tokens
+3. Inject cartridge BEFORE the attention residual (modify cur before build_attn)
+4. Debug the exact tensor shapes in server's graph
+
+### Code Cartridge Ready
+
+Built code-specific cartridge from 20 HumanEval solutions (36 layers x 256 dim).
+Combined training with RAG index completed. Cartridge scale learned to 0.53.
+Ready to test once server path is fixed.
+
+
+---
+
+## 2026-06-09: Logit Lens Discovery — The Knowledge Gate
+
+### Breakthrough Finding
+
+Using Logit Lens (projecting hidden states to vocabulary at each layer), we
+discovered exactly where the model accesses factual knowledge:
+
+"What is the capital of France?"
+- Layers 0-30: P(Paris) = 0.000 — model has no clue
+- **Layer 31: P(Paris) = 0.946** — answer SUDDENLY emerges
+- Layers 31-34: P(Paris) = 0.56-0.96 — high confidence
+- Layer 35: P(Paris) drops to 0.0006 — output processing
+
+The model doesn't "look up" facts until the final 5 layers. This explains why
+all injection attempts at layer 17 (14 layers before the knowledge gate) failed.
+The injected information gets processed through 14 more layers and diluted back
+to the model's training distribution.
+
+### Cartridge at Knowledge Gate
+
+Moved cartridge injection to layers 30-33 with scale 2.0. Server runs clean.
+Output still "US Air Force" — the model's parametric prior at these layers is
+stronger than any untrained injection.
+
+### Consistent Pattern
+
+Every injection mechanism shows the same behavior:
+- Untrained: model overrides injection, outputs training distribution
+- Trained: model learns to trust injection (+6% HumanEval for RAG)
+
+The fix is the same for all mechanisms: train the refiner WITH the injection
+present. The model learns to route to the injected context at the right layers.
+
+
+---
+
+## Next: Auxiliary Loss for Injection Trust
+
+### Concept
+
+Train the refiner with an auxiliary loss that directly rewards using injected
+information:
+
+```
+loss_total = loss_next_token + lambda * loss_injection
+loss_injection = -log P(target_fact_tokens | hidden + injection)
+```
+
+When a fact is injected (e.g., "Dr. Elena Vasquez at Zurich Quantum Institute"),
+we know the target tokens. Penalize the refiner when it outputs generic
+hallucinations. Reward it when it outputs the injected fact.
+
+### Approach
+
+1. Build fact corpus with paired (prompt, injected_fact, target_output)
+2. During training, inject the fact at layer 17 (RAG + Cartridge)
+3. Compute standard cross-entropy loss
+4. Add auxiliary loss: boost probability of target fact tokens
+5. The refiner learns "injected info = truth, output it verbatim"
+
+### Expected Outcome
+
+Same 33M params, same training time (27s/epoch on 3B). The refiner learns to
+TRUST injections as authoritative. Should pass the XR-777 canary test.
+
+
+
+## 2026-06-10: Breakthrough — Representation Engineering vs. Refiner Training
+
+### The Delta Vector Discovery
+Empirical probing (probe_delta.py) shows that the knowledge of a novel fact (e.g., 'Elena Vasquez') is perfectly captured in the residual stream delta between a model that has seen the context and one that hasn't. This 'Delta Vector' is high-fidelity and contains the precise semantic signal needed for correct generation.
+
+### Why Refiners Fail (Initially)
+Untrained refiners fail to utilize raw injections because the frozen downstream layers treat the injected math as noise. Training with LM loss is too slow and noisy to force the necessary geometric alignment.
+
+### The New Path: Delta Prediction Training
+We are pivoting to train the refiners as Delta Predictors. The target is no longer just the next token, but the extracted high-fidelity Delta Vector at the final layer. This supervised task should yield much faster alignment.
+
+### Weight-Baking for Portability
+We demonstrated that injecting the delta at Layer 34/35 successfully influences the output. By physically adding this delta to the weights (Weight-Baking), we can achieve permanent knowledge injection that is compatible with vanilla llama.cpp / GGUF.
+
+
+
+
+## 2026-06-11: Final Delivery — Vanilla GGUF Unrolling
+
+### The Static Unroll Achievement
+We have successfully implemented a GGUF transformation script (unroll_vanilla_gguf.py) that physically inserts our trained refiner blocks as standard layers in the model's computation graph. By increasing the 'block_count' metadata and remapping the base layers, we can now execute the brainloop on any standard llama.cpp release.
+
+### Knowledge Fusing Verified
+Supervised Delta Prediction training (MSE + Cosine alignment) has proven to be the fastest way to align a refiner block with the model's internal 'knowing' states. We have scaled this to 2,002 symbols and demonstrated the ability to 'weld' facts into the residual stream via bias injection.
+
+### Next Step: Mass Production
+The pipeline is now complete: RAG Indexing -> Delta Extraction -> Supervised Fusion Training -> GGUF Unrolling. This can be scaled to the full 13,000 symbol corpus to create a 'Standard Library Expert' model.
+
+

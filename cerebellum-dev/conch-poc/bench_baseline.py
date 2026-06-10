@@ -1,0 +1,51 @@
+import torch
+import json
+from tqdm import tqdm
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from evalplus.data import get_human_eval_plus
+import os
+
+device = torch.device('cuda')
+MODEL_NAME = 'Qwen/Qwen2.5-3B'
+
+def generate_sample(model, tokenizer, prompt, max_new_tokens=512):
+    text = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
+    inputs = tokenizer(text, return_tensors="pt").to(device)
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=max_new_tokens,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+            eos_token_id=tokenizer.eos_token_id
+        )
+        gen_text = tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+        return gen_text
+
+def main():
+    print(f"Loading RAW {MODEL_NAME} for HumanEval baseline...")
+    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
+    model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.bfloat16).to(device).eval()
+
+    dataset = get_human_eval_plus()
+    samples = []
+    
+    print(f"Running HumanEval+ on {len(dataset)} problems (BASELINE)...")
+    count = 0
+    for task_id, problem in tqdm(dataset.items()):
+        solution = generate_sample(model, tokenizer, problem['prompt'])
+        samples.append({
+            "task_id": task_id,
+            "completion": solution
+        })
+        count += 1
+        if count >= 5: break # Just a few for check
+
+    output_file = "humaneval_samples_baseline.jsonl"
+    with open(output_file, "w") as f:
+        for s in samples:
+            f.write(json.dumps(s) + "\n")
+    print(f"Baseline samples saved.")
+
+if __name__ == "__main__":
+    main()
