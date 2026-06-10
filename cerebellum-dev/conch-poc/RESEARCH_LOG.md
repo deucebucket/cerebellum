@@ -489,3 +489,72 @@ Training data needs to be focused (174 functions), not noisy stdlib.
 2. Train refiner with code-matched cartridge + focused RAG index
 3. Expected: RAG + code-cartridge > RAG alone
 
+
+---
+
+## 2026-06-09 (continued): Cartridge Server Path Debugging
+
+### Perplexity vs Server Graph Construction
+
+Cartridge V injection pipeline works perfectly in llama-perplexity (234 successful
+injections across all layers and chunks). Crashes in llama-server during graph
+construction with `ggml_repeat` broadcast failure.
+
+Root cause: perplexity and server build different ggml_cgraph structures.
+The `cur` tensor from `build_attn` has different properties in each:
+- Perplexity: simple single-batch graph, cur is direct attention output
+- Server: parallel slots with KV cache, cur goes through additional ops
+
+The `ggml_repeat(ctx, cart_proj, cur)` broadcast from [n_embd, 1] to [n_embd, n_tokens]
+fails in the server path because `cur` has unexpected dimensions or strides
+due to the parallel slot handling.
+
+### Fix Paths
+
+1. Use `ggml_cont` on `cur` before passing to repeat
+2. Bypass repeat entirely: use ggml_mul_mat to broadcast V to all tokens
+3. Inject cartridge BEFORE the attention residual (modify cur before build_attn)
+4. Debug the exact tensor shapes in server's graph
+
+### Code Cartridge Ready
+
+Built code-specific cartridge from 20 HumanEval solutions (36 layers x 256 dim).
+Combined training with RAG index completed. Cartridge scale learned to 0.53.
+Ready to test once server path is fixed.
+
+
+---
+
+## 2026-06-09: Logit Lens Discovery — The Knowledge Gate
+
+### Breakthrough Finding
+
+Using Logit Lens (projecting hidden states to vocabulary at each layer), we
+discovered exactly where the model accesses factual knowledge:
+
+"What is the capital of France?"
+- Layers 0-30: P(Paris) = 0.000 — model has no clue
+- **Layer 31: P(Paris) = 0.946** — answer SUDDENLY emerges
+- Layers 31-34: P(Paris) = 0.56-0.96 — high confidence
+- Layer 35: P(Paris) drops to 0.0006 — output processing
+
+The model doesn't "look up" facts until the final 5 layers. This explains why
+all injection attempts at layer 17 (14 layers before the knowledge gate) failed.
+The injected information gets processed through 14 more layers and diluted back
+to the model's training distribution.
+
+### Cartridge at Knowledge Gate
+
+Moved cartridge injection to layers 30-33 with scale 2.0. Server runs clean.
+Output still "US Air Force" — the model's parametric prior at these layers is
+stronger than any untrained injection.
+
+### Consistent Pattern
+
+Every injection mechanism shows the same behavior:
+- Untrained: model overrides injection, outputs training distribution
+- Trained: model learns to trust injection (+6% HumanEval for RAG)
+
+The fix is the same for all mechanisms: train the refiner WITH the injection
+present. The model learns to route to the injected context at the right layers.
+
