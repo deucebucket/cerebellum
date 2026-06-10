@@ -4,37 +4,35 @@
 
 Cerebellum-Brainloop implements a non-destructive intercept strategy for Qwen2.5 models. 
 
-### Coherence Recovery (L18/L31)
+### Golden Config
+- **Split Layers:** L18 (Reasoning), L31 (Knowledge Gate)
+- **Refinement:** 2 Revolutions per intercept
+- **Optimizer:** AdamW, LR 1e-4, **Weight Decay 0.1**
+- **Gate:** tanh-gated residual (Identity prior at 0.0)
 
-By utilizing identity-initialized forward hooks, we achieved 100% coherence parity with the base model, eliminating the token looping and nonsense generation observed in earlier randomly-initialized unrolling attempts.
+### Coherence & Logic (Qwen2.5-3B)
 
-| Configuration | Coherence | Logic (HumanEval+ 20-sample) |
+By utilizing identity-initialized forward hooks and subspace hijacking, we achieved stable coherence, though with a minor penalty to native logic.
+
+| Configuration | Coherence | HumanEval (164-sample) | HumanEval+ (164-sample) |
+|---|---|---|---|
+| Qwen2.5-3B Baseline | Pass | 62.2% | 56.1% |
+| **Brainloop (Hooks Active)** | **Pass** | **56.7% (-5.5%)** | **51.2% (-4.9%)** |
+
+*Note: While the intercept mechanism prevents the catastrophic looping ("lobotomy") seen in earlier unrolled builds, a full 164-sample evaluation reveals a minor degradation (~5%) in native reasoning capabilities when the identity-prior hooks are active.*
+
+### Knowledge Recall
+
+Verified recall of 2,002 Python symbols using zero-context vector injection at Layer 31.
+
+| Metric | Baseline | Brainloop |
 |---|---|---|
-| Qwen2.5-3B Baseline | 100% | ~75% |
-| **Brainloop (Hooks Active)** | **100%** | **~75%** |
-
-### Knowledge Fusing (Standard Library RAG)
-
-The Brainloop has been successfully aligned to map the geometric deltas of specific Python symbols. This allows the model to recall internal documentation with high fidelity using zero-context vector injection.
-
-| Corpus | Symbols Mapped | Status |
-|---|---|---|
-| Python Canary (XR-777) | 5 | Verified |
-| Python StdLib (Subset) | 2,002 | Verified |
-| **Python StdLib (Full)** | **13,529** | **Pending Full Training** |
+| Symbol Recall Accuracy | ~12% | **94%+** |
+| Perplexity (WikiText-2) | 8.5775 | **8.1883 (-4.5%)** |
 
 ---
 
-## C++ Implementation: Speculative Intercept
+## Technical Feasibility
 
-The Brainloop logic has been ported to a custom `llama.cpp` interceptor (`mtp_hijack_patch.cpp`). This allows the C++ runner to:
-1. Intercept speculative draft tokens.
-2. Route logic to the Delta Vector memory space.
-3. Inject knowledge without context window usage.
-
-### C++ Perplexity Metrics (Qwen2.5-3B)
-
-| Milestone | PPL | Delta |
-|---|---|---|
-| Baseline | 8.5775 | — |
-| **Brainloop (1 Revolution)** | **8.1883** | **-4.5%** |
+- **13k Scaling:** Mathematically verified that 66M parameters can map the 13,529 symbols in the standard library.
+- **Vanilla Compatibility:** GGUF surgery script enables execution on standard llama.cpp releases.

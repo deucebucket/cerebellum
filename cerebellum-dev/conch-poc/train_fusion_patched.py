@@ -69,7 +69,8 @@ for name, param in model.named_parameters():
 dataset = FusionDataset(py_train_data, py_deltas)
 loader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=fusion_collate)
 
-optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)
+# Golden Config: weight_decay=0.1 to prevent overfitting
+optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=0.1)
 
 print("\nStarting Knowledge Fusion Training (Patched Layers)...")
 

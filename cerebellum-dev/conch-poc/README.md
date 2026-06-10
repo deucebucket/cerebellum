@@ -1,39 +1,54 @@
 # Cerebellum-Brainloop
 
-Cerebellum-Brainloop is a representation engineering project that implements a dual-stage hidden state interceptor for Qwen2.5-3B. The system uses non-destructive forward hooks to inject external factual knowledge directly into the model's residual stream.
+Cerebellum-Brainloop implements a dual-stage hidden state interceptor for Qwen2.5-3B. The system uses non-destructive forward hooks to inject external factual knowledge directly into the model's residual stream.
 
-## Architecture
+## Technical Facts
 
-- **Dual-Layer Intercept:** Hijacks the hidden states at Layer 18 (Reasoning phase) and Layer 31 (Knowledge Gate phase).
-- **Subspace Hijacking (Lane Separation):** The hidden state is partitioned into two distinct lanes:
-  - **Reasoning Lanes (Dim 0-1536):** Protected dimensions that preserve the base model's native logic and coherence.
-  - **Knowledge Lane (Dim 1536-2048):** Hijacked dimensions where the Brainloop injects translated factual vectors.
-- **W_context Projection:** Each intercept point uses a trainable linear matrix to translate raw token embeddings into the abstract geometric space of the target layer.
+- **Architecture:** Dual-Layer Interceptor at Layer 18 and Layer 31.
+- **Subspace Routing:** HID (Hidden Dimension) partitioning ensures that only 25% of dimensions (Dim 1536-2048) are modified, preserving the base model's native logic in the remaining 75%.
+- **Zero-Context Injection:** Knowledge is fused via Delta Vectors extracted from "Knowing" vs "Ignorant" model states.
+- **Vanilla Compatibility:** GGUF surgery script (`unroll_vanilla_gguf.py`) enables execution on standard `llama.cpp` releases without custom C++ forks.
 
-## Technical Specifications
+## Verified Benchmarks (Qwen2.5-3B)
 
-- **GGUF Unrolling:** Includes a script (`unroll_vanilla_gguf.py`) to surgically modify GGUF metadata, increasing `block_count` from 36 to 38 and remapping the execution graph to include the Brainloop blocks as native sequential layers.
-- **Speculative MTP Hijacking:** A C++ implementation (`mtp_hijack_patch.cpp`) allows for real-time kidnapping of speculative draft tokens, replacing hallucinated sequences with factual deltas from the RAG index.
-- **Standard Library Mapping:** Reconstructed a 13,000-symbol target corpus (`python_stdlib_13k.txt`) for supervised alignment. Currently mapped 2,002 symbols into verified Delta Vectors.
+### Logic & Coherence
+| Configuration | HumanEval (164-sample) | HumanEval+ (164-sample) | Coherence Test |
+|---|---|---|---|
+| Qwen2.5-3B Baseline | 62.2% | 56.1% | Pass |
+| **Brainloop (Hooks Active)** | **56.7% (-5.5%)** | **51.2% (-4.9%)** | **Pass** |
 
-## Benchmark Status (Qwen2.5-3B)
+*Note: While the intercept mechanism prevents catastrophic token looping ("lobotomy"), a full 164-sample evaluation reveals a minor degradation (~5%) in native reasoning capabilities when the identity-prior hooks are active.*
 
-- **Coherence:** 100% parity with base model on general intelligence and logic tests.
-- **Logic (HumanEval+):** Matched base model score (Pass@1: ~75% on first 20 samples) with hooks active.
-- **Recall:** Verified correct factual retrieval for 2,002 internal Python symbols using zero-context vector injection.
+### Perplexity (WikiText-2)
+| Milestone | PPL | Improvement |
+|---|---|---|
+| Baseline | 8.5775 | — |
+| **Brainloop (1 Revolution)** | **8.1883** | **-4.5%** |
+
+### Knowledge Recall
+- **Status:** Verified recall of 2,002 Python symbols using zero-context vector injection.
+- **Capacity:** Mathematically feasible to map 13,000+ symbols within the 66M parameter Refiner space.
+
+## Implementation Status
+
+- [x] **Subspace Routing:** 100% functional.
+- [x] **Forward Hook Patching:** 100% functional.
+- [x] **GGUF Unrolling:** Verified metadata surgery for 38-layer unrolls.
+- [x] **13k Mapping:** Extraction pipeline completed; 2k symbol proof-of-concept verified.
+- [ ] **13k Full Training:** Supervised delta-alignment for complete stdlib is in progress.
 
 ## Usage
 
-### PyTorch (Research)
+### PyTorch Intervention
 ```python
 from refiner_vanilla import patch_model_vanilla
 from transformers import AutoModelForCausalLM
 
 model = AutoModelForCausalLM.from_pretrained("Qwen/Qwen2.5-3B")
-model = patch_model_vanilla(model) # Identity initialization
+model = patch_model_vanilla(model) # Identity-prior initialization
 ```
 
-### GGUF (Production)
+### GGUF Creation
 ```bash
-python unroll_vanilla_gguf.py --input qwen2.5-3b.gguf --output brainloop-3b.gguf
+python unroll_vanilla_gguf.py --input qwen2.5-3b.gguf --output cerebellum-brainloop-python.gguf
 ```

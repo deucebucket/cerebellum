@@ -3,7 +3,7 @@ import sys
 
 def smoke_test(model_path):
     print(f"[*] Loading model: {model_path}")
-    llm = Llama(model_path=model_path, n_ctx=512, n_gpu_layers=-1)
+    llm = Llama(model_path=model_path, n_ctx=512, n_gpu_layers=-1, verbose=True)
     
     print("\n[1] Basic Coherence Test:")
     prompt = "Explain why the sky is blue in one sentence."
@@ -20,4 +20,4 @@ def smoke_test(model_path):
     print(f"Response: {text.strip()}")
 
 if __name__ == "__main__":
-    smoke_test("qwen2.5-3b-unrolled.gguf")
+    smoke_test("cerebellum-brainloop-python.gguf")

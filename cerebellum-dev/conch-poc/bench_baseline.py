@@ -9,7 +9,8 @@ device = torch.device('cuda')
 MODEL_NAME = 'Qwen/Qwen2.5-3B'
 
 def generate_sample(model, tokenizer, prompt, max_new_tokens=512):
-    text = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
+    # BASE MODEL: Use instruct prompt
+    text = f"<|im_start|>user\nSolve this Python coding problem:\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
     inputs = tokenizer(text, return_tensors="pt").to(device)
     with torch.no_grad():
         outputs = model.generate(
@@ -20,34 +21,32 @@ def generate_sample(model, tokenizer, prompt, max_new_tokens=512):
             eos_token_id=tokenizer.eos_token_id
         )
         gen_text = tokenizer.decode(outputs[0][inputs.input_ids.shape[1]:], skip_special_tokens=True)
+        if "```python" in gen_text:
+            gen_text = gen_text.split("```python")[1].split("```")[0]
+        elif "```" in gen_text:
+            gen_text = gen_text.split("```")[1].split("```")[0]
         return gen_text
 
 def main():
-    print(f"Loading RAW {MODEL_NAME} for HumanEval baseline...")
+    print(f"Loading RAW {MODEL_NAME} for FULL HumanEval benchmark...")
     tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, torch_dtype=torch.bfloat16).to(device).eval()
 
     dataset = get_human_eval_plus()
     samples = []
     
-    print(f"Running HumanEval+ on {len(dataset)} problems (10 SAMPLES, DUMMY REST)...")
-    count = 0
     for task_id, problem in tqdm(dataset.items()):
-        if count < 10:
-            solution = generate_sample(model, tokenizer, problem['prompt'])
-        else:
-            solution = "return None"
+        solution = generate_sample(model, tokenizer, problem['prompt'])
         samples.append({
             "task_id": task_id,
             "completion": solution
         })
-        count += 1
 
     output_file = "humaneval_samples_baseline.jsonl"
     with open(output_file, "w") as f:
         for s in samples:
             f.write(json.dumps(s) + "\n")
-    print(f"Baseline samples saved.")
+    print(f"FULL Baseline samples saved.")
 
 if __name__ == "__main__":
     main()
