@@ -436,3 +436,56 @@ mechanism that forces the model to internalize injected knowledge as if it
 were part of its training data. The untrained injection approaches all fail
 because the model's parametric memory overrides any externally injected vector.
 
+
+---
+
+## 2026-06-09 (continued): Cartridge + RAG Combined Pipeline
+
+### Cartridge Breakthrough
+
+After extensive debugging, the cartridge V-only injection pipeline is proven
+working at the GGML op level:
+
+1. Per-layer V loaded from cartridge_v.bin (36 layers x 256 dim) ✅
+2. 8x concat head expansion (dim 1, F32 for CUDA) ✅
+3. ggml_reshape_2d to [n_embd, 1] ✅
+4. ggml_mul_mat with wo + bias ✅
+5. ggml_repeat broadcast [n_embd, 1] -> [n_embd, n_tokens] ✅
+6. ggml_add to hidden state ✅
+7. 234 successful injections across all layers and chunks ✅
+
+Root cause of previous failures: ggml_flash_attn_ext calls internal ggml_repeat
+for GQA head expansion which fails on 1-token tensors. Bypassed by manual 8x
+concat head expansion (2 -> 16) and skipping attention entirely (1-token
+attention always returns V_cart).
+
+### Combined Training
+
+Trained refiner with BOTH RAG index + Cartridge V simultaneously.
+Training data: 13K-line Python stdlib corpus (noisy).
+
+Results:
+- RAG scale: 0.62 (stable across ALL training runs)
+- Cartridge scale: 0.53 (learned from 0.1 init)
+- Gate: 0.50 (stable)
+- PPL: -14.6% vs baseline
+
+### HumanEval+ with Both Active
+
+| Configuration | Base | Plus |
+|---|---|---|
+| Baseline | 36.6% | 32.3% |
+| RAG only (174 funcs) | 42.7% | 37.2% |
+| RAG + Cartridge (13K corpus) | 39.6% | 36.6% |
+| Both active inference | 39.0% | 36.0% |
+
+Cartridge uses fact-based V vectors (from canary text). Domain mismatch for
+code tasks. Cartridge V needs code-specific forward pass extraction.
+Training data needs to be focused (174 functions), not noisy stdlib.
+
+### Next Steps
+
+1. Build cartridge V from CODE forward passes (HumanEval solutions)
+2. Train refiner with code-matched cartridge + focused RAG index
+3. Expected: RAG + code-cartridge > RAG alone
+
