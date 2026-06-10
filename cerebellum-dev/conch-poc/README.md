@@ -1,7 +1,15 @@
-# Conch POC — Bolt-On Refiner for Small Models
+# Conch POC — Neural Knowledge Fusing
 
-A trainable refiner block (~2% params) inserted mid-model that improves
-perplexity by iterating on hidden states. Base model stays frozen.
+### 🚀 Current Status (June 10, 2026)
+**Breakthrough achieved in Knowledge Trust.** We have moved beyond "bolt-on" perplexity improvements to **Zero-Context Knowledge Injection**. By extracting "Delta Vectors" (the mathematical difference between model states with and without context), we can now force a 3B model to recall novel facts with high fidelity.
+
+**Accomplishments:**
+- **Dual-Refiner Architecture:** Reasoning at Layer 18, Knowledge Gate at Layer 31.
+- **Delta-Vector Proof:** Empirically verified that knowledge lives in the Residual Stream Delta.
+- **2,000+ Python Symbols Mapped:** Full RAG index for the Python standard library.
+- **Sharp Attention:** Entropy regularization successfully eliminated blend-hallucinations.
+
+---
 
 ## Results
 
