@@ -2,17 +2,26 @@ import torch
 import torch.nn as nn
 from transformers.models.qwen2.modeling_qwen2 import Qwen2DecoderLayer, Qwen2Config
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from copy import deepcopy
 
 class RefinerVanilla(nn.Module):
-    def __init__(self, config, layer_idx):
+    def __init__(self, config, layer_idx, base_layer=None):
         super().__init__()
-        self.layer = Qwen2DecoderLayer(config, layer_idx)
-        self.gate = nn.Parameter(torch.tensor(0.0))
+        if base_layer is not None:
+            # Clone the base layer weights to ensure Identity Prior
+            self.layer = deepcopy(base_layer)
+        else:
+            self.layer = Qwen2DecoderLayer(config, layer_idx)
+            
+        # Initialize gate to a large negative value (sigmoid -> 0)
+        # This makes the refiner a "no-op" at start
+        self.gate = nn.Parameter(torch.tensor(-10.0))
         
         # Injection
         self.inj_proj = nn.Linear(config.hidden_size, config.hidden_size)
         nn.init.eye_(self.inj_proj.weight)
-        self.rag_scale = nn.Parameter(torch.tensor(1.0))
+        # Low initial scale (volume down)
+        self.rag_scale = nn.Parameter(torch.tensor(-2.0)) # sigmoid(-2) approx 0.12
         
         self.active_injection = None
 
@@ -40,6 +49,7 @@ class RefinerVanilla(nn.Module):
 
 def patch_model_vanilla(model):
     hidden_size = model.config.hidden_size
-    model.model.layers[18] = RefinerVanilla(model.config, 18).to(model.dtype)
-    model.model.layers[31] = RefinerVanilla(model.config, 31).to(model.dtype)
+    # Clone L18 and L31 from the base model
+    model.model.layers[18] = RefinerVanilla(model.config, 18, base_layer=model.model.layers[18]).to(model.dtype)
+    model.model.layers[31] = RefinerVanilla(model.config, 31, base_layer=model.model.layers[31]).to(model.dtype)
     return model
