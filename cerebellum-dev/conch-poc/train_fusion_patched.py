@@ -13,14 +13,14 @@ device = torch.device('cuda')
 MODEL_NAME = 'Qwen/Qwen2.5-3B'
 
 # 1. Load Data
-print("Loading Python RAG data...")
-with open('rag-experiment/python_lib_rag.bin', 'rb') as f:
+print("Loading Python 13k RAG data...")
+with open('python_13k_rag.bin', 'rb') as f:
     hdr = f.read(8); r, c = struct.unpack('ii', hdr)
     py_vectors = np.frombuffer(f.read(), dtype=np.float32).reshape(r, c)
 py_index = torch.from_numpy(py_vectors.copy()).to(device, dtype=torch.bfloat16)
 
-py_train_data = torch.load('python_train_corpus.pt', weights_only=False)
-py_deltas = torch.load('python_deltas.pt', weights_only=False)
+py_train_data = torch.load('python_13k_train_corpus.pt', weights_only=False)
+py_deltas = torch.load('python_13k_deltas.pt', weights_only=False)
 py_deltas = torch.stack(py_deltas).to(device, dtype=torch.bfloat16).squeeze(1)
 
 class FusionDataset(Dataset):
@@ -128,14 +128,12 @@ for epoch in range(1):
         
         if (i + 1) % 100 == 0:
             print(f"Step {i+1} | LossLM: {loss_lm.item():.3f} | LossD: {loss_delta.item():.3f}")
-            
-        if i > 500: break
 
 # Save only the refiner weights
-os.makedirs('checkpoints-fusion-patched', exist_ok=True)
+os.makedirs('checkpoints-fusion-13k', exist_ok=True)
 save_dict = {
     'l18': model.model.layers[18].state_dict(),
     'l31': model.model.layers[31].state_dict()
 }
-torch.save(save_dict, 'checkpoints-fusion-patched/fused_refiners.pt')
+torch.save(save_dict, 'checkpoints-fusion-13k/fused_refiners.pt')
 print("Done!")

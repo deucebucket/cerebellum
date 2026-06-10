@@ -105,7 +105,6 @@ def unroll_cloned_gguf(gguf_in, ckpt_path, gguf_out):
     print("[+] Done!")
 
 if __name__ == "__main__":
-    # Remove old output to avoid permission/size issues
-    if os.path.exists('qwen2.5-3b-unrolled-identity.gguf'):
-        os.remove('qwen2.5-3b-unrolled-identity.gguf')
-    unroll_cloned_gguf('qwen2.5-3b-brainloop.gguf', None, 'qwen2.5-3b-unrolled-identity.gguf')
+    if os.path.exists('cerebellum-brainloop-python.gguf'):
+        os.remove('cerebellum-brainloop-python.gguf')
+    unroll_cloned_gguf('qwen2.5-3b-brainloop.gguf', 'checkpoints-fusion-13k/fused_refiners.pt', 'cerebellum-brainloop-python.gguf')

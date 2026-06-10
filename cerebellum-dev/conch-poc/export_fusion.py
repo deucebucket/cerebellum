@@ -34,4 +34,4 @@ def export_fusion_weights(ckpt_path, out_dir):
             f.write(data.detach().numpy().tobytes())
 
 if __name__ == "__main__":
-    export_fusion_weights('checkpoints-fusion/fusion_refiner.pt', 'fusion-ggml-weights')
+    export_fusion_weights('checkpoints-fusion-13k/fused_refiners.pt', 'fusion-ggml-weights-13k')
