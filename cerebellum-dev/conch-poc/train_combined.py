@@ -52,7 +52,7 @@ model = model.to(device)
 for param in model.base.parameters(): param.requires_grad = False
 
 model.rag_scale = torch.nn.Parameter(torch.tensor(0.5).to(device, dtype=torch.bfloat16))
-model.cart_scale = torch.nn.Parameter(torch.tensor(0.1).to(device, dtype=torch.bfloat16))
+model.cart_scale = torch.nn.Parameter(torch.tensor(0.5).to(device, dtype=torch.bfloat16))
 
 def combined_forward(input_ids, labels=None, attention_mask=None, fixed_revolutions=None):
     nrev = fixed_revolutions if fixed_revolutions is not None else REVS
@@ -65,30 +65,24 @@ def combined_forward(input_ids, labels=None, attention_mask=None, fixed_revoluti
         out = model.layers[i](hidden, position_embeddings=pos_emb)
         hidden = out[0] if isinstance(out, tuple) else out
 
-    # RAG injection at split point
+    # RAG + Cartridge at refiner input (layer 17)
     if model.training:
         query = hidden.mean(dim=1)
         sim = torch.matmul(rag_index, query.T)
         top1_idx = sim.argmax(dim=0)
         top1_docs = rag_index[top1_idx]
         hidden = hidden + torch.sigmoid(model.rag_scale) * top1_docs.unsqueeze(1)
+        # Cartridge at knowledge gate: inject V vectors directly
+        cv = cart_v[30:34].mean(dim=0)  # avg of layers 30-33
+        cv = cv.view(2, 128).transpose(0,1).repeat_interleave(8, dim=1).reshape(2048)
+        cv = cv.unsqueeze(0).unsqueeze(0).expand(bs, seq, -1)
+        hidden = hidden + torch.sigmoid(model.cart_scale) * cv
 
     # Refiner loops
     for rev in range(nrev):
         hidden = model.refiner(hidden, rev)
 
-    # Cartridge V injection at each remaining layer
     for i in range(SPLIT, len(model.layers)):
-        # Get this layer's cartridge V row, expand heads, project, inject
-        if model.training:
-            cv = cart_v[i]  # [256] = [n_kv_head * n_embd_head]
-            cv = cv.view(n_kv_head, n_embd_head).transpose(0,1)  # [128, 2]
-            # Expand 2->16 heads via repeat
-            cv = cv.repeat_interleave(n_head // n_kv_head, dim=1)  # [128, 16]
-            cv = cv.reshape(n_embd_head * n_head)  # [2048]
-            cv = cv.unsqueeze(0).expand(bs, seq, -1)  # [bs, seq, 2048]
-            hidden = hidden + torch.sigmoid(model.cart_scale) * cv
-
         out = model.layers[i](hidden, position_embeddings=pos_emb)
         hidden = out[0] if isinstance(out, tuple) else out
 
@@ -124,7 +118,7 @@ ppl_base = qppl()
 print('Baseline PPL: %.4f' % ppl_base)
 
 # Training data: code corpus
-data_path = 'code_corpus_full.txt'
+data_path = '/var/home/deucebucket/games/osmosis-quants/wiki.train.raw'
 dataset = TextDataset(tokenizer, data_path, block_size=512)
 loader = DataLoader(dataset, batch_size=BATCH, shuffle=True, collate_fn=collate_fn, drop_last=True)
 

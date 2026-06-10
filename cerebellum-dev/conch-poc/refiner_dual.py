@@ -13,7 +13,7 @@ class StraightThroughGate(torch.autograd.Function):
         return grad_output
 
 class RefinerBlock(nn.Module):
-    def __init__(self, hidden_size, num_heads=8, intermediate_size=2048):
+    def __init__(self, hidden_size, num_heads=8, intermediate_size=4096):
         super().__init__()
         self.hidden_size = hidden_size
         self.ln1 = nn.LayerNorm(hidden_size)
@@ -24,39 +24,31 @@ class RefinerBlock(nn.Module):
             nn.GELU(),
             nn.Linear(intermediate_size, hidden_size),
         )
-        self.max_revolutions = 4
-        self.rev_embed = nn.Embedding(self.max_revolutions, hidden_size)
         self.gate = nn.Parameter(torch.tensor(0.0))
+        self.rev_embed = nn.Embedding(4, hidden_size)
 
     def _causal_mask(self, seq_len, device, dtype):
         mask = torch.triu(torch.full((seq_len, seq_len), float("-inf"), device=device), diagonal=1)
         return mask.to(dtype)
 
     def forward(self, hidden_states, revolution_idx):
-        """
-        One refinement pass.
-        """
         seq_len = hidden_states.size(1)
         causal_mask = self._causal_mask(seq_len, hidden_states.device, hidden_states.dtype)
-
-        # Add revolution embedding
+        
         rev_emb = self.rev_embed(torch.tensor(revolution_idx, device=hidden_states.device))
         x = hidden_states + rev_emb.unsqueeze(0).unsqueeze(0)
-
-        # Self-attention with causal mask and residual
+        
         normed = self.ln1(x)
+        # Standard MultiheadAttention
         attn_out, attn_weights = self.attn(normed, normed, normed, attn_mask=causal_mask, average_attn_weights=False)
         x = x + attn_out
-
-        # FFN with residual
         x = x + self.ffn(self.ln2(x))
-
-        # Gated residual
+        
         if self.training:
             gate_val = StraightThroughGate.apply(self.gate)
         else:
             gate_val = torch.sigmoid(self.gate)
-
+            
         return hidden_states + gate_val * (x - hidden_states), attn_weights
 
 class MultiConchRefinerModel(nn.Module):
@@ -73,13 +65,13 @@ class MultiConchRefinerModel(nn.Module):
         self.layers = base_model.model.layers
         self.norm = base_model.model.norm
         self.lm_head = base_model.lm_head
-        self.rotary_emb = base_model.model.rotary_emb
+        self.config = base_model.config
 
-        hidden_size = base_model.config.hidden_size
-        num_heads = base_model.config.num_attention_heads
+        hidden_size = self.config.hidden_size
+        num_heads = self.config.num_attention_heads
         
         self.refiners = nn.ModuleDict({
-            str(layer): RefinerBlock(hidden_size, num_heads, hidden_size * 2)
+            str(layer): RefinerBlock(hidden_size, num_heads)
             for layer in self.split_layers
         })
         
@@ -88,8 +80,6 @@ class MultiConchRefinerModel(nn.Module):
             for layer in self.split_layers
         })
         
-        # W_context: Translates L0 vectors to this model's abstract geometry
-        # We'll put these on the model directly
         self.inj_projs = nn.ModuleDict({
             str(layer): nn.Linear(hidden_size, hidden_size)
             for layer in self.split_layers
@@ -98,20 +88,36 @@ class MultiConchRefinerModel(nn.Module):
             nn.init.eye_(proj.weight)
 
     def forward(self, input_ids, labels=None, attention_mask=None, injections=None):
+        # We use base model's internal forward logic as much as possible
+        # to avoid RoPE / Masking bugs
+        
         batch_size, seq_len = input_ids.shape
-        device = input_ids.device
         hidden_states = self.embed_tokens(input_ids)
+        
+        # Use a proper attention mask for the base model
+        # transformers 4.36+ expects a 4D mask or uses its own.
+        # We'll just pass None and let the layers handle it if they can,
+        # but Qwen2 layers NEED position_embeddings or position_ids.
+        
+        # Proper Qwen2 position_ids and position_embeddings
+        device = input_ids.device
         position_ids = torch.arange(seq_len, device=device).unsqueeze(0).expand(batch_size, -1)
-        position_embeddings = self.rotary_emb(hidden_states, position_ids)
-
+        
+        # Get position_embeddings from the base model
+        # This handles the internal RoPE logic correctly
+        with torch.no_grad():
+            # Most Qwen2 models have a rotary_emb module
+            pos_emb = self.base.model.rotary_emb(hidden_states, position_ids)
+        
         all_attn_weights = {}
         current_layer = 0
         for split in self.split_layers:
             for i in range(current_layer, split):
-                layer_out = self.layers[i](hidden_states, position_embeddings=position_embeddings)
-                hidden_states = layer_out[0] if isinstance(layer_out, tuple) else layer_out
+                # Call base layer correctly
+                layer_outputs = self.layers[i](hidden_states, position_embeddings=pos_emb)
+                hidden_states = layer_outputs[0]
             
-            # Apply Injection ONCE before refinement loop
+            # Injection
             if injections and split in injections:
                 inj = injections[split].to(hidden_states.dtype)
                 translated_inj = self.inj_projs[str(split)](inj)
@@ -128,8 +134,8 @@ class MultiConchRefinerModel(nn.Module):
             current_layer = split
 
         for i in range(current_layer, len(self.layers)):
-            layer_out = self.layers[i](hidden_states, position_embeddings=position_embeddings)
-            hidden_states = layer_out[0] if isinstance(layer_out, tuple) else layer_out
+            layer_outputs = self.layers[i](hidden_states, position_embeddings=pos_emb)
+            hidden_states = layer_outputs[0]
 
         hidden_states = self.norm(hidden_states)
         logits = self.lm_head(hidden_states)

@@ -607,3 +607,17 @@ We are pivoting to train the refiners as Delta Predictors. The target is no long
 We demonstrated that injecting the delta at Layer 34/35 successfully influences the output. By physically adding this delta to the weights (Weight-Baking), we can achieve permanent knowledge injection that is compatible with vanilla llama.cpp / GGUF.
 
 
+
+
+## 2026-06-11: Final Delivery — Vanilla GGUF Unrolling
+
+### The Static Unroll Achievement
+We have successfully implemented a GGUF transformation script (unroll_vanilla_gguf.py) that physically inserts our trained refiner blocks as standard layers in the model's computation graph. By increasing the 'block_count' metadata and remapping the base layers, we can now execute the brainloop on any standard llama.cpp release.
+
+### Knowledge Fusing Verified
+Supervised Delta Prediction training (MSE + Cosine alignment) has proven to be the fastest way to align a refiner block with the model's internal 'knowing' states. We have scaled this to 2,002 symbols and demonstrated the ability to 'weld' facts into the residual stream via bias injection.
+
+### Next Step: Mass Production
+The pipeline is now complete: RAG Indexing -> Delta Extraction -> Supervised Fusion Training -> GGUF Unrolling. This can be scaled to the full 13,000 symbol corpus to create a 'Standard Library Expert' model.
+
+

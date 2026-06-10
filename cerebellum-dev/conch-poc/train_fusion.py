@@ -47,7 +47,7 @@ class FusionDataset(Dataset):
         }
 
 def fusion_collate(batch):
-    max_len = min(256, max(len(x['input_ids']) for x in batch))
+    max_len = min(128, max(len(x['input_ids']) for x in batch)) # Reduce seq_len
     input_ids = torch.zeros(len(batch), max_len, dtype=torch.long)
     target_mask = torch.zeros(len(batch), max_len, dtype=torch.long)
     injection_idxs = torch.zeros(len(batch), dtype=torch.long)
@@ -64,7 +64,7 @@ model, tokenizer = load_multi_refiner(MODEL_NAME, split_layers=SPLITS, num_revol
 model = model.to(device)
 
 dataset = FusionDataset(py_train_data, py_deltas)
-loader = DataLoader(dataset, batch_size=2, shuffle=True, collate_fn=fusion_collate)
+loader = DataLoader(dataset, batch_size=1, shuffle=True, collate_fn=fusion_collate) # Batch size 1
 
 optimizer = AdamW(model.parameters(), lr=1e-4, weight_decay=0.01)
 
@@ -122,6 +122,7 @@ for epoch in range(2):
         
         # --- D. Entropy Regularization ---
         l31_attn = attn_weights[31][0] # Layer 31, First revolution
+        # weights shape: [bs, num_heads, seq_len, seq_len]
         entropy = - (l31_attn * torch.log(l31_attn + 1e-8)).sum(dim=-1).mean()
         
         # --- Total Loss ---

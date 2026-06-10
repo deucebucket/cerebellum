@@ -1,0 +1,9 @@
+{
+  "benchmark": "evalplus_humaneval_plus",
+  "model": "qwen7b-baseline-real",
+  "pass_at_1_plus": null,
+  "pass_at_1_base": null,
+  "total_problems": 164,
+  "elapsed_seconds": 658.3,
+  "timestamp": "2026-06-09 13:13"
+}

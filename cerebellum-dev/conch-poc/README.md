@@ -7,7 +7,7 @@
 - **Dual-Refiner Architecture:** Reasoning at Layer 18, Knowledge Gate at Layer 31.
 - **Delta-Vector Proof:** Empirically verified that knowledge lives in the Residual Stream Delta.
 - **2,000+ Python Symbols Mapped:** Full RAG index for the Python standard library.
-- **Sharp Attention:** Entropy regularization successfully eliminated blend-hallucinations.
+- **Vanilla GGUF Compatibility:** Successfully unrolled the dual-refiner loop into a standard 38-layer GGUF (`qwen2.5-3b-unrolled.gguf`) that runs on official `llama.cpp` releases without custom code.
 
 ---
 

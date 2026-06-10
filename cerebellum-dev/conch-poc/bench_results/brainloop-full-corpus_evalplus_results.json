@@ -1,0 +1,9 @@
+{
+  "benchmark": "evalplus_humaneval_plus",
+  "model": "brainloop-full-corpus",
+  "pass_at_1_plus": 32.93,
+  "pass_at_1_base": 36.59,
+  "total_problems": 164,
+  "elapsed_seconds": 137.8,
+  "timestamp": "2026-06-09 10:07"
+}

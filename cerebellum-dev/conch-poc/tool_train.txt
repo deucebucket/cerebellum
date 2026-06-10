@@ -1,0 +1,200 @@
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>
+User asks for something requiring "get_weather". Assistant responds: <tool_call>{"name": "get_weather", "arguments": {"location": "value", "units": "value"}}</tool_call>
+User asks for something requiring "search_database". Assistant responds: <tool_call>{"name": "search_database", "arguments": {"query": "value", "limit": "value"}}</tool_call>
+User asks for something requiring "send_email". Assistant responds: <tool_call>{"name": "send_email", "arguments": {"to": "value", "subject": "value", "body": "value"}}</tool_call>
+User asks for something requiring "calculate". Assistant responds: <tool_call>{"name": "calculate", "arguments": {"expression": "value"}}</tool_call>
+User asks for something requiring "read_file". Assistant responds: <tool_call>{"name": "read_file", "arguments": {"path": "value"}}</tool_call>
+User asks for something requiring "write_file". Assistant responds: <tool_call>{"name": "write_file", "arguments": {"path": "value", "content": "value"}}</tool_call>
+User asks for something requiring "create_event". Assistant responds: <tool_call>{"name": "create_event", "arguments": {"title": "value", "date": "value", "time": "value"}}</tool_call>
+User asks for something requiring "web_search". Assistant responds: <tool_call>{"name": "web_search", "arguments": {"query": "value", "num_results": "value"}}</tool_call>

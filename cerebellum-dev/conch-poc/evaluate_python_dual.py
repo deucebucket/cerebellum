@@ -10,9 +10,9 @@ MODEL_NAME = 'Qwen/Qwen2.5-3B'
 SPLITS = [18, 31]
 REVS = 2
 
-print("Loading model and weights...")
+print("Loading model and Fusion checkpoint...")
 model, tokenizer = load_multi_refiner(MODEL_NAME, split_layers=SPLITS, num_revolutions=REVS)
-model.load_state_dict(torch.load('checkpoints-dual-python/dual_refiner.pt', map_location=device))
+model.load_state_dict(torch.load('checkpoints-fusion/fusion_refiner.pt', map_location=device))
 model = model.to(device).eval()
 
 # Load RAG index and docs
