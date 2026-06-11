@@ -301,3 +301,12 @@ gate tanh values.
 **Prevention rule:** Before publishing any A/B comparison involving trained modules,
 verify: (a) gate activations are non-trivial; (b) weight norms differ from identity
 or prior checkpoint; (c) prompt format is identical between conditions.
+
+## BE-15 — ReadTimeout silently fabricates "    pass" completions (found 2026-06-11, live audit)
+- **Benchmark**: EvalPlus (both `benchmark_evalplus.py:79` and `benchmark_evalplus_chat.py:199`)
+- **What broke**: after 3 failed retries (ReadTimeout/ConnectError/HTTP error) the harness returned a literal `"    pass"` body, scored as a model failure. On the dense 27B at WORKERS=1 this hit 11% of heretic answers and 18.9% of stock-v4 answers in the same-night runs.
+- **How discovered**: adversarial audit of the heretic 27B's anomalous 65.24 HumanEval base — `audit_evalplus_completions.py` give-up census traced every bare `pass` stub to the timeout handler.
+- **Root cause**: silent failure substitution + fixed 2s backoff too short while the server is mid-long-generation.
+- **Fix**: both scripts now raise RuntimeError after exhausted retries (runs are checkpoint-resumable) with linear backoff. Artifact-corrected heretic-27B base ≈ 75.6%.
+- **Prevention rule**: a harness must never synthesize an answer; abort > fabricate. Audit give-up census after every code bench (already policy via audit_evalplus_completions.py — this is why it worked).
+- **Related comparison error**: the May 27B "81.10 HumanEval" was measured with thinking enabled via chat endpoint — not comparable to no-think raw-completions runs. Same-harness same-night pairs are the only valid comparisons.
