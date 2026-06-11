@@ -2,6 +2,7 @@
 # Public Release .gitignore
 
 # AI research and session context
+CLAUDE.md
 GEMINI.md
 MEMORY.md
 research_prompt_*.md

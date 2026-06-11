@@ -52,15 +52,18 @@ def binary_unroll(gguf_in, ckpt_path, gguf_out):
     print("[*] Remapping tensor metadata...")
     
     refiner_mapping = {
-        'input_layernorm.weight': 'attn_norm.weight',
-        'self_attn.q_proj.weight': 'attn_q.weight',
-        'self_attn.k_proj.weight': 'attn_k.weight',
-        'self_attn.v_proj.weight': 'attn_v.weight',
-        'self_attn.o_proj.weight': 'attn_output.weight',
-        'post_attention_layernorm.weight': 'ffn_norm.weight',
-        'mlp.gate_proj.weight': 'ffn_gate.weight',
-        'mlp.up_proj.weight': 'ffn_up.weight',
-        'mlp.down_proj.weight': 'ffn_down.weight',
+        'refiner.input_layernorm.weight': 'attn_norm.weight',
+        'refiner.self_attn.q_proj.weight': 'attn_q.weight',
+        'refiner.self_attn.q_proj.bias': 'attn_q.bias',
+        'refiner.self_attn.k_proj.weight': 'attn_k.weight',
+        'refiner.self_attn.k_proj.bias': 'attn_k.bias',
+        'refiner.self_attn.v_proj.weight': 'attn_v.weight',
+        'refiner.self_attn.v_proj.bias': 'attn_v.bias',
+        'refiner.self_attn.o_proj.weight': 'attn_output.weight',
+        'refiner.post_attention_layernorm.weight': 'ffn_norm.weight',
+        'refiner.mlp.gate_proj.weight': 'ffn_gate.weight',
+        'refiner.mlp.up_proj.weight': 'ffn_up.weight',
+        'refiner.mlp.down_proj.weight': 'ffn_down.weight',
     }
 
     # We need to know the total tensor count for the header
@@ -90,7 +93,7 @@ def binary_unroll(gguf_in, ckpt_path, gguf_out):
                 target_name = ".".join(parts)
                 
                 # Trained check
-                layer_key = 'l18' if target_idx == 18 else 'l31'
+                layer_key = 'l17' if target_idx == 18 else 'l30'
                 suffix = ".".join(parts[2:])
                 trained_data = None
                 for torch_key, gguf_suffix in refiner_mapping.items():
