@@ -1,0 +1,8 @@
+{
+  "benchmark": "mmlu_redux",
+  "model": "heretic-cerebellum-v1",
+  "accuracy": 75.42,
+  "total": 2400,
+  "elapsed_seconds": 572.0,
+  "timestamp": "2026-06-11 16:12"
+}

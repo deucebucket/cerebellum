@@ -1,0 +1,13 @@
+{
+  "benchmark": "realworldqa",
+  "model": "heretic-cerebellum-v1",
+  "dataset": "xai-org/RealworldQA",
+  "split": "test",
+  "sample_size": 50,
+  "seed": 36635,
+  "accuracy": 76.0,
+  "correct": 38,
+  "total": 50,
+  "elapsed_seconds": 85.0,
+  "timestamp": "2026-06-11 16:16"
+}

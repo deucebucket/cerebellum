@@ -1,0 +1,8 @@
+{
+  "benchmark": "hellaswag",
+  "model": "heretic-cerebellum-v1",
+  "accuracy": 91.78,
+  "total": 10042,
+  "elapsed_seconds": 2632.9,
+  "timestamp": "2026-06-11 16:02"
+}
