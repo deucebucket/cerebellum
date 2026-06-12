@@ -4832,3 +4832,218 @@ def test_doctor_warns_for_gemma4_unstripped_language_model_prefix(tmp_path: Path
     check = next(row for row in payload["checks"] if row["name"] == "gemma4 architecture")
     assert check["ok"] is False
     assert "model.language_model.* is stripped" in check["fix"]
+
+
+# ---------------------------------------------------------------------------
+# campaign status board (cerebellum status / watch / next / method)
+# ---------------------------------------------------------------------------
+
+import cerebellum.statusboard as statusboard  # noqa: E402
+
+STATUS_NOW = datetime(2026, 6, 12, 4, 0, 0)
+
+
+def _make_campaign(root: Path, name: str, log_lines: list[str] | None = None,
+                   log_rel: str = "logs/continuation.log") -> Path:
+    camp = root / f"cerebellum-{name}"
+    camp.mkdir(parents=True, exist_ok=True)
+    (camp / "RUN_PLAN.md").write_text("# plan\n\n## STOP LINE — review first\n")
+    if log_lines is not None:
+        log = camp / log_rel
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log.write_text("\n".join(log_lines) + "\n")
+    return camp
+
+
+def test_status_renders_synthetic_campaigns(tmp_path: Path):
+    _make_campaign(tmp_path, "alpha", [
+        "[2026-06-12 03:30:00] === STAGE 2: group ablation ===",
+        "[2026-06-12 03:45:00] bench arc (WORKERS=4)",
+    ])
+    planned = tmp_path / "cerebellum-planned"
+    planned.mkdir()
+    (planned / "RUN_PLAN.md").write_text("# plan only, nothing started\n")
+
+    out = statusboard.render_status(
+        tmp_path, now=STATUS_NOW, include_processes=False, include_modal=False
+    )
+
+    assert "CEREBELLUM STATUS" in out
+    assert "alpha    STATUS: ok — running" in out
+    assert "STAGE 2: group ablation" in out
+    assert "bench arc (WORKERS=4)" in out
+    assert "15m ago" in out
+    assert "human gate: RUN_PLAN.md has a stop line" in out
+    assert "planned    STATUS: attention — no activity recorded" in out
+    assert "no activity recorded" in out
+    assert "Traceback" not in out
+
+
+def test_status_flags_summary_for_human(tmp_path: Path):
+    camp = _make_campaign(tmp_path, "beta", [
+        "[2026-06-12 03:50:00] === Driver done. STOP HERE: review RUN_PLAN.md ===",
+    ])
+    (camp / "SUMMARY_FOR_HUMAN.md").write_text("read me\n")
+
+    out = statusboard.render_status(
+        tmp_path, now=STATUS_NOW, include_processes=False, include_modal=False
+    )
+
+    assert "beta    STATUS: attention — waiting on you" in out
+    assert "SUMMARY_FOR_HUMAN.md is waiting for your review" in out
+    assert "driver stopped at the human-review gate" in out
+    assert "== WAITING FOR YOU ==" in out
+    assert "- [beta]" in out
+
+
+def test_status_stale_campaign_flags_attention(tmp_path: Path):
+    _make_campaign(tmp_path, "gamma", [
+        "[2026-06-11 20:00:00] still chewing on tensor 12",
+    ])
+
+    out = statusboard.render_status(
+        tmp_path, now=STATUS_NOW, include_processes=False, include_modal=False
+    )
+
+    assert "gamma    STATUS: attention" in out
+    assert "stalled or quietly finished" in out
+
+
+def test_status_with_no_campaigns_is_graceful(tmp_path: Path):
+    out = statusboard.render_status(
+        tmp_path, now=STATUS_NOW, include_processes=False, include_modal=False
+    )
+
+    assert "none found" in out
+    assert "nothing — go back to sleep" in out
+
+
+def test_status_reads_modal_spend_from_progress_log(tmp_path: Path):
+    _make_campaign(tmp_path, "flash", [
+        "[2026-06-12 03:00:00] PPL ablate mla_q done (cum $1.90)",
+        "[2026-06-12 03:40:00] PPL ablate token_embd done (cum $2.33)",
+    ], log_rel="modal_results/results/progress.log")
+
+    out = statusboard.render_status(
+        tmp_path, now=STATUS_NOW, include_processes=False, include_modal=False
+    )
+
+    assert "modal spend so far: $2.33" in out
+
+
+def test_status_modal_credits_tolerates_missing_script(tmp_path: Path):
+    assert "not checked" in statusboard.modal_credits_summary(tmp_path)
+
+
+def test_next_prints_now_and_next_sections(tmp_path: Path):
+    backlog = tmp_path / "cerebellum-dev" / "BACKLOG.md"
+    backlog.parent.mkdir(parents=True)
+    backlog.write_text(
+        "# Cerebellum Backlog\n\npreamble\n\n"
+        "## NOW (running tonight)\n\n- finish gemma 12b gates\n\n"
+        "## NEXT (committed, ordered)\n\n1. 35B tensor-level budget pass\n\n"
+        "## LATER (real, not yet scheduled)\n\n- everything else\n"
+    )
+
+    out = statusboard.render_next(tmp_path)
+
+    assert "## NOW" in out
+    assert "finish gemma 12b gates" in out
+    assert "35B tensor-level budget pass" in out
+    assert "LATER" not in out
+    assert "everything else" not in out
+
+
+def test_next_missing_backlog_is_graceful(tmp_path: Path):
+    out = statusboard.render_next(tmp_path)
+    assert "backlog not found" in out
+
+
+def test_method_prints_canon_sections(tmp_path: Path):
+    method = tmp_path / "cerebellum-dev" / "knowledge" / "CURRENT_METHOD.md"
+    method.parent.mkdir(parents=True)
+    method.write_text(
+        "# CURRENT METHOD\n\nintro\n\n"
+        "## Canonical: the OG group-first, bench-gated formula\n\n"
+        "1. HF/BF16 -> F16 GGUF\n2. Imatrix full coverage\n\n"
+        "## Deprecated / dead (do not use)\n\n- hillstep exhaustive hill-climb\n\n"
+        "## Standing operational rules\n\n- N=2 PPL workers\n"
+    )
+
+    out = statusboard.render_method(tmp_path)
+
+    assert "THE METHOD" in out
+    assert "OG group-first, bench-gated formula" in out
+    assert "Imatrix full coverage" in out
+    assert "hillstep exhaustive hill-climb" in out
+    assert "N=2 PPL workers" not in out
+
+
+def test_method_missing_file_uses_fallback(tmp_path: Path):
+    out = statusboard.render_method(tmp_path)
+    assert "BENCHMARK GATES" in out
+    assert "DEPRECATED" in out
+
+
+def test_watch_renders_once_with_iterations_limit(monkeypatch, capsys):
+    monkeypatch.setattr(statusboard, "render_status", lambda: "SNAPSHOT")
+
+    rc = statusboard.cmd_watch([], interval=0, iterations=1)
+
+    captured = capsys.readouterr()
+    assert rc == 0
+    assert "SNAPSHOT" in captured.out
+    assert "refreshing every" in captured.out
+
+
+def test_status_rejects_arguments_with_hint(capsys):
+    rc = statusboard.cmd_status(["--data-root", "/tmp"])
+    captured = capsys.readouterr()
+    assert rc == 2
+    assert "cerebellum hillstep status" in captured.err
+
+
+def test_cli_status_subprocess_runs_zero_args(tmp_path: Path):
+    _make_campaign(tmp_path, "subproc", [
+        "[2026-06-12 03:30:00] === STAGE 1: baselines ===",
+    ])
+
+    result = subprocess.run(
+        [sys.executable, "-m", "cerebellum.cli", "status"],
+        check=True, capture_output=True, text=True, cwd=tmp_path,
+    )
+
+    assert "CEREBELLUM STATUS" in result.stdout
+    assert "subproc" in result.stdout
+    assert "== MODAL ==" in result.stdout
+
+
+def test_cli_run_prints_deprecation_banner():
+    result = subprocess.run(
+        [sys.executable, "-m", "cerebellum.cli", "run", "--help"],
+        check=True, capture_output=True, text=True,
+    )
+
+    assert "DEPRECATED" in result.stderr
+    assert "cerebellum method" in result.stderr
+
+
+def test_cli_top_help_leads_with_status_board():
+    result = subprocess.run(
+        [sys.executable, "-m", "cerebellum.cli", "--help"],
+        check=True, capture_output=True, text=True,
+    )
+
+    assert "cerebellum status" in result.stdout
+    assert "cerebellum method" in result.stdout
+    assert "imatrix" in result.stdout
+
+
+def test_cli_hillstep_namespace_reaches_legacy_engine():
+    result = subprocess.run(
+        [sys.executable, "-m", "cerebellum.cli", "hillstep", "--help"],
+        check=True, capture_output=True, text=True,
+    )
+
+    assert "plan-space" in result.stdout
+    assert "DEPRECATED" in result.stdout

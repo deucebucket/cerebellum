@@ -4753,7 +4753,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     home.add_argument("--limit", type=int, default=8)
     home.add_argument("--json", action="store_true")
 
-    run = sub.add_parser("run", help="run or resume a Cerebellum quant search")
+    run = sub.add_parser("run", help="DEPRECATED — see `cerebellum method`; hillstep per-tensor search (only legal as a targeted pass after a group-first scan)")
     run.add_argument("--source-gguf", required=True)
     run.add_argument("--corpus", default=None, help="PPL/calibration corpus path; optional when --profile resolves locally")
     run.add_argument(
@@ -5225,7 +5225,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     self_test.add_argument("--run-dir", default=None, help="Optional run directory for run-aware checks")
     self_test.add_argument("--json", action="store_true")
 
-    plan_space = sub.add_parser("plan-space", help="recommend low-space quant scratch strategy")
+    plan_space = sub.add_parser("plan-space", help="DEPRECATED — see `cerebellum method`; recommend low-space scratch strategy for hillstep runs")
     plan_space.add_argument("--source-gguf", required=True)
     plan_space.add_argument("--data-root")
     plan_space.add_argument("--scratch-candidates", default="")
