@@ -1,11 +1,12 @@
 import json
+import os
 import subprocess
 import sys
 import types
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import osmosis.hillstep as hillstep
+import cerebellum.hillstep as hillstep
 from cerebellum import (
     EventLog,
     active_work_status,
@@ -66,17 +67,30 @@ from cerebellum import (
     cpu_offload_build_plan_payload,
     discover_projects,
     doctor_cmd,
+    eta_detail_values,
     eta_grid_values,
     github_upload_plan,
     grid_watch_cmd,
     hf_model_stats,
     hf_model_stats_markdown,
     hf_stats_args_from_query,
+    golden_cow_audit,
+    discover_recent_benchmark_scores,
+    home_payload,
+    home_markdown,
+    history_html,
+    history_markdown,
+    history_scan_roots,
     write_hf_stats_snapshot,
     inspect_gguf_types,
     inspect_gguf_types_args_from_query,
     is_quantizable_tensor,
     locked_layer_lines,
+    legacy_flow_markdown,
+    legacy_flow_payload,
+    legacy_flow_execute_forward,
+    legacy_flow_watch_lines,
+    legacy_plan_payload,
     package_files,
     package_manifest,
     parse_args,
@@ -101,6 +115,8 @@ from cerebellum import (
     public_audit,
     public_audit_cmd,
     public_audit_markdown,
+    public_model_card_policy_markdown,
+    public_model_card_policy_payload,
     public_history_audit,
     public_history_audit_markdown,
     public_export_cmd,
@@ -133,6 +149,137 @@ def test_project_root_alias_parses_as_data_root():
     assert args.cmd == "project"
     assert args.data_root == "/tmp/cerebellum-runs"
     assert args.json is True
+
+
+def test_no_args_parse_to_home_dispatch():
+    args = parse_args([])
+
+    assert args.cmd is None
+
+
+def test_home_command_parses_and_renders(monkeypatch):
+    monkeypatch.setattr("cerebellum.hillstep.known_run_dirs", lambda: [])
+
+    args = parse_args(["home", "--limit", "3"])
+    payload = home_payload(limit=args.limit)
+    rendered = home_markdown(payload)
+
+    assert args.cmd == "home"
+    assert "Cerebellum" in rendered
+    assert "cerebellum watch" in rendered
+    assert "Recent Runs" in rendered
+
+
+def test_home_discovers_recent_benchmark_scores(tmp_path, monkeypatch):
+    results = tmp_path / "benchmark_results"
+    results.mkdir()
+    (results / "demo_arc_results.json").write_text(
+        json.dumps({"model": "demo", "benchmark": "arc_challenge", "accuracy": 91.25}) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.chdir(tmp_path)
+
+    scores = discover_recent_benchmark_scores(limit=3)
+
+    assert scores[0]["model"] == "demo"
+    assert scores[0]["benchmark"] == "arc"
+    assert scores[0]["metric"] == "accuracy"
+    assert scores[0]["value"] == 91.25
+
+
+def test_history_command_parses():
+    args = parse_args(["history", "--root", "/tmp/cerebellum", "--query", "gemma", "--include-chat-logs", "--chat-root", "/tmp/chats", "--output", "history.json", "--markdown", "history.md", "--html", "history.html", "--json"])
+
+    assert args.cmd == "history"
+    assert args.root == ["/tmp/cerebellum"]
+    assert args.query == "gemma"
+    assert args.include_chat_logs is True
+    assert args.chat_root == ["/tmp/chats"]
+    assert args.output == "history.json"
+    assert args.markdown == "history.md"
+    assert args.html == "history.html"
+    assert args.json is True
+
+
+def test_history_scan_indexes_models_methods_ppl_and_benchmarks(tmp_path: Path):
+    model_dir = tmp_path / "osmosis-gemma4-e4b"
+    bench_dir = model_dir / "benchmark_results"
+    bench_dir.mkdir(parents=True)
+    (model_dir / "README.md").write_text(
+        "## Method\n"
+        "Baseline Q3_K_M with PLE Q5_K on WikiText-2.\n"
+        "| HumanEval | 68.3% |\n"
+        "Perplexity 55.10\n",
+        encoding="utf-8",
+    )
+    (model_dir / "ppl_q3km_ple_Q5K.log").write_text(
+        "perplexity: calculating perplexity over 142 chunks, n_ctx=2048, batch_size=2048, n_seq=1\n"
+        "Final estimate: PPL = 55.1050 +/- 0.64745\n",
+        encoding="utf-8",
+    )
+    run_dir = tmp_path / "families" / "gemma-4" / "gemma-4-12b-it" / "sources" / "google-f16" / "runs" / "demo"
+    run_dir.mkdir(parents=True)
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "run_id": "demo",
+                "ppl_profile": "wiki",
+                "corpus": "wiki.test.raw",
+                "chunks": 128,
+                "ctx_size": 2048,
+                "base_type": "Q4_K_M",
+                "start_type": "q4_K",
+                "levels": ["q3_K", "q2_K"],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (bench_dir / "demo_arc_results.json").write_text(
+        json.dumps({"model": "gemma-e4b", "benchmark": "arc_challenge", "accuracy": 85.5, "correct": 855, "total": 1000}),
+        encoding="utf-8",
+    )
+
+    report = history_scan_roots([tmp_path])
+    markdown = history_markdown(report)
+    html = history_html(report)
+
+    assert report["schema"] == "cerebellum.history.v1"
+    assert any(row["model"] == "osmosis-gemma4-e4b" for row in report["models"])
+    assert any(row["model"] == "gemma-4/gemma-4-12b-it" for row in report["models"])
+    assert any(row["model"] == "gemma-e4b" for row in report["leaderboard"])
+    assert "Baseline Q3_K_M" in markdown
+    assert "Search model" in html
+    e4b = next(row for row in report["models"] if row["model"] == "osmosis-gemma4-e4b")
+    assert e4b["ppl_results"][0]["ppl"] == 55.1050
+
+
+def test_history_query_filters_content(tmp_path: Path):
+    model_dir = tmp_path / "osmosis-qwen36-27b"
+    model_dir.mkdir()
+    (model_dir / "README.md").write_text("Method: Qwen v4 WikiText ablation.\n", encoding="utf-8")
+
+    report = history_scan_roots([tmp_path], query="qwen v4")
+
+    assert [row["model"] for row in report["models"]] == ["osmosis-qwen36-27b"]
+
+
+def test_history_scan_indexes_explicit_chat_roots(tmp_path: Path):
+    repo = tmp_path / "repo"
+    chats = tmp_path / ".codex" / "sessions"
+    repo.mkdir()
+    chats.mkdir(parents=True)
+    (repo / "README.md").write_text("Cerebellum local repo.\n", encoding="utf-8")
+    (chats / "session.jsonl").write_text(
+        json.dumps({"text": "In /var/home/deucebucket/ai-drive/cerebellum we used Gemma 4 26B with wiki.test.raw and a router recast."}) + "\n",
+        encoding="utf-8",
+    )
+
+    report = history_scan_roots([repo], include_chat_logs=True, chat_roots=[chats])
+    gemma = next(row for row in report["models"] if row["model"] == "gemma-4-26b")
+
+    assert report["include_chat_logs"] is True
+    assert gemma["chat_logs"][0]["path"].endswith("session.jsonl")
+    assert "wiki.test.raw" in gemma["chat_logs"][0]["text"]
 
 
 def test_inspect_gguf_types_command_parses():
@@ -227,6 +374,12 @@ def test_watch_public_flag_parses():
     assert args.public is True
 
 
+def test_watch_events_limit_defaults_to_five_rows():
+    args = parse_args(["watch", "/tmp/run", "--once", "--plain"])
+
+    assert args.events_limit == 5
+
+
 def test_public_tui_watch_is_rejected():
     args = parse_args(["watch", "/tmp/run", "--public", "--tui"])
 
@@ -246,17 +399,388 @@ def test_watch_run_dir_is_optional_for_single_active_run():
     assert args.public is True
 
 
+def test_legacy_plan_command_parses():
+    args = parse_args(["legacy-plan", "/tmp/run", "--json"])
+
+    assert args.cmd == "legacy-plan"
+    assert args.run_dir == "/tmp/run"
+    assert args.json is True
+
+
+def test_legacy_flow_command_defaults_to_classic_group_survivability_candidate():
+    args = parse_args(
+        [
+            "legacy-flow",
+            "--source-gguf",
+            "/tmp/gemma-f16.gguf",
+            "--output-dir",
+            "/tmp/cerebellum-gemma",
+            "--model-name",
+            "gemma-4-12b-it",
+            "--json",
+        ]
+    )
+
+    plan = legacy_flow_payload(args)
+    rendered = legacy_flow_markdown(plan)
+    phase_names = [phase["name"] for phase in plan["phases"]]
+
+    assert args.cmd == "legacy-flow"
+    assert phase_names == [
+        "scan",
+        "baseline",
+        "survivability-scan",
+        "target-selection",
+        "build-v1-stacked-q2",
+        "reverse-ablation",
+        "build-candidate",
+        "benchmark-gate",
+    ]
+    assert plan["mode"] == "classic group-first Cerebellum"
+    assert "cerebellum watch" in plan["watch"]["private"]
+    assert "quant_worker" in plan["orchestration"]["quant_ppl_overlap"]
+    assert "ppl_worker" in plan["orchestration"]["quant_ppl_overlap"]
+    assert plan["survivability"]["mode"] == "classic Q2_K no-commit group survivability scan"
+    assert plan["survivability"]["levels"] == "q2_K"
+    assert plan["survivability"]["target_type"] == "q2_K"
+    assert plan["survivability"]["commit_locks"] is False
+    assert plan["survivability"]["with_targeted_hillstep"] is False
+    assert "group-scan" in plan["phases"][2]["groups"][0]["command_template"]
+    assert "--target-type q2_K" in plan["phases"][2]["groups"][0]["command_template"]
+    assert "--output /tmp/cerebellum-gemma/selected_survivability_overrides.txt" in plan["phases"][3]["command"]
+    assert "--tensor-type-file /tmp/cerebellum-gemma/final_group_overrides.txt" in plan["phases"][6]["command"]
+    assert "--pure" not in plan["phases"][6]["command"]
+    assert "Survivability Groups" in rendered
+    assert "selected_survivability_overrides.txt" in rendered
+    assert "reverse-ablation" in rendered
+
+
+def test_legacy_flow_can_add_optional_targeted_hillstep_after_group_scan():
+    args = parse_args(
+        [
+            "legacy-flow",
+            "--source-gguf",
+            "/tmp/gemma-f16.gguf",
+            "--output-dir",
+            "/tmp/cerebellum-gemma",
+            "--with-targeted-hillstep",
+        ]
+    )
+
+    plan = legacy_flow_payload(args)
+    phase_names = [phase["name"] for phase in plan["phases"]]
+
+    assert phase_names.index("survivability-scan") < phase_names.index("targeted-hillstep")
+    assert phase_names.index("targeted-hillstep") < phase_names.index("build-candidate")
+    assert plan["survivability"]["with_targeted_hillstep"] is True
+    assert "--tensor-file /tmp/cerebellum-gemma/target_tensors.txt" in plan["phases"][6]["command"]
+    assert "--tensor-type-file /tmp/cerebellum-gemma/run/artifacts/final_types.txt" in plan["phases"][7]["command"]
+
+
+def test_legacy_flow_can_execute_forward_group_queue():
+    args = parse_args(
+        [
+            "legacy-flow",
+            "--source-gguf",
+            "/tmp/gemma-f16.gguf",
+            "--output-dir",
+            "/tmp/cerebellum-gemma",
+            "--corpus",
+            "/tmp/wiki.test.raw",
+            "--baseline-ppl",
+            "5433.7967",
+            "--family",
+            "gemma-4",
+            "--source-name",
+            "google-f16",
+            "--execute-forward",
+            "--keep-candidates",
+        ]
+    )
+    plan = legacy_flow_payload(args)
+
+    assert args.execute_forward is True
+    assert args.keep_candidates is True
+    assert "--family gemma-4" in plan["phases"][2]["groups"][0]["command_template"]
+    assert "--source-name google-f16" in plan["phases"][2]["groups"][0]["command_template"]
+
+
+def test_legacy_flow_execute_forward_defaults_to_pipelined_mode(tmp_path: Path, monkeypatch):
+    source = tmp_path / "model-f16.gguf"
+    source.write_bytes(b"gguf")
+    corpus = tmp_path / "wiki.test.raw"
+    corpus.write_text("hello\n", encoding="utf-8")
+    args = parse_args(
+        [
+            "legacy-flow",
+            "--source-gguf",
+            str(source),
+            "--output-dir",
+            str(tmp_path / "run"),
+            "--corpus",
+            str(corpus),
+            "--baseline-ppl",
+            "10.0",
+            "--model-name",
+            "tiny",
+            "--execute-forward",
+        ]
+    )
+    plan = legacy_flow_payload(args)
+    monkeypatch.setattr(
+        "cerebellum.hillstep.LEGACY_GATED_GROUPS",
+        [
+            {"name": "attn-q", "patterns": ["attn_q"], "default_floor": "q4_K"},
+            {"name": "attn-v", "patterns": ["attn_v"], "default_floor": "q4_K"},
+        ],
+    )
+
+    def fake_prepare(ns):
+        run_dir = Path(ns.run_dir)
+        run_dir.mkdir(parents=True, exist_ok=True)
+        return {"args": ns, "run_dir": run_dir, "group_name": ns.group_name, "events": types.SimpleNamespace(write=lambda *a, **k: None)}
+
+    monkeypatch.setattr("cerebellum.hillstep.group_scan_prepare", fake_prepare)
+    monkeypatch.setattr("cerebellum.hillstep.group_scan_assert_disk_floor", lambda *a, **k: None)
+    monkeypatch.setattr("cerebellum.hillstep.group_scan_run_quant", lambda job: (0, "", 1.0))
+    monkeypatch.setattr("cerebellum.hillstep.group_scan_finalize_quant", lambda job, q_rc, q_out, q_seconds: True)
+    monkeypatch.setattr(
+        "cerebellum.hillstep.group_scan_run_ppl",
+        lambda job, q_seconds: {"status": "complete", "ppl": 9.0, "delta": -1.0},
+    )
+
+    result = legacy_flow_execute_forward(args, plan)
+
+    assert result["mode"] == "pipelined"
+    assert [row["group"] for row in result["executed"]] == ["attn-q", "attn-v"]
+
+
+def test_group_scan_command_parses_classic_group_ablation_unit():
+    args = parse_args(
+        [
+            "group-scan",
+            "--source-gguf",
+            "/tmp/model-f16.gguf",
+            "--corpus",
+            "/tmp/wiki.txt",
+            "--run-dir",
+            "/tmp/group",
+            "--tensor-regex",
+            "ffn_down",
+            "--group-name",
+            "ffn-down",
+            "--target-type",
+            "q2_K",
+            "--baseline-ppl",
+            "123.0",
+            "--dry-run",
+        ]
+    )
+
+    assert args.cmd == "group-scan"
+    assert args.group_name == "ffn-down"
+    assert args.target_type == "q2_K"
+    assert args.baseline_ppl == 123.0
+    assert args.dry_run is True
+
+
+def test_sparse_replay_command_parses_and_dispatches(monkeypatch):
+    args = parse_args(
+        [
+            "sparse-replay",
+            "--source-gguf",
+            "/tmp/model-f16.gguf",
+            "--corpus",
+            "/tmp/wiki.txt",
+            "--run-dir",
+            "/tmp/sparse",
+            "--baseline-ppl",
+            "19.7",
+            "--budget-gb",
+            "0.462",
+            "--dry-run",
+        ]
+    )
+
+    assert args.cmd == "sparse-replay"
+    assert args.probe_base_type == "Q4_K_M"
+    assert args.target_type == "q2_K"
+    assert args.budget_gb == 0.462
+
+    called = {}
+    monkeypatch.setattr(hillstep, "sparse_replay_cmd", lambda ns: called.update(vars(ns)))
+    hillstep.main(
+        [
+            "sparse-replay",
+            "--source-gguf",
+            "/tmp/model-f16.gguf",
+            "--corpus",
+            "/tmp/wiki.txt",
+            "--run-dir",
+            "/tmp/sparse",
+            "--baseline-ppl",
+            "19.7",
+            "--budget-gb",
+            "0.462",
+            "--dry-run",
+        ]
+    )
+    assert called["cmd"] == "sparse-replay"
+
+
+def test_legacy_flow_watch_prefers_live_manifest_for_scan_settings():
+    context = {
+        "mode": "automated group-first targeted-hillstep",
+        "phase": "survivability-scan",
+        "group": {"index": 2, "total": 4, "name": "early-blocks", "floor": "q4_K", "patterns": ["blk.0."]},
+        "survivability": {
+            "levels": "q3_K,q2_K",
+            "mode": "lower-only no-commit survivability scan",
+            "pure_quant": True,
+            "commit_locks": False,
+            "max_regression_pct": 2.0,
+            "target_tensor_file": "/tmp/target_tensors.txt",
+        },
+    }
+    manifest = {
+        "levels": ["q3_K", "q2_K", "q5_K", "q6_K", "f16"],
+        "pure_quant_effective": False,
+        "commit_locks": False,
+    }
+
+    lines = legacy_flow_watch_lines(context, {"current_ppl": None}, {"event": "baseline_quant_start"}, manifest)
+    rendered = "\n".join(lines)
+
+    assert "levels=q3_K,q2_K,q5_K,q6_K,f16" in rendered
+    assert "scan=bidirectional no-commit survivability scan" in rendered
+    assert "pure_quant_effective=False" in rendered
+    assert "commit_locks=False" in rendered
+
+
+def test_ablation_analyze_can_write_tensor_names_for_targeted_followup(tmp_path: Path):
+    ablation_json = tmp_path / "ablation.json"
+    tensor_output = tmp_path / "targets.txt"
+    ablation_json.write_text(
+        json.dumps(
+            {
+                "baseline_ppl": 100.0,
+                "tests": {
+                    "good": {"gguf_tensor": "blk.0.attn_q.weight", "ppl": 99.0},
+                    "bad": {"gguf_tensor": "blk.0.ffn_down.weight", "ppl": 130.0},
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    args = parse_args(
+        [
+            "ablation-analyze",
+            str(ablation_json),
+            "--tensor-output",
+            str(tensor_output),
+            "--json",
+        ]
+    )
+    ablation_analyze_cmd(args)
+
+    assert tensor_output.read_text(encoding="utf-8").splitlines() == ["blk.0.attn_q.weight"]
+
+
+def test_public_card_policy_parses_and_hides_recipe_details():
+    args = parse_args(["public-card-policy", "--json"])
+    payload = public_model_card_policy_payload()
+    rendered = public_model_card_policy_markdown(payload)
+
+    assert args.cmd == "public-card-policy"
+    assert "Cerebellum Public Model Card Policy" in rendered
+    assert "Support / Sponsored Runs" in rendered
+    assert "exact tensor" in rendered.lower()
+
+
+def test_golden_cow_audit_flags_sensitive_low_precision_locks():
+    state = {
+        "ppl_profile": "wiki",
+        "ablation_metric": "ppl",
+        "current_ppl": 123.4,
+        "locked": {
+            "blk.0.attn_k.weight": "q2_K",
+            "blk.6.ffn_down.weight": "q4_K",
+            "blk.9.ffn_up.weight": "q2_K",
+        },
+    }
+
+    audit = golden_cow_audit(state, {})
+
+    assert audit["suspect_count"] == 2
+    assert audit["counts"]["early_low_precision"] == 1
+    assert audit["counts"]["attention_low_precision"] == 1
+    assert audit["counts"]["mlp_up_gate_q2"] == 1
+
+
+def test_golden_cow_audit_labels_survivability_findings_without_rollback():
+    state = {"locked": {"blk.0.ffn_down.weight": "q2_K"}}
+
+    audit = golden_cow_audit(state, {}, {"phase": "survivability-scan"})
+
+    assert audit["suspect_count"] == 1
+    assert audit["recommended_action"] == "survivability finding; require benchmark gate before final acceptance"
+
+
+def test_legacy_plan_payload_includes_protected_groups(tmp_path: Path):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "run_status": "stopped",
+                "locked": {"blk.0.attn_output.weight": "q2_K"},
+                "current_ppl": 10.0,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"source_gguf": "/tmp/model.gguf", "ppl_profile": "wiki", "ablation_metric": "ppl"}),
+        encoding="utf-8",
+    )
+
+    plan = legacy_plan_payload(run_dir)
+
+    assert plan["profile"]["variant_suffix"] == "legacy-gated"
+    assert plan["golden_cow_audit"]["suspect_count"] == 1
+    assert any(group["name"] == "attn-output" for group in plan["protected_groups"])
+
+
 def test_resolve_run_dir_defaults_to_single_live_run(tmp_path: Path, monkeypatch):
     run_dir = tmp_path / "run"
     run_dir.mkdir()
     (run_dir / "manifest.json").write_text('{"model_name":"gemma-4-12b-it"}', encoding="utf-8")
     (run_dir / "state.json").write_text('{"run_status":"running"}', encoding="utf-8")
 
-    monkeypatch.setattr("osmosis.hillstep.known_run_dirs", lambda: [run_dir])
-    monkeypatch.setattr("osmosis.hillstep.run_is_live", lambda path: path == run_dir)
+    monkeypatch.setattr("cerebellum.hillstep.known_run_dirs", lambda: [run_dir])
+    monkeypatch.setattr("cerebellum.hillstep.run_is_live", lambda path: path == run_dir)
 
     assert resolve_run_dir(None) == run_dir
     assert resolve_run_dir("gemma-4-12b-it") == run_dir
+
+
+def test_resolve_run_dir_falls_back_to_most_recent_completed_run(tmp_path: Path, monkeypatch):
+    old_run = tmp_path / "old"
+    new_run = tmp_path / "new"
+    old_run.mkdir()
+    new_run.mkdir()
+    (old_run / "manifest.json").write_text('{"model_name":"old"}', encoding="utf-8")
+    (old_run / "state.json").write_text('{"run_status":"complete"}', encoding="utf-8")
+    (new_run / "manifest.json").write_text('{"model_name":"new"}', encoding="utf-8")
+    (new_run / "state.json").write_text('{"run_status":"complete"}', encoding="utf-8")
+    os.utime(old_run / "state.json", (1000, 1000))
+    os.utime(new_run / "state.json", (2000, 2000))
+
+    monkeypatch.setattr("cerebellum.hillstep.known_run_dirs", lambda: [old_run, new_run])
+    monkeypatch.setattr("cerebellum.hillstep.run_is_live", lambda _path: False)
+
+    assert resolve_run_dir(None) == new_run
 
 
 def test_active_work_status_marks_missing_started_process_interrupted():
@@ -292,9 +816,9 @@ def test_stop_target_pids_includes_detached_run_processes(tmp_path: Path, monkey
     run_dir.mkdir()
     events = [{"pid": 100}]
 
-    monkeypatch.setattr("osmosis.hillstep.child_pids", lambda pid: [pid + 1] if pid == 100 else [])
+    monkeypatch.setattr("cerebellum.hillstep.child_pids", lambda pid: [pid + 1] if pid == 100 else [])
     monkeypatch.setattr(
-        "osmosis.hillstep.process_rows_for_run",
+        "cerebellum.hillstep.process_rows_for_run",
         lambda _run_dir: [
             {"kind": "runner", "pid": "100"},
             {"kind": "ppl", "pid": "300"},
@@ -1390,6 +1914,7 @@ def test_pipeline_plan_builds_full_manifest(tmp_path: Path):
             "--imatrix",
             str(output / "custom.imatrix"),
             "--low-space",
+            "--pure-quant",
             "--benchmark-suite",
             "frontier",
         ]
@@ -1406,7 +1931,9 @@ def test_pipeline_plan_builds_full_manifest(tmp_path: Path):
     assert "--metric ppl" in phases["ablate"]["command"]
     assert "--low-space" in phases["ablate"]["command"]
     assert "cerebellum resume" in phases["resume"]["command"]
+    assert "--pure-quant" in phases["ablate"]["command"]
     assert "--tensor-type-file" in phases["build-final-gguf"]["command"]
+    assert "--pure" not in phases["build-final-gguf"]["command"]
     assert "benchmark-run --suite frontier" in phases["benchmark"]["command"]
     assert "--execute --postprocess --require-complete" in phases["benchmark"]["command"]
     assert "cerebellum finalize" in phases["finalize"]["command"]
@@ -1912,6 +2439,33 @@ def test_resume_preserves_keep_measured_candidates(tmp_path: Path, monkeypatch):
     assert captured["prune_measured_candidates"] is False
 
 
+def test_resume_can_override_saved_low_space_mode(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "source_gguf": str(tmp_path / "m.gguf"),
+                "corpus": str(tmp_path / "wiki.txt"),
+                "run_id": "unit",
+                "levels": ["q3_K", "q2_K"],
+                "low_space": True,
+                "serial_candidates": True,
+                "commit_locks": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    captured = {}
+    monkeypatch.setattr(hillstep, "run_from_namespace", lambda ns: captured.update(vars(ns)))
+
+    resume_cmd(parse_args(["resume", str(run_dir), "--no-low-space"]))
+
+    assert captured["low_space"] is False
+    assert captured["serial_candidates"] is False
+    assert captured["commit_locks"] is False
+
+
 def test_pipeline_status_api_query_args_validate():
     args = pipeline_status_args_from_query({"manifest": ["pipeline.json"], "events": ["events.jsonl"]})
 
@@ -2010,6 +2564,31 @@ def test_pipeline_plan_task_profile_allows_metric_override(tmp_path: Path):
     assert "--metric ppl" in phases["ablate"]["command"]
 
 
+def test_pipeline_plan_legacy_gated_explains_og_workflow(tmp_path: Path):
+    source = tmp_path / "source-f16.gguf"
+    source.write_bytes(b"gguf")
+    args = parse_args(
+        [
+            "pipeline-plan",
+            "--source-gguf",
+            str(source),
+            "--output-dir",
+            str(tmp_path / "out"),
+            "--task-profile",
+            "legacy-gated",
+        ]
+    )
+
+    plan = pipeline_plan(args)
+    workflow = plan["legacy_gated_workflow"]
+
+    assert plan["task_profile"] == "legacy-gated"
+    assert workflow["hillstep_role"].startswith("targeted refinement")
+    assert "quantization source only" in workflow["source_role"]
+    assert [step["name"] for step in workflow["steps"]][:3] == ["scan", "lower-quant-baseline", "survivability-scan"]
+    assert "quant_ppl_overlap" in workflow["orchestration"]
+
+
 def test_run_rejects_non_ppl_metric_before_launch(tmp_path: Path):
     args = parse_args(
         [
@@ -2027,6 +2606,154 @@ def test_run_rejects_non_ppl_metric_before_launch(tmp_path: Path):
         assert "current Cerebellum run scoring supports only 'ppl'" in str(exc)
     else:
         raise AssertionError("run --metric humaneval should fail until task scorers exist")
+
+
+def test_run_no_commit_locks_records_scan_without_advancing_baseline(tmp_path: Path, monkeypatch):
+    source = tmp_path / "model.gguf"
+    corpus = tmp_path / "wiki.test.raw"
+    tensor_file = tmp_path / "tensors.txt"
+    run_dir = tmp_path / "run"
+    source.write_bytes(b"gguf")
+    corpus.write_text("hello\n", encoding="utf-8")
+    tensor_file.write_text("blk.0.ffn_down.weight\n", encoding="utf-8")
+    quant_cmds = []
+
+    def fake_run_external(cmd, _timeout, _distrobox, heartbeat=None):
+        if heartbeat:
+            heartbeat(1.0, 123)
+        if "--model" in cmd:
+            model = Path(cmd[cmd.index("--model") + 1])
+            ppl = 100.0 if model.name == "current_baseline.gguf" else 90.0
+            return 0, f"Final estimate: PPL = {ppl} +/- 1.0\n", 1.0
+        quant_cmds.append(cmd)
+        outfile = Path(cmd[-2])
+        outfile.parent.mkdir(parents=True, exist_ok=True)
+        outfile.write_bytes(b"candidate")
+        return 0, "quant ok\n", 1.0
+
+    monkeypatch.setattr(hillstep, "run_external", fake_run_external)
+    args = parse_args(
+        [
+            "run",
+            "--source-gguf",
+            str(source),
+            "--corpus",
+            str(corpus),
+            "--run-dir",
+            str(run_dir),
+            "--tensor-file",
+            str(tensor_file),
+            "--levels",
+            "q3_K",
+            "--no-commit-locks",
+            "--pure-quant",
+            "--min-free-gb",
+            "0",
+            "--hard-free-floor-gb",
+            "0",
+            "--no-keep-winners",
+            "--plain",
+            "--no-color",
+        ]
+    )
+
+    run_from_namespace(args)
+    state = json.loads((run_dir / "state.json").read_text(encoding="utf-8"))
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    events = (run_dir / "cerebellum_events.jsonl").read_text(encoding="utf-8")
+
+    assert manifest["commit_locks"] is False
+    assert manifest["pure_quant"] is True
+    assert manifest["pure_quant_effective"] is False
+    assert all("--pure" not in cmd for cmd in quant_cmds)
+    assert state["run_status"] == "complete"
+    assert state["locked"] == {}
+    assert state["current_ppl"] == 100.0
+    assert state["start_quant_size_bytes"] == len(b"candidate")
+    assert state["tested"][0]["winner"] == "q3_K"
+    assert state["tested"][0]["committed"] is False
+    assert "tensor_scanned" in events
+    assert "tensor_locked" not in events
+
+
+def test_run_base_map_seeds_quant_maps_without_marking_tensors_complete(tmp_path: Path, monkeypatch):
+    source = tmp_path / "model.gguf"
+    corpus = tmp_path / "wiki.test.raw"
+    tensor_file = tmp_path / "targets.txt"
+    base_map = tmp_path / "final_group_overrides.txt"
+    run_dir = tmp_path / "targeted"
+    source.write_bytes(b"gguf")
+    corpus.write_text("hello\n", encoding="utf-8")
+    tensor_file.write_text("blk.0.attn_v.weight\n", encoding="utf-8")
+    base_map.write_text(
+        "\n".join(
+            [
+                r"^blk\.0\.attn_v\.weight$=q2_K",
+                r"^blk\.0\.ffn_down\.weight$=q2_K",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    type_maps: list[str] = []
+
+    def fake_run_external(cmd, _timeout, _distrobox, heartbeat=None):
+        if heartbeat:
+            heartbeat(1.0, 123)
+        if "--model" in cmd:
+            model = Path(cmd[cmd.index("--model") + 1])
+            if model.name == "current_baseline.gguf":
+                ppl = 100.0
+            elif model.name.startswith("00-q3_K"):
+                ppl = 95.0
+            else:
+                ppl = 110.0
+            return 0, f"Final estimate: PPL = {ppl} +/- 1.0\n", 1.0
+        type_file = Path(cmd[cmd.index("--tensor-type-file") + 1])
+        type_maps.append(type_file.read_text(encoding="utf-8"))
+        outfile = Path(cmd[-2])
+        outfile.parent.mkdir(parents=True, exist_ok=True)
+        outfile.write_bytes(b"candidate")
+        return 0, "quant ok\n", 1.0
+
+    monkeypatch.setattr(hillstep, "run_external", fake_run_external)
+    args = parse_args(
+        [
+            "run",
+            "--source-gguf",
+            str(source),
+            "--corpus",
+            str(corpus),
+            "--run-dir",
+            str(run_dir),
+            "--tensor-file",
+            str(tensor_file),
+            "--base-map",
+            str(base_map),
+            "--levels",
+            "q3_K,q4_K",
+            "--min-free-gb",
+            "0",
+            "--hard-free-floor-gb",
+            "0",
+            "--plain",
+            "--no-color",
+        ]
+    )
+
+    run_from_namespace(args)
+    state = json.loads((run_dir / "state.json").read_text(encoding="utf-8"))
+    manifest = json.loads((run_dir / "manifest.json").read_text(encoding="utf-8"))
+    final_types = (run_dir / "cerebellum_best_tensor_types.txt").read_text(encoding="utf-8")
+
+    assert manifest["base_map"] == str(base_map)
+    assert manifest["base_map_count"] == 2
+    assert state["locked"] == {"blk.0.attn_v.weight": "q3_K"}
+    assert state["tested"][0]["winner"] == "q3_K"
+    assert type_maps[0].count("Q2_K") == 2
+    assert r"^blk\.0\.attn_v\.weight$=Q2_K" in type_maps[0]
+    assert r"^blk\.0\.attn_v\.weight$=q3_K" in type_maps[1]
+    assert r"^blk\.0\.ffn_down\.weight$=Q2_K" in final_types
 
 
 def test_pipeline_plan_cpu_offload_profile_marks_low_space_and_strategy(tmp_path: Path):
@@ -2385,6 +3112,30 @@ def test_eta_grid_values_includes_wall_clock_completion():
 
     assert eta["total"] == "1m00s"
     assert eta["completion_at"] != "-"
+
+
+def test_eta_detail_values_uses_prior_candidate_timing_for_job_tensor_phase(tmp_path: Path):
+    nowish = (datetime.now(timezone.utc) - timedelta(seconds=60)).isoformat(timespec="milliseconds")
+    state = {"locked": {"blk.0.attn_q.weight": "q4_K"}, "tested": [{"tensor": "blk.0.attn_q.weight"}]}
+    manifest = {"levels": ["q3_K", "q2_K"]}
+    events = [{"event": "tensor_start", "tensor": "blk.0.ffn_down.weight", "timestamp_utc": nowish}]
+    candidates = [
+        {"tensor": "blk.0.ffn_down.weight", "level": "q3_K", "quant_seconds": 100.0, "ppl_seconds": 200.0},
+        {"tensor": "blk.0.ffn_down.weight", "level": "q2_K", "quant_seconds": 100.0, "ppl_seconds": 200.0},
+    ]
+    active = {"event": "ppl_start", "tensor": "blk.0.ffn_down.weight", "level": "q2_K"}
+
+    eta = eta_detail_values(tmp_path, state, manifest, events, candidates, active, active_age=50.0, total=4, flow={})
+
+    assert eta["source"] == "low from 2 prior candidate timings"
+    assert eta["job"]["label"] == "ppl q2_K"
+    assert eta["job"]["estimate"] == "3m20s"
+    assert eta["tensor"]["estimate"] == "8m20s"
+    assert eta["phase"]["tensors_remaining"] == 3
+    assert eta["phase"]["remaining"] != "-"
+
+    overdue = eta_detail_values(tmp_path, state, manifest, events, candidates, active, active_age=250.0, total=4, flow={})
+    assert overdue["job"]["remaining"].startswith("overdue 50.0s")
 
 
 def test_event_log_continues_existing_event_ids(tmp_path: Path):
@@ -2756,7 +3507,7 @@ def test_watch_model_applies_stall_threshold_flags(tmp_path: Path, monkeypatch):
     (run_dir / "cerebellum_candidates.jsonl").write_text("", encoding="utf-8")
 
     monkeypatch.setattr(
-        "osmosis.hillstep.process_rows_for_run",
+        "cerebellum.hillstep.process_rows_for_run",
         lambda _run_dir: [{"kind": "runner", "pid": "123", "etime": "00:02", "cmd": "cerebellum resume run"}],
     )
 
@@ -2813,7 +3564,7 @@ def test_recovery_and_watch_use_scratch_roots(tmp_path: Path, monkeypatch):
     )
     (run_dir / "cerebellum_events.jsonl").write_text('{"event":"run_start","tensors":1}\n', encoding="utf-8")
     (run_dir / "cerebellum_candidates.jsonl").write_text("", encoding="utf-8")
-    monkeypatch.setattr("osmosis.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
 
     recovery = build_recovery_plan(run_dir)
     model = build_watch_model(run_dir)
@@ -2835,7 +3586,7 @@ def test_cleanup_partials_uses_scratch_root(tmp_path: Path, monkeypatch, capsys)
     run_dir.mkdir()
     (run_dir / "state.json").write_text(json.dumps({"run_status": "stopped", "run_id": run_id, "locked": {}}), encoding="utf-8")
     (run_dir / "manifest.json").write_text(json.dumps({"run_id": run_id, "scratch_root": str(scratch)}), encoding="utf-8")
-    monkeypatch.setattr("osmosis.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
 
     args = parse_args(["cleanup", str(run_dir), "--partials"])
     cleanup_cmd(args)
@@ -2858,7 +3609,7 @@ def test_rollback_refuses_active_runner_without_force(tmp_path: Path, monkeypatc
         ),
         encoding="utf-8",
     )
-    monkeypatch.setattr("osmosis.hillstep.run_is_live", lambda _run_dir: True)
+    monkeypatch.setattr("cerebellum.hillstep.run_is_live", lambda _run_dir: True)
 
     try:
         rollback_cmd(types.SimpleNamespace(run_dir=str(run_dir), to_locked=0, before_layer=None, last_completed_layer=False, yes=True, force=False))
@@ -2892,7 +3643,7 @@ def test_rollback_resets_timing_to_kept_epoch(tmp_path: Path, monkeypatch):
         encoding="utf-8",
     )
     (run_dir / "cerebellum_events.jsonl").write_text("", encoding="utf-8")
-    monkeypatch.setattr("osmosis.hillstep.run_is_live", lambda _run_dir: False)
+    monkeypatch.setattr("cerebellum.hillstep.run_is_live", lambda _run_dir: False)
 
     rollback_cmd(types.SimpleNamespace(run_dir=str(run_dir), to_locked=0, before_layer=None, last_completed_layer=False, yes=True, force=False))
 
@@ -2957,9 +3708,9 @@ def test_public_watch_redacts_factory_details(tmp_path: Path, monkeypatch, capsy
         '{"level":"q3_K","ppl":2147.7021,"delta":5.0996,"size_bytes":8577434592,"tensor":"blk.1.attn_k.weight"}\n',
         encoding="utf-8",
     )
-    monkeypatch.setattr("osmosis.hillstep.process_rows_for_run", lambda _run_dir: [])
-    monkeypatch.setattr("osmosis.hillstep.gpu_rows", lambda: [])
-    monkeypatch.setattr("osmosis.hillstep.os.system", lambda _cmd: 0)
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.gpu_rows", lambda: [])
+    monkeypatch.setattr("cerebellum.hillstep.os.system", lambda _cmd: 0)
 
     grid_watch_cmd(
         types.SimpleNamespace(
@@ -2976,8 +3727,9 @@ def test_public_watch_redacts_factory_details(tmp_path: Path, monkeypatch, capsy
     )
 
     output = capsys.readouterr().out
-    assert "public-safe telemetry" in output
-    assert "redacted" in output
+    assert "progress" in output
+    assert "redacted" not in output.lower()
+    assert "private" not in output.lower()
     assert "gemma-4-12b-it" not in output
     assert "wiki" not in output
     assert "blk.1.attn_k.weight" not in output
@@ -3009,9 +3761,9 @@ def test_private_watch_shows_locked_layer_map(tmp_path: Path, monkeypatch, capsy
         encoding="utf-8",
     )
     (run_dir / "cerebellum_candidates.jsonl").write_text("", encoding="utf-8")
-    monkeypatch.setattr("osmosis.hillstep.process_rows_for_run", lambda _run_dir: [])
-    monkeypatch.setattr("osmosis.hillstep.gpu_rows", lambda: [])
-    monkeypatch.setattr("osmosis.hillstep.os.system", lambda _cmd: 0)
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.gpu_rows", lambda: [])
+    monkeypatch.setattr("cerebellum.hillstep.os.system", lambda _cmd: 0)
 
     grid_watch_cmd(
         types.SimpleNamespace(
@@ -3031,6 +3783,257 @@ def test_private_watch_shows_locked_layer_map(tmp_path: Path, monkeypatch, capsy
     assert "LOCKED LAYER MAP" in output
     assert "blk.0" in output
     assert "ffn_down=q3_K" in output
+
+
+def test_private_watch_event_strip_defaults_to_five_rows(tmp_path: Path, monkeypatch, capsys):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "run_status": "running",
+                "model_family": "gemma-4",
+                "model_name": "gemma-4-12b-it",
+                "locked": {},
+                "tested": [],
+                "totals": {"quant_seconds": 0.0, "ppl_seconds": 0.0},
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text('{"run_id":"run","ppl_profile":"wiki"}', encoding="utf-8")
+    (run_dir / "cerebellum_events.jsonl").write_text(
+        "\n".join(json.dumps({"event": f"strip_event_{idx}"}) for idx in range(7)) + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_candidates.jsonl").write_text("", encoding="utf-8")
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.gpu_rows", lambda: [])
+    monkeypatch.setattr("cerebellum.hillstep.os.system", lambda _cmd: 0)
+
+    grid_watch_cmd(
+        types.SimpleNamespace(
+            run_dir=str(run_dir),
+            stall_warn_seconds=300.0,
+            stall_fail_seconds=900.0,
+            measurements_limit=8,
+            events_limit=5,
+            once=True,
+            public=False,
+            plain=True,
+            no_color=True,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "strip_event_0" not in output
+    assert "strip_event_1" not in output
+    assert "strip_event_2" in output
+    assert "strip_event_6" in output
+
+
+def test_private_watch_shows_group_scan_verdicts_without_locks(tmp_path: Path, monkeypatch, capsys):
+    root = tmp_path / "classic"
+    run_dir = root / "forward" / "ffn-gate"
+    run_dir.mkdir(parents=True)
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "schema": "cerebellum.group_scan_state.v1",
+                "run_status": "complete",
+                "model_family": "gemma-4",
+                "model_name": "gemma-4-12b-it",
+                "current_ppl": 5433.7967,
+                "baseline_ppl": 5433.7967,
+                "current_tensor": "ffn-gate",
+                "current_level": "q2_K",
+                "locked": {},
+                "tested": [{"tensor": "ffn-gate", "winner": "q2_K", "ppl": 53420.9426, "delta": 47987.1459}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema": "cerebellum.group_scan.v1",
+                "run_id": "run",
+                "ppl_profile": "wiki",
+                "group_name": "ffn-gate",
+                "commit_locks": False,
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_events.jsonl").write_text('{"event":"ppl_finish","level":"q2_K","tensor":"ffn-gate"}\n', encoding="utf-8")
+    (run_dir / "cerebellum_candidates.jsonl").write_text(
+        json.dumps(
+            {
+                "level": "q2_K",
+                "ppl": 53420.9426,
+                "delta": 47987.1459,
+                "size_bytes": 7500000000,
+                "tensor": "ffn-gate",
+                "tensor_count": 48,
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.gpu_rows", lambda: [])
+    monkeypatch.setattr("cerebellum.hillstep.os.system", lambda _cmd: 0)
+
+    grid_watch_cmd(
+        types.SimpleNamespace(
+            run_dir=str(run_dir),
+            stall_warn_seconds=300.0,
+            stall_fail_seconds=900.0,
+            measurements_limit=0,
+            events_limit=0,
+            once=True,
+            public=False,
+            plain=True,
+            no_color=True,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "RECENT MEASUREMENTS" not in output
+    assert "FORWARD ABLATION" in output
+    assert "group" in output
+    assert "quant" in output
+    assert "verdict" in output
+    assert "ffn-gate" in output
+    assert "nah, do not smash this ffn-gate" in output
+    assert "GROUP VERDICTS" in output
+    assert "LOCKED LAYER MAP" not in output
+    assert "SCAN FINDINGS" not in output
+
+
+def test_private_watch_shows_sparse_replay_as_measurements_not_group_verdicts(tmp_path: Path, monkeypatch, capsys):
+    run_dir = tmp_path / "sparse-replay"
+    run_dir.mkdir()
+    tensor = "blk.27.ffn_down.weight"
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "schema": "cerebellum.sparse_replay_state.v1",
+                "run_status": "complete",
+                "model_family": "qwen3",
+                "model_name": "qwen3-0.6b",
+                "current_ppl": 19.72,
+                "baseline_ppl": 19.73,
+                "locked": {},
+                "tested": [{"tensor": tensor, "winner": "q2_K", "ppl": 21.6, "delta": 1.87}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {
+                "schema": "cerebellum.sparse_replay.v1",
+                "run_id": "sparse",
+                "ppl_profile": "wiki",
+                "commit_locks": False,
+                "measurement_mode": "qwen36-27b-v4 sparse replay",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_events.jsonl").write_text(
+        json.dumps({"event": "run_start", "tensors": 1}) + "\n" + json.dumps({"event": "ppl_finish", "level": "q2_K", "tensor": tensor}) + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_candidates.jsonl").write_text(
+        json.dumps({"event": "candidate", "level": "q2_K", "ppl": 21.6, "delta": 1.87, "size_bytes": 447000000, "tensor": tensor}) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.gpu_rows", lambda: [])
+    monkeypatch.setattr("cerebellum.hillstep.os.system", lambda _cmd: 0)
+
+    grid_watch_cmd(
+        types.SimpleNamespace(
+            run_dir=str(run_dir),
+            stall_warn_seconds=300.0,
+            stall_fail_seconds=900.0,
+            measurements_limit=0,
+            events_limit=0,
+            once=True,
+            public=False,
+            plain=True,
+            no_color=True,
+        )
+    )
+
+    output = capsys.readouterr().out
+    assert "RECENT MEASUREMENTS" in output
+    assert "GROUP VERDICTS" not in output
+    assert "blk.27.ffn_down.weight" in output
+    assert "q2_K" in output
+
+
+def test_candidate_measurement_verdict_uses_per_tensor_quality_labels():
+    rows = [
+        {"tensor": "blk.0.attn_k.weight", "level": "q3_K", "ppl": 2283.6021, "delta": -12.6008},
+        {"tensor": "blk.0.attn_k.weight", "level": "q4_K", "ppl": 2285.9047, "delta": -10.2982},
+        {"tensor": "blk.0.attn_k.weight", "level": "q5_K", "ppl": 2270.9098, "delta": -25.2931},
+        {"tensor": "blk.0.attn_k.weight", "level": "q6_K", "ppl": 2300.5604, "delta": 4.3575},
+    ]
+
+    assert hillstep.candidate_measurement_verdict(rows[0], rows)[0] == "better"
+    assert hillstep.candidate_measurement_verdict(rows[1], rows)[0] == "better"
+    assert hillstep.candidate_measurement_verdict(rows[2], rows)[0] == "best"
+    assert hillstep.candidate_measurement_verdict(rows[3], rows)[0] == "worse"
+
+
+def test_watch_model_includes_in_progress_candidate_rows(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "run_status": "running",
+                "locked": {"blk.0.attn_k.weight": "q5_K"},
+                "tested": [{"tensor": "blk.0.attn_k.weight", "winner": "q5_K"}],
+                "current_ppl": 2270.9098,
+                "baseline_path": str(run_dir / "artifacts" / "current_baseline.gguf"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"model_family": "gemma-4", "model_name": "gemma-4-12b-it", "levels": ["q3_K", "q4_K"]}),
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_events.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps({"event": "run_start", "tensors": 65}),
+                json.dumps({"event": "tensor_start", "tensor": "blk.0.attn_output.weight", "index": 2, "total": 65}),
+                json.dumps({"event": "quant_finish", "tensor": "blk.0.attn_output.weight", "level": "q3_K", "returncode": 0, "size_bytes": 8147999968}),
+                json.dumps({"event": "ppl_start", "tensor": "blk.0.attn_output.weight", "level": "q3_K"}),
+                json.dumps({"event": "quant_start", "tensor": "blk.0.attn_output.weight", "level": "q4_K", "size_bytes": 3200}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_candidates.jsonl").write_text(
+        json.dumps({"tensor": "blk.0.attn_k.weight", "level": "q5_K", "ppl": 2270.9098, "delta": -25.2931, "status": "done"})
+        + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.gpu_rows", lambda: [])
+
+    model = build_watch_model(run_dir)
+    pending = [row for row in model["candidates"] if row.get("tensor") == "blk.0.attn_output.weight"]
+
+    assert [(row["level"], row["status"]) for row in pending] == [("q3_K", "ppl"), ("q4_K", "quantizing")]
+    assert hillstep.candidate_measurement_verdict(pending[0], model["candidates"])[0] == "ppl running"
 
 
 def test_package_files_default_to_public_safe_sidecars(tmp_path: Path):
@@ -3767,9 +4770,9 @@ def test_github_upload_plan_keeps_run_paths_only_private(tmp_path: Path):
 def test_public_github_upload_result_omits_local_paths(tmp_path: Path, monkeypatch):
     sidecar = tmp_path / "MODEL_CARD_CEREBELLUM.md"
     sidecar.write_text("safe", encoding="utf-8")
-    monkeypatch.setattr("osmosis.hillstep.ensure_github_branch", lambda _repo, _branch: None)
-    monkeypatch.setattr("osmosis.hillstep.github_file_sha", lambda _repo, _branch, _path: None)
-    monkeypatch.setattr("osmosis.hillstep.gh_json", lambda _args: {})
+    monkeypatch.setattr("cerebellum.hillstep.ensure_github_branch", lambda _repo, _branch: None)
+    monkeypatch.setattr("cerebellum.hillstep.github_file_sha", lambda _repo, _branch, _path: None)
+    monkeypatch.setattr("cerebellum.hillstep.gh_json", lambda _args: {})
 
     uploaded = upload_github_sidecars(
         "deucebucket/cerebellum",
@@ -3803,7 +4806,7 @@ def test_public_cli_exposes_imatrix_subcommand():
 def test_doctor_warns_for_gemma4_source_architecture_mismatch(tmp_path: Path, monkeypatch, capsys):
     source = tmp_path / "gemma-4-12b-it-f16.gguf"
     source.write_bytes(b"fake")
-    monkeypatch.setattr("osmosis.hillstep.gguf_field_text", lambda _path, _key: "llama")
+    monkeypatch.setattr("cerebellum.hillstep.gguf_field_text", lambda _path, _key: "llama")
 
     doctor_cmd(types.SimpleNamespace(source_gguf=str(source), json=True))
 
@@ -3816,7 +4819,7 @@ def test_doctor_warns_for_gemma4_source_architecture_mismatch(tmp_path: Path, mo
 def test_doctor_warns_for_gemma4_unstripped_language_model_prefix(tmp_path: Path, monkeypatch, capsys):
     source = tmp_path / "gemma-4-12b-it-f16.gguf"
     source.write_bytes(b"fake")
-    monkeypatch.setattr("osmosis.hillstep.gguf_field_text", lambda _path, _key: "gemma4")
+    monkeypatch.setattr("cerebellum.hillstep.gguf_field_text", lambda _path, _key: "gemma4")
 
     class FakeReader:
         tensors = [types.SimpleNamespace(name="model.language_model.blk.0.ffn_down.weight")]

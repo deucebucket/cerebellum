@@ -4,7 +4,7 @@ from argparse import Namespace
 from datetime import datetime, timezone
 from pathlib import Path
 
-from osmosis.dashboard.models import (
+from cerebellum.dashboard.models import (
     Artifact,
     BenchmarkAudit,
     BenchmarkRun,
@@ -14,7 +14,7 @@ from osmosis.dashboard.models import (
     init_db,
     stable_model_id,
 )
-from osmosis.dashboard.server import (
+from cerebellum.dashboard.server import (
     BenchmarkResultIngest,
     get_control_plane_queue_job,
     get_benchmark_audit,
@@ -30,8 +30,9 @@ from osmosis.dashboard.server import (
     list_control_plane_queue,
     list_benchmarks,
     list_models,
+    mobile_watch_payload,
 )
-from osmosis.hillstep import DEFAULT_DB, queue_add_job
+from cerebellum.hillstep import DEFAULT_DB, queue_add_job
 
 
 def init_tmp_db(tmp_path: Path):
@@ -67,6 +68,111 @@ def sample_card(tmp_path: Path) -> dict:
         "docs": [{"name": readme.name, "path": str(readme), "size_kb": 0.1}],
         "updated_at": datetime.now(timezone.utc).timestamp(),
     }
+
+
+def test_mobile_watch_payload_reports_start_quant_size(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "run_status": "running",
+                "model_family": "gemma-4",
+                "model_name": "gemma-4-12b-it",
+                "locked": {"blk.0.attn_q.weight": "q4_K"},
+                "tested": [{"tensor": "blk.0.attn_q.weight", "winner": "q4_K", "ppl": 10.0}],
+                "baseline_path": str(run_dir / "artifacts" / "current_baseline.gguf"),
+                "start_quant_size_bytes": 8000000000,
+                "start_quant_path": str(run_dir / "artifacts" / "current_baseline.gguf"),
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"run_id": "unit", "base_type": "Q4_K_M", "start_type": "q4_K", "commit_locks": True}),
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_events.jsonl").write_text(
+        "\n".join(
+            [
+                json.dumps({"event": "run_start", "tensors": 2}),
+                json.dumps({"event": "tensor_start", "tensor": "blk.1.ffn_down.weight", "total": 2}),
+                json.dumps({"event": "quant_start", "tensor": "blk.1.ffn_down.weight", "level": "q3_K"}),
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_candidates.jsonl").write_text(
+        json.dumps({"tensor": "blk.0.attn_q.weight", "level": "q4_K", "ppl": 10.0, "size_bytes": 8100000000}) + "\n",
+        encoding="utf-8",
+    )
+    artifacts = run_dir / "artifacts"
+    artifacts.mkdir()
+    (artifacts / "current_baseline.gguf").write_bytes(b"base")
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.gpu_rows", lambda: [])
+
+    payload = mobile_watch_payload(str(run_dir))
+
+    assert payload["schema"] == "cerebellum.mobile_watch.v1"
+    assert payload["sizes"]["start_quant"]["bytes"] == 8000000000
+    assert payload["sizes"]["start_quant"]["display"] == "7.451 GiB"
+    assert payload["sizes"]["start_quant"]["source"] == "state.start_quant_size_bytes"
+    assert payload["sizes"]["current_baseline"]["bytes"] == 4
+    assert payload["progress"]["completed"] == 1
+    assert payload["active"]["tensor"] == "blk.1.ffn_down.weight"
+
+
+def test_mobile_watch_payload_reports_sparse_replay_final_and_benchmarks(tmp_path: Path, monkeypatch):
+    run_dir = tmp_path / "sparse"
+    run_dir.mkdir()
+    final = run_dir / "final" / "qwen3-0.6b-cerebellum.gguf"
+    final.parent.mkdir()
+    final.write_bytes(b"final")
+    (run_dir / "state.json").write_text(
+        json.dumps(
+            {
+                "schema": "cerebellum.sparse_replay_state.v1",
+                "run_status": "complete",
+                "model_family": "qwen3",
+                "model_name": "qwen3-0.6b",
+                "locked": {},
+                "tested": [{"tensor": "blk.0.attn_q.weight", "winner": "q2_K", "ppl": 20.0}],
+                "final": {"gguf": str(final), "ppl": 19.72, "delta": -0.01, "size_bytes": 447000000},
+                "benchmarks": [{"name": "arc-200", "status": "complete", "value": 41.5}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    (run_dir / "manifest.json").write_text(
+        json.dumps({"schema": "cerebellum.sparse_replay.v1", "run_id": "sparse", "commit_locks": False, "measurement_mode": "qwen36-27b-v4 sparse replay"}),
+        encoding="utf-8",
+    )
+    (run_dir / "cerebellum_events.jsonl").write_text(json.dumps({"event": "run_start", "tensors": 1}) + "\n", encoding="utf-8")
+    (run_dir / "cerebellum_candidates.jsonl").write_text(
+        json.dumps({"tensor": "blk.0.attn_q.weight", "level": "q2_K", "ppl": 20.0, "size_bytes": 400000000}) + "\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr("cerebellum.hillstep.process_rows_for_run", lambda _run_dir: [])
+    monkeypatch.setattr("cerebellum.hillstep.gpu_rows", lambda: [])
+
+    payload = mobile_watch_payload(str(run_dir))
+
+    assert payload["pipeline"]["schema"] == "cerebellum.sparse_replay.v1"
+    assert payload["pipeline"]["mode"] == "qwen36-27b-v4 sparse replay"
+    assert payload["final"]["gguf"] == str(final)
+    assert payload["final"]["size"] == "426.3 MiB"
+    assert payload["benchmarks"] == [{"name": "arc-200", "status": "complete", "value": 41.5}]
+
+
+def test_mobile_watch_template_has_sparse_replay_final_and_benchmark_hooks():
+    template = Path("cerebellum/dashboard/templates/mobile_watch.html").read_text(encoding="utf-8")
+
+    assert 'id="final"' in template
+    assert 'id="benchmarks"' in template
+    assert "data.final" in template
+    assert "data.benchmarks" in template
 
 
 def test_dashboard_control_plane_models_serialize_json_fields(tmp_path: Path):
@@ -152,7 +258,7 @@ def test_ingest_scan_uses_discovery_and_envelope(tmp_path: Path, monkeypatch):
     sess = init_tmp_db(tmp_path)
     sess.close()
     card = sample_card(tmp_path)
-    monkeypatch.setattr("osmosis.dashboard.server.discover_model_cards", lambda: [card])
+    monkeypatch.setattr("cerebellum.dashboard.server.discover_model_cards", lambda: [card])
 
     payload = ingest_scan()
 
@@ -232,7 +338,7 @@ def test_dashboard_exposes_control_plane_queue_jobs(tmp_path: Path, monkeypatch)
             conn.execute("UPDATE cerebellum_jobs SET log = ? WHERE id = ?", (str(log), job["id"]))
     finally:
         conn.close()
-    monkeypatch.setattr("osmosis.dashboard.server.DB_PATH", str(db))
+    monkeypatch.setattr("cerebellum.dashboard.server.DB_PATH", str(db))
 
     listed = list_control_plane_queue(status="queued", kind="pipeline", limit=10)
     fetched = get_control_plane_queue_job(job["id"], tail=2)
@@ -247,6 +353,6 @@ def test_dashboard_exposes_control_plane_queue_jobs(tmp_path: Path, monkeypatch)
 
 
 def test_dashboard_control_plane_default_db_matches_cli_queue():
-    from osmosis.dashboard import server
+    from cerebellum.dashboard import server
 
     assert server.DB_PATH == DEFAULT_DB
