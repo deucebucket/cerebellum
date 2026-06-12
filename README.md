@@ -36,6 +36,8 @@ are screened by the source's reported KL divergence; heavy ablations
 
 Org collections: [DB-Cerebellum](https://huggingface.co/DB-Cerebellum).
 
+How the method works, at the public level: [docs/how_cerebellum_works.md](docs/how_cerebellum_works.md).
+
 ## Benchmark Evidence
 
 The `benchmarks/` directory holds the published per-model evidence: summary
