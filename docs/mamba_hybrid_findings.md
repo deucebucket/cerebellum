@@ -120,7 +120,7 @@ For this model, standard Q4_K_M with our Osmosis imatrix is the best approach:
 
 ```bash
 # Generate Cerebellum imatrix
-python -m osmosis.imatrix_stream \
+python -m cerebellum.imatrix_stream \
     --model Qwen/Qwen3.5-9B \
     --output cerebellum_imatrix.dat -v
 

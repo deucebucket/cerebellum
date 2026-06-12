@@ -19,7 +19,7 @@ is approved for deletion without a verified backup and a separate cleanup plan.
 - **Active build:** Heretic Qwen 3.6 35B from `llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-GGUF`
   (plain BF16, 69.4 GB, non-MTP). Recipe = v3 transfer (360-entry override file reused verbatim
   from stock, no re-ablation). Full pipeline in `forensics_2026-06-11/RECIPE_heretic_qwen36_35b.md`.
-- **Hill-climber mode (osmosis/hillstep.py exhaustive wiki-PPL-only pass) is DEPRECATED.**
+- **Hill-climber mode (cerebellum/hillstep.py, ex-osmosis/hillstep.py, exhaustive wiki-PPL-only pass) is DEPRECATED.**
   The Gemma 4 12B block-10 checkpoint achieved -35% wiki PPL but -14 pts HumanEval+. Wiki PPL
   alone is not a safe objective. See DEAD_PATHS.md §DP-1 for full evidence.
   Targeted hillstep as an optional post-scan add-on after group-first ablation remains valid.
@@ -108,5 +108,6 @@ new method. Publishable claims need:
 
 Old `osmosis-*` directories and older Cerebellum experiment folders are archived
 evidence. Keep them unless there is an explicit cleanup plan and a verified
-backup. The package directory is still named `osmosis/` during the rename, but
-new user-facing docs and artifacts should use `Cerebellum`.
+backup. The package rename is complete (2026-06-12): code lives in
+`cerebellum/`, and `osmosis/` is only a deprecation-shim package. All new docs
+and artifacts use `Cerebellum`.

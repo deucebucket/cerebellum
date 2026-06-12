@@ -7,9 +7,9 @@ The core idea is simple: do not guess which tensors can survive lower
 precision. Measure the damage, then spend bits where the measured damage says
 they matter.
 
-The Python package is still named `osmosis` for compatibility with existing
-scripts and old experiment files. New documentation and release artifacts use
-the Cerebellum name.
+The Python package is named `cerebellum`. The old `osmosis` import path remains
+as a deprecation shim for existing scripts and old experiment files, and will
+be removed in a future release.
 
 ## Current State
 
@@ -288,7 +288,7 @@ After you have ablation results, ask Cerebellum to allocate tensor types for a
 target file size:
 
 ```bash
-python -m osmosis.cerebellum \
+python -m cerebellum.cerebellum \
   --ablation ablation_results.json \
   --source-gguf source-f16.gguf \
   --imatrix cerebellum_imatrix.dat \
@@ -314,14 +314,14 @@ llama-quantize \
 | --- | --- |
 | `cerebellum_imatrix.dat` | Binary llama.cpp imatrix consumed by `llama-quantize --imatrix`. |
 | `ablation_results.json` | Measured baseline PPL plus per-tensor PPL after forced low-precision tests. |
-| `sensitivity_multi.json` | Weight-only multi-depth sensitivity report consumed by `osmosis.budget`. |
+| `sensitivity_multi.json` | Weight-only multi-depth sensitivity report consumed by `cerebellum.budget`. |
 | `tensor_types.txt` | Final `tensor_name=qtype` overrides consumed by `llama-quantize --tensor-type-file`. |
 | `source-f16.gguf` | Full precision or high precision GGUF used as quantization source. |
 | `model-cerebellum.gguf` | Final normal GGUF artifact. |
 
 ## Ablation Result Schema
 
-`osmosis.cerebellum` accepts the historical single-domain format:
+`cerebellum.cerebellum` accepts the historical single-domain format:
 
 ```json
 {
@@ -352,7 +352,7 @@ It also accepts a multi-domain format:
 For multi-domain results, pass a named profile or explicit weights:
 
 ```bash
-python -m osmosis.cerebellum \
+python -m cerebellum.cerebellum \
   --ablation ablation_results.json \
   --source-gguf source-f16.gguf \
   --budget-gb 12.0 \
@@ -366,16 +366,16 @@ backward compatibility.
 
 ## Alternative Proxy Path
 
-When full ablation is too expensive, `osmosis.budget` can allocate from
+When full ablation is too expensive, `cerebellum.budget` can allocate from
 weight-only multi-depth sensitivity data:
 
 ```bash
-python -m osmosis.sensitivity_stream \
+python -m cerebellum.sensitivity_stream \
   --model <hf-model-id-or-local-path> \
   --output sensitivity_multi.json \
   -v
 
-python -m osmosis.budget \
+python -m cerebellum.budget \
   --sensitivity sensitivity_multi.json \
   --source-gguf source-f16.gguf \
   --imatrix cerebellum_imatrix.dat \
@@ -663,7 +663,7 @@ The API also exposes `/self-test?run_dir=RUN_DIR` for automation agents.
 
 ### Cerebellum imatrix
 
-Imatrix generation is part of Cerebellum. The legacy `osmosis.imatrix_*` modules remain only as compatibility internals while the package rename finishes.
+Imatrix generation is part of Cerebellum. The legacy `osmosis.imatrix_*` import paths remain only as deprecation shims.
 
 ```bash
 # Streaming mode: safest default for large models.

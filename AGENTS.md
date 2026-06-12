@@ -8,14 +8,14 @@
 
 ## Project Rename — Osmosis → Cerebellum
 
-The Python package is still `osmosis/` — a rename in flight. A new `cerebellum/` package exists as the public CLI entrypoint (`cerebellum = "cerebellum.cli:main"`) and thin wrapper that imports from `osmosis.hillstep`. **Don't create new artifacts with `osmosis_*` names** (use `cerebellum_*`). New per-model dirs should be `cerebellum-<model>/`.
+The rename is **complete** (2026-06-12). All module code lives in `cerebellum/`; `osmosis/` is a deprecation-shim package whose modules re-export from `cerebellum` (with a `DeprecationWarning`) so `import osmosis.X` / `python -m osmosis.X` keep working for in-flight runs and old scripts. Don't add code to `osmosis/`; don't write new `osmosis.*` imports. **Don't create new artifacts with `osmosis_*` names** (use `cerebellum_*`). New per-model dirs should be `cerebellum-<model>/`; old `osmosis-{model}/` artifact dirs keep their names (evidence).
 
 ## Package Layout
 
 | Dir | Role |
 |-----|------|
-| `cerebellum/` | Public CLI entrypoint + imatrix (`cerebellum.cli:main`). Imports from `osmosis.hillstep`. |
-| `osmosis/` | Engine (22 files). Reusable logic: ablation, budget, imatrix, quant, sensitivity. |
+| `cerebellum/` | The engine package: CLI (`cerebellum.cli:main`), ablation, budget, imatrix, hillstep, dashboard. `cerebellum/_legacy/` holds old experimental modules (local-only). |
+| `osmosis/` | Deprecation shim package re-exporting from `cerebellum`. No real code. |
 | `scripts/` | One-shot benchmark/driver scripts (gitignored from origin). `scripts/run_benchmarks.sh` is the benchmark entry. |
 | `tests/` | 6 test files (gitignored from origin). `test_gguf.py` (2 tests), `test_packing.py` (6 tests), `test_ablate_rowblocks.py`, `test_benchmark_hle_no_tools.py`, `test_cerebellum_cli.py`, `test_dashboard_control_plane.py`. |
 | `osmosis-{model}/` | Per-model artifact dirs (ablation results, override files, GGUFs). |
@@ -27,7 +27,7 @@ The Python package is still `osmosis/` — a rename in flight. A new `cerebellum
 pip install -e ".[dev]"                                    # pytest + ruff
 python -m pytest /var/home/deucebucket/ai-drive/cerebellum/tests/test_packing.py::test_4bit_roundtrip -v  # single test
 python -m pytest /var/home/deucebucket/ai-drive/cerebellum/tests/ -v    # all tests (~12 items)
-ruff check osmosis tests scripts
+ruff check cerebellum osmosis tests scripts
 ```
 
 `pyproject.toml` declares `>=3.10`. System Python is 3.14 where `dill`/`datasets` are broken — prefer `pyarrow.parquet` + `hf_hub_download` over `load_dataset()`. Use a 3.10 distrobox for anything needing `datasets`.
@@ -45,16 +45,16 @@ ruff check osmosis tests scripts
 
 | File | Role |
 |------|------|
-| `osmosis/cerebellum.py` | Ablation runner + precision allocator |
-| `osmosis/budget.py` | Budget-constrained bit allocator, size estimator, promotion logic |
-| `osmosis/imatrix_stream.py` | Streaming imatrix generator (~300 MB RAM, any model size) |
-| `osmosis/imatrix_gen.py` | Calibration text generation for imatrix |
+| `cerebellum/cerebellum.py` | Ablation runner + precision allocator |
+| `cerebellum/budget.py` | Budget-constrained bit allocator, size estimator, promotion logic |
+| `cerebellum/imatrix_stream.py` | Streaming imatrix generator (~300 MB RAM, any model size) |
+| `cerebellum/imatrix_gen.py` | Calibration text generation for imatrix |
 
 Manual workflow:
 ```bash
-python -m osmosis.imatrix_stream --model f16.gguf --output imatrix.dat
-python -m osmosis.cerebellum ablate --source-gguf f16.gguf --imatrix imatrix.dat --output ablation_results.json
-python -m osmosis.budget --sensitivity ablation_results.json --source-gguf f16.gguf --budget-gb 12.0 --output tensor_types.txt
+python -m cerebellum.imatrix_stream --model f16.gguf --output imatrix.dat
+python -m cerebellum.cerebellum ablate --source-gguf f16.gguf --imatrix imatrix.dat --output ablation_results.json
+python -m cerebellum.budget --sensitivity ablation_results.json --source-gguf f16.gguf --budget-gb 12.0 --output tensor_types.txt
 llama-quantize --imatrix imatrix.dat --tensor-type-file tensor_types.txt f16.gguf out.gguf Q2_K
 ```
 

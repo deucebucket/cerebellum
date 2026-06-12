@@ -24,16 +24,16 @@ The streaming generator reads safetensors one tensor at a time and writes the
 legacy imatrix binary format used by llama.cpp:
 
 ```bash
-python -m osmosis.imatrix_stream \
+python -m cerebellum.imatrix_stream \
   --model <hf-model-id-or-local-safetensors-dir> \
   --output cerebellum_imatrix.dat \
   -v
 ```
 
-Use `osmosis.imatrix_gen` instead when you want optional activation calibration:
+Use `cerebellum.imatrix_gen` instead when you want optional activation calibration:
 
 ```bash
-python -m osmosis.imatrix_gen \
+python -m cerebellum.imatrix_gen \
   --model <local-model-dir> \
   --output cerebellum_imatrix.dat \
   --num-samples 8 \
@@ -99,7 +99,7 @@ Ask Cerebellum to classify the measured tensors and spend bits under a target
 file size:
 
 ```bash
-python -m osmosis.cerebellum \
+python -m cerebellum.cerebellum \
   --ablation ablation_results.json \
   --source-gguf source-f16.gguf \
   --imatrix cerebellum_imatrix.dat \
@@ -132,12 +132,12 @@ Measured ablation is slower but more direct. For early exploration, you can use
 weight-only sensitivity:
 
 ```bash
-python -m osmosis.sensitivity_stream \
+python -m cerebellum.sensitivity_stream \
   --model <hf-model-id-or-local-safetensors-dir> \
   --output sensitivity_multi.json \
   -v
 
-python -m osmosis.budget \
+python -m cerebellum.budget \
   --sensitivity sensitivity_multi.json \
   --source-gguf source-f16.gguf \
   --imatrix cerebellum_imatrix.dat \
