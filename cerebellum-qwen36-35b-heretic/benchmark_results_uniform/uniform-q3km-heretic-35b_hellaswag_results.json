@@ -1,0 +1,8 @@
+{
+  "benchmark": "hellaswag",
+  "model": "uniform-q3km-heretic-35b",
+  "accuracy": 91.92,
+  "total": 10042,
+  "elapsed_seconds": 2336.3,
+  "timestamp": "2026-06-11 22:58"
+}

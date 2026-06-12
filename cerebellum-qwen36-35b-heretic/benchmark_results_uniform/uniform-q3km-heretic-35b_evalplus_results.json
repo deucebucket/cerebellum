@@ -1,0 +1,9 @@
+{
+  "benchmark": "evalplus_humaneval_plus",
+  "model": "uniform-q3km-heretic-35b",
+  "pass_at_1_plus": 57.93,
+  "pass_at_1_base": 65.24,
+  "total_problems": 164,
+  "elapsed_seconds": 235.3,
+  "timestamp": "2026-06-11 22:16"
+}

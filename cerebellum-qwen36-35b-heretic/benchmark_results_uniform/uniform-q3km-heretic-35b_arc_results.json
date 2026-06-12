@@ -1,0 +1,8 @@
+{
+  "benchmark": "arc_challenge",
+  "model": "uniform-q3km-heretic-35b",
+  "accuracy": 95.56,
+  "total": 1172,
+  "elapsed_seconds": 210.6,
+  "timestamp": "2026-06-11 22:19"
+}

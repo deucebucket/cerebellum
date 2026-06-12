@@ -1,0 +1,8 @@
+{
+  "benchmark": "mmlu_redux",
+  "model": "uniform-q3km-heretic-35b",
+  "accuracy": 74.88,
+  "total": 2400,
+  "elapsed_seconds": 487.7,
+  "timestamp": "2026-06-11 23:07"
+}
