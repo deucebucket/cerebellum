@@ -42,3 +42,38 @@ HF: will move deucebucket/Qwen3.6-27B-Osmosis-Q2_K-GGUF -> deucebucket/Qwen3.6-2
 **HF:** `deucebucket/Qwen3.6-27B-Osmosis-Q2_K-GGUF` -> `deucebucket/Qwen3.6-27B-Cerebellum-Q2K-GGUF` (old URL 307-redirects, verified). GGUF renamed server-side in one commit (CommitOperationCopy + CommitOperationDelete + README update): `qwen3.6-27b-osmosis-imatrix-Q2_K.gguf` -> `qwen3.6-27b-cerebellum-imatrix-Q2_K.gguf` (commit ae61350). README model-index name, benchmark URLs, GGUF refs and repro commands updated; `osmosis_imatrix.dat` file kept (README refs match the real file).
 
 **Commits (local only, NOT pushed, no Co-Authored-By trailers):** 174e503 code move, 29e9afe shim package, 73c86d7 tests, f4297ae docs, + this log. Caveat: commits 174e503/73c86d7 include pre-existing in-flight working-tree edits to hillstep.py, dashboard/server.py, cli.py and the two tracked test files (noted in commit bodies) — they could not be split from the move.
+
+## 2026-06-12 — CLI rebuilt around the campaign status board
+
+`cerebellum/cli.py` rebuilt around the actual method and foolproof progress
+visibility. New read-only flagship commands (zero required args, no GPU/network
+touch except the optional Modal credits shell-out, 10s timeout):
+
+- `cerebellum status` — one screen: every active campaign (scans `cerebellum-*/`
+  for OPS_LOG.md / RUN_PLAN.md / logs/driver.log / logs/continuation.log, plus
+  modal_results progress/sync logs), current stage parsed from the freshest
+  narrative log, last-activity age, Modal per-campaign spend (`cum $` from
+  progress.log), local GPU holders (pgrep llama-*), Modal credits
+  (`cerebellum-dev/modal_harness/modal_credits.py`, tolerated absent), and a
+  WAITING FOR YOU section (SUMMARY_FOR_HUMAN.md, driver "STOP HERE" markers).
+  STATUS: ok/attention per campaign; campaign dirs without logs say
+  "no activity recorded", never traceback. Stale (>3h silent) flags attention.
+- `cerebellum watch` — status refreshed every 30s.
+- `cerebellum next` — NOW/NEXT sections of `cerebellum-dev/BACKLOG.md`.
+- `cerebellum method` — Canonical + Deprecated sections of
+  `cerebellum-dev/knowledge/CURRENT_METHOD.md` (built-in fallback if missing).
+
+Implementation: new `cerebellum/statusboard.py`; `cli.py` dispatches the board
+before importing the 13k-line hillstep engine (fast read-only path).
+`cerebellum imatrix` unchanged. Hillstep stays fully functional: `cerebellum
+run`/`plan-space` help text now says "DEPRECATED — see `cerebellum method`",
+`cerebellum run` prints a deprecation banner (12B proof: wiki PPL −35% but
+HumanEval+ −14 pts) before running, and the board-shadowed run-level
+`status`/`watch` remain reachable via the `cerebellum hillstep <subcmd>`
+passthrough. Bare `cerebellum` / `--help` now prints a status-board-first help.
+
+Tests: 225 -> 241 (16 new in tests/test_cerebellum_cli.py, synthetic tmp-dir
+campaigns, no network). Real-run fixes caught during validation: OPS_LOG prose
+mentioning "STOP LINE" no longer false-flags a stopped driver (only the
+driver's literal "STOP HERE" counts), and modal sync.log counts for activity
+freshness but never supplies the stage/latest line (progress.log does).
