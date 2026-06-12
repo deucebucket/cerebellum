@@ -12,6 +12,7 @@ import argparse
 import base64
 import csv
 import hashlib
+import html
 import json
 import os
 import queue
@@ -297,7 +298,89 @@ TASK_PROFILES = {
         },
         "note": "Plan huge-model maps such as GLM-5.1 for CPU-offload speed/quality instead of VRAM-only fit.",
     },
+    "legacy-gated": {
+        "label": "Cerebellum-Legacy-Gated",
+        "ppl_profile": "all-around",
+        "ablation_metric": "ppl",
+        "benchmark_suite": "release-local",
+        "metrics": ["ppl", "evalplus", "arc", "hellaswag", "mmlu_redux", "speed", "size_gib"],
+        "variant_suffix": "legacy-gated",
+        "low_space_default": True,
+        "resource_strategy": {
+        "target": "old Cerebellum/Qwen-style group survivability quant selection",
+        "search": "group-first Q2_K crush from a sane baseline; per-tensor refinement is optional follow-up work",
+            "gate": "accept PPL wins only when benchmark smoke/full release gates stay inside thresholds",
+            "protection": "attention/output/early-block golden-cow floors are explicit and visible in watch",
+        },
+        "note": "Use the proven group-first, benchmark-gated workflow instead of exhaustive wiki-only per-tensor hillclimb.",
+    },
 }
+LEGACY_GATED_GROUPS = [
+    {
+        "name": "attn-q",
+        "patterns": ["attn_q"],
+        "default_floor": "q4_K",
+        "why": "Classic Cerebellum tests attention groups independently at Q2_K from the baseline.",
+    },
+    {
+        "name": "attn-k",
+        "patterns": ["attn_k"],
+        "default_floor": "q4_K",
+        "why": "Classic Cerebellum tests attention groups independently at Q2_K from the baseline.",
+    },
+    {
+        "name": "attn-v",
+        "patterns": ["attn_v"],
+        "default_floor": "q4_K",
+        "why": "Value projections are often load-bearing; test as a separate group instead of assuming demotability.",
+    },
+    {
+        "name": "attn-output",
+        "patterns": ["attn_output"],
+        "default_floor": "q4_K",
+        "why": "Attention output projections are often sensitive; test as a separate group.",
+    },
+    {
+        "name": "ffn-gate",
+        "patterns": ["ffn_gate"],
+        "default_floor": "q4_K",
+        "why": "Gate weights can be regularized by lower precision, but Gemma releases need benchmark-gated proof.",
+    },
+    {
+        "name": "ffn-up",
+        "patterns": ["ffn_up"],
+        "default_floor": "q4_K",
+        "why": "Classic Cerebellum tests MLP projection groups independently at Q2_K from the baseline.",
+    },
+    {
+        "name": "ffn-down",
+        "patterns": ["ffn_down"],
+        "default_floor": "q4_K",
+        "why": "Classic Cerebellum tests MLP projection groups independently at Q2_K from the baseline.",
+    },
+    {
+        "name": "early-blocks",
+        "patterns": ["blk.0.", "blk.1.", "blk.2.", "blk.3.", "blk.4."],
+        "default_floor": "q4_K",
+        "why": "Gemma 4 floor is Q4; early-layer crushes must clear a benchmark gate before release.",
+    },
+    {
+        "name": "global-output-embeddings-norms",
+        "patterns": ["output.weight", "token_embd", "embd", "norm"],
+        "default_floor": "q6_K",
+        "why": "Global output/embedding/norm tensors are not search trash; protect unless a benchmark gate proves otherwise.",
+        "scan": False,
+    },
+]
+LEGACY_GATED_PHASES = [
+    "inventory tensor groups and skip known non-quantizable/global tensors",
+    "build the lower-quant baseline/candidate from the F16 source GGUF, then run and benchmark that quant output",
+    "run coarse group Q2_K survivability ablations before any per-tensor hillclimb",
+    "protect golden-cow groups with explicit floors",
+    "run interaction/additive checks on candidate groups",
+    "run benchmark smoke gates before accepting a group override map",
+    "run full benchmark comparison before release or upload",
+]
 LEGACY_PROFILE_ROOTS = [
     Path("/var/home/deucebucket/games/osmosis-quants"),
     Path("/var/home/deucebucket/games"),
@@ -357,6 +440,7 @@ DECISION_CSV_FILES = ("cerebellum_decisions.csv", "cerebellum_hill_decisions.csv
 INFOGRAPHIC_FILES = ("cerebellum_infographic_data.json", "cerebellum_hill_infographic_data.json")
 BEST_TYPES_FILES = ("cerebellum_best_tensor_types.txt", "cerebellum_hill_best_tensor_types.txt")
 CURRENT_TYPES_FILE = "cerebellum_current_tensor_types.txt"
+DEFAULT_WATCH_EVENTS_LIMIT = 5
 
 
 def utc_now() -> str:
@@ -527,6 +611,120 @@ def delta_marker(delta: Any) -> tuple[str, str]:
     return "=", "36;1"
 
 
+def ablation_verdict(delta: Any, tensor: str | None = None, phase: str = "forward") -> tuple[str, str]:
+    code = "90"
+    try:
+        value = float(delta)
+    except (TypeError, ValueError):
+        return "· pending", code
+    target = tensor or "tensor"
+    if phase == "reverse":
+        if value < 0:
+            return f"✓ restore this {target}", "32;1"
+        if value > 0:
+            return f"✗ keep smashed {target}", "31;1"
+        return f"= neutral restore for {target}", "36;1"
+    if value < 0:
+        return f"✓ smash this {target}", "32;1"
+    if value > 0:
+        return f"✗ nah, do not smash this {target}", "31;1"
+    return f"= neutral for {target}", "36;1"
+
+
+def candidate_measurement_verdict(row: dict[str, Any], rows: list[dict[str, Any]]) -> tuple[str, str]:
+    status = str(row.get("status") or "")
+    if row.get("ppl") is None and status:
+        labels = {
+            "quantizing": ("quantizing", "33;1"),
+            "queued": ("queued", "36;1"),
+            "ppl": ("ppl running", "33;1"),
+            "pending": ("pending", "90"),
+        }
+        if status in labels:
+            return labels[status]
+    delta = row.get("delta")
+    try:
+        value = float(delta)
+    except (TypeError, ValueError):
+        return "pending", "90"
+    if value > 0:
+        return "worse", "31;1"
+    if value == 0:
+        return "same", "36;1"
+    tensor = row.get("tensor")
+    try:
+        ppl = float(row.get("ppl"))
+    except (TypeError, ValueError):
+        return "better", "32;1"
+    same_tensor = []
+    for candidate in rows:
+        if candidate.get("tensor") != tensor:
+            continue
+        try:
+            candidate_ppl = float(candidate.get("ppl"))
+        except (TypeError, ValueError):
+            continue
+        same_tensor.append(candidate_ppl)
+    if same_tensor and ppl <= min(same_tensor):
+        return "best", "32;1"
+    return "better", "32"
+
+
+def in_progress_candidate_rows(events: list[dict[str, Any]], candidates: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    tensor_start_idx = next(
+        (idx for idx in range(len(events) - 1, -1, -1) if events[idx].get("event") == "tensor_start" and events[idx].get("tensor")),
+        None,
+    )
+    if tensor_start_idx is None:
+        return []
+    active_tensor = events[tensor_start_idx].get("tensor")
+    completed = {(row.get("tensor"), row.get("level")) for row in candidates if row.get("tensor") and row.get("level")}
+    by_level: dict[str, dict[str, Any]] = {}
+    order: dict[str, int] = {}
+    for event in events[tensor_start_idx + 1 :]:
+        if event.get("tensor") != active_tensor:
+            continue
+        level = event.get("level")
+        if not level or (active_tensor, level) in completed:
+            continue
+        name = str(event.get("event") or "")
+        if name.startswith("quant_"):
+            status = "queued" if name == "quant_finish" and event.get("returncode") == 0 else "quantizing"
+        elif name.startswith("ppl_"):
+            status = "done" if name == "ppl_finish" and event.get("returncode") == 0 and event.get("ppl") is not None else "ppl"
+        else:
+            continue
+        order.setdefault(str(level), len(order))
+        row = by_level.setdefault(
+            str(level),
+            {
+                "event": "candidate_pending",
+                "tensor": active_tensor,
+                "level": level,
+                "ppl": None,
+                "delta": None,
+                "size_bytes": None,
+                "status": status,
+            },
+        )
+        row["status"] = status
+        if event.get("size_bytes") is not None:
+            row["size_bytes"] = event.get("size_bytes")
+        if event.get("ppl") is not None:
+            row["ppl"] = event.get("ppl")
+        if event.get("delta") is not None:
+            row["delta"] = event.get("delta")
+    rows = [row for level, row in by_level.items() if row.get("status") != "done" and (active_tensor, level) not in completed]
+    rows.sort(key=lambda row: order.get(str(row.get("level")), 999))
+    return rows
+
+
+def limited_tail(rows: list[Any], limit: int) -> list[Any]:
+    if limit <= 0:
+        return rows
+    return rows[-limit:]
+
+
 def size_code(size: Any, baseline_size: Any) -> str:
     if size is None or baseline_size is None:
         return "90"
@@ -632,7 +830,17 @@ def process_rows_for_run(run_dir: Path) -> list[dict[str, Any]]:
         if "cerebellum watch" in cmd:
             continue
         kind = "process"
-        if "cerebellum run" in cmd or "cerebellum resume" in cmd:
+        if (
+            "cerebellum run" in cmd
+            or "cerebellum resume" in cmd
+            or "cerebellum group-scan" in cmd
+            or "cerebellum.hillstep run" in cmd
+            or "cerebellum.hillstep resume" in cmd
+            or "cerebellum.hillstep group-scan" in cmd
+            or "osmosis.hillstep run" in cmd
+            or "osmosis.hillstep resume" in cmd
+            or "osmosis.hillstep group-scan" in cmd
+        ):
             kind = "runner"
         elif cmd.startswith("/usr/bin/sh /usr/bin/distrobox") or cmd.startswith("podman exec"):
             kind = "container"
@@ -769,6 +977,214 @@ def estimate_eta(state: dict[str, Any], active_age: float | None, total: int | N
     return fmt_seconds(eta), f"avg {fmt_seconds(avg)}/tensor from {completed} locked"
 
 
+def median_value(values: list[float]) -> float | None:
+    clean = sorted(value for value in values if value and value > 0)
+    if not clean:
+        return None
+    mid = len(clean) // 2
+    if len(clean) % 2:
+        return clean[mid]
+    return (clean[mid - 1] + clean[mid]) / 2.0
+
+
+def runs_root_for(run_dir: Path) -> Path | None:
+    parts = list(run_dir.parents)
+    for parent in parts:
+        if parent.name == "runs":
+            return parent
+    return None
+
+
+def timing_candidate_rows(run_dir: Path, manifest: dict[str, Any], current_candidates: list[dict[str, Any]], limit: int = 1200) -> list[dict[str, Any]]:
+    rows = [row for row in current_candidates if row.get("quant_seconds") or row.get("ppl_seconds")]
+    model = manifest.get("model_name")
+    family = manifest.get("model_family")
+    root = runs_root_for(run_dir)
+    if root and root.exists():
+        files = sorted(root.rglob(CANDIDATE_FILES[0]), key=lambda path: path.stat().st_mtime if path.exists() else 0, reverse=True)
+        for file in files:
+            if file == first_existing(run_dir, CANDIDATE_FILES):
+                continue
+            for row in read_jsonl(file):
+                if model and row.get("model_name") and row.get("model_name") != model:
+                    continue
+                if family and row.get("model_family") and row.get("model_family") != family:
+                    continue
+                if row.get("quant_seconds") or row.get("ppl_seconds"):
+                    rows.append(row)
+                    if len(rows) >= limit:
+                        return rows[:limit]
+    return rows[:limit]
+
+
+def timing_profile(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    quant_by_level: dict[str, list[float]] = {}
+    ppl_by_level: dict[str, list[float]] = {}
+    quant_by_component: dict[str, list[float]] = {}
+    ppl_by_component: dict[str, list[float]] = {}
+    quant_all: list[float] = []
+    ppl_all: list[float] = []
+    for row in rows:
+        level = str(row.get("level") or "")
+        _layer, component = parse_tensor_name(str(row.get("tensor") or ""))
+        component = component or "unknown"
+        quant = row.get("quant_seconds")
+        ppl = row.get("ppl_seconds")
+        if isinstance(quant, (int, float)) and quant > 0:
+            quant_all.append(float(quant))
+            quant_by_level.setdefault(level, []).append(float(quant))
+            quant_by_component.setdefault(component, []).append(float(quant))
+        if isinstance(ppl, (int, float)) and ppl > 0:
+            ppl_all.append(float(ppl))
+            ppl_by_level.setdefault(level, []).append(float(ppl))
+            ppl_by_component.setdefault(component, []).append(float(ppl))
+    return {
+        "rows": len(rows),
+        "quant_all": median_value(quant_all),
+        "ppl_all": median_value(ppl_all),
+        "quant_by_level": {key: median_value(value) for key, value in quant_by_level.items()},
+        "ppl_by_level": {key: median_value(value) for key, value in ppl_by_level.items()},
+        "quant_by_component": {key: median_value(value) for key, value in quant_by_component.items()},
+        "ppl_by_component": {key: median_value(value) for key, value in ppl_by_component.items()},
+    }
+
+
+def profile_seconds(profile: dict[str, Any], kind: str, level: str | None = None, component: str | None = None) -> float | None:
+    by_level = profile.get(f"{kind}_by_level") or {}
+    by_component = profile.get(f"{kind}_by_component") or {}
+    if level and by_level.get(level):
+        return float(by_level[level])
+    if component and by_component.get(component):
+        return float(by_component[component])
+    value = profile.get(f"{kind}_all")
+    return float(value) if value else None
+
+
+def tensor_wall_estimate(levels: list[str], profile: dict[str, Any], component: str | None = None) -> float | None:
+    if not levels:
+        return None
+    quant = [profile_seconds(profile, "quant", level, component) for level in levels]
+    ppl = [profile_seconds(profile, "ppl", level, component) for level in levels]
+    if not all(value for value in quant) or not all(value for value in ppl):
+        return None
+    q = [float(value) for value in quant if value is not None]
+    p = [float(value) for value in ppl if value is not None]
+    if len(q) != len(levels) or len(p) != len(levels):
+        return None
+    # HillStepper overlaps PPL(level N) with quant(level N+1) when space allows.
+    wall = q[0]
+    for idx in range(len(levels) - 1):
+        wall += max(p[idx], q[idx + 1])
+    wall += p[-1]
+    return wall
+
+
+def latest_event(events: list[dict[str, Any]], names: set[str], tensor: str | None = None) -> dict[str, Any]:
+    return next(
+        (
+            row
+            for row in reversed(events)
+            if row.get("event") in names and (tensor is None or row.get("tensor") == tensor)
+        ),
+        {},
+    )
+
+
+def eta_summary(seconds: float | None) -> str:
+    return f"{fmt_seconds(seconds)}  done {fmt_completion_time(seconds)}"
+
+
+def fmt_completion_time_signed(seconds: float | None) -> str:
+    if seconds is None:
+        return "-"
+    try:
+        value = float(seconds)
+    except (TypeError, ValueError):
+        return "-"
+    when = datetime.now().astimezone() + timedelta(seconds=value)
+    return when.strftime("%a %Y-%m-%d %H:%M %Z")
+
+
+def eta_progress_summary(estimate: float | None, elapsed: float | None) -> str:
+    if estimate is None:
+        return eta_summary(None)
+    remaining = float(estimate) - float(elapsed or 0.0)
+    if remaining >= 0:
+        return eta_summary(remaining)
+    return f"overdue {fmt_seconds(abs(remaining))}  expected {fmt_completion_time_signed(remaining)}"
+
+
+def eta_source_label(profile_rows: int, confidence: str) -> str:
+    if profile_rows:
+        return f"{confidence} from {profile_rows} prior candidate timings"
+    return f"{confidence} from current run timing"
+
+
+def eta_detail_values(
+    run_dir: Path,
+    state: dict[str, Any],
+    manifest: dict[str, Any],
+    events: list[dict[str, Any]],
+    candidates: list[dict[str, Any]],
+    active: dict[str, Any],
+    active_age: float | None,
+    total: int | None,
+    flow: dict[str, Any],
+) -> dict[str, Any]:
+    profile = timing_profile(timing_candidate_rows(run_dir, manifest, candidates))
+    levels = [str(level) for level in (manifest.get("levels") or state.get("levels") or DEFAULT_LEVELS)]
+    tensor = str(active.get("tensor") or latest_event(events, {"tensor_start"}).get("tensor") or "")
+    _layer, component = parse_tensor_name(tensor)
+    event = str(active.get("event") or "")
+    level = str(active.get("level") or "")
+    if event.startswith("baseline_quant"):
+        job_est = profile_seconds(profile, "quant", levels[0] if levels else None, component)
+        label = "baseline quant"
+    elif event.startswith("baseline_ppl"):
+        job_est = profile_seconds(profile, "ppl", levels[0] if levels else None, component)
+        label = "baseline ppl"
+    elif event.startswith("quant"):
+        job_est = profile_seconds(profile, "quant", level, component)
+        label = f"quant {level}"
+    elif event.startswith("ppl"):
+        job_est = profile_seconds(profile, "ppl", level, component)
+        label = f"ppl {level}"
+    else:
+        job_est = None
+        label = event or "idle"
+    job_remaining = max(0.0, (job_est or 0.0) - (active_age or 0.0)) if job_est else None
+    tensor_start = latest_event(events, {"tensor_start"}, tensor or None)
+    tensor_age = event_age_seconds(tensor_start)
+    tensor_est = tensor_wall_estimate(levels, profile, component)
+    tensor_remaining = max(0.0, (tensor_est or 0.0) - (tensor_age or 0.0)) if tensor_est else None
+    if job_remaining is not None:
+        tensor_remaining = max(tensor_remaining or 0.0, job_remaining)
+    locked = len(state.get("locked", {}))
+    remaining_tensors = max(0, (total or locked) - locked)
+    phase_remaining = None
+    if tensor_est:
+        phase_remaining = max(0.0, remaining_tensors * tensor_est - (tensor_age or 0.0))
+    flow_remaining = phase_remaining
+    group = flow.get("group") or {}
+    if phase_remaining is not None and group.get("total") and group.get("index"):
+        groups_left_after_current = max(0, int(group["total"]) - int(group["index"]))
+        flow_remaining = phase_remaining + groups_left_after_current * max(0, (total or 0) * tensor_est)
+    confidence = "low"
+    if profile["rows"] >= 50:
+        confidence = "medium"
+    if profile["rows"] >= 200 and state.get("tested"):
+        confidence = "high"
+    return {
+        "profile_rows": profile["rows"],
+        "confidence": confidence,
+        "source": eta_source_label(int(profile["rows"] or 0), confidence),
+        "job": {"label": label, "estimate": fmt_seconds(job_est), "remaining": eta_progress_summary(job_est, active_age), "age": fmt_seconds(active_age)},
+        "tensor": {"label": tensor or "-", "estimate": fmt_seconds(tensor_est), "remaining": eta_progress_summary(tensor_est, tensor_age), "age": fmt_seconds(tensor_age)},
+        "phase": {"remaining": eta_summary(phase_remaining), "tensors_remaining": remaining_tensors},
+        "flow": {"remaining": eta_summary(flow_remaining), "phase": flow.get("phase") or "-"},
+    }
+
+
 def eta_grid_values(state: dict[str, Any], active_age: float | None, total: int | None) -> dict[str, str]:
     locked = len(state.get("locked", {}))
     tested = state.get("tested", [])
@@ -827,6 +1243,1633 @@ def locked_layer_lines(state: dict[str, Any]) -> list[str]:
                 pass
         return (10_000, label)
     return [f"{layer:<8} " + "  ".join(entries) for layer, entries in sorted(by_layer.items(), key=lambda item: sort_key(item[0]))]
+
+
+def precision_rank(level: str | None) -> int:
+    return PRECISION_RANK.get(str(level or ""), 999)
+
+
+def below_precision(level: str | None, floor: str) -> bool:
+    return precision_rank(level) < precision_rank(floor)
+
+
+def golden_cow_audit(state: dict[str, Any], manifest: dict[str, Any] | None = None, flow: dict[str, Any] | None = None) -> dict[str, Any]:
+    locked = state.get("locked") or {}
+    suspects: list[dict[str, Any]] = []
+    counts: dict[str, int] = {
+        "early_low_precision": 0,
+        "attention_low_precision": 0,
+        "mlp_up_gate_q2": 0,
+        "global_sensitive": 0,
+    }
+    for tensor, level in sorted(locked.items()):
+        tensor_s = str(tensor)
+        level_s = str(level)
+        layer, component = parse_tensor_name(tensor_s)
+        reasons: list[str] = []
+        floors: list[str] = []
+        if layer is not None and layer <= 4 and below_precision(level_s, "q4_K"):
+            reasons.append("early block <=4 below Q4")
+            floors.append("q4_K")
+            counts["early_low_precision"] += 1
+        if component in {"attn_k", "attn_q", "attn_v", "attn_output"} and below_precision(level_s, "q4_K"):
+            reasons.append("attention path below Q4")
+            floors.append("q4_K")
+            counts["attention_low_precision"] += 1
+        if component in {"ffn_up", "ffn_gate"} and level_s == "q2_K":
+            reasons.append("MLP up/gate at Q2")
+            floors.append("q3_K")
+            counts["mlp_up_gate_q2"] += 1
+        if layer is None and any(part in tensor_s for part in ("output.weight", "embd", "norm")) and below_precision(level_s, "q6_K"):
+            reasons.append("global output/embedding/norm below Q6")
+            floors.append("q6_K")
+            counts["global_sensitive"] += 1
+        if reasons:
+            floor = max(floors, key=precision_rank) if floors else "q4_K"
+            suspects.append({"tensor": tensor_s, "level": level_s, "floor": floor, "reasons": reasons})
+    old_method_notes = [
+        "Qwen 3.6 27B used group HumanEval ablations and promotion checks, not a wiki-only per-tensor walk.",
+        "Gemma E2B v1 showed blanket PPL wins can destroy benchmarks; v2 used surgical layer demotion.",
+        "Use benchmark gates before accepting low-precision attention/output/early-block locks.",
+    ]
+    phase = (flow or {}).get("phase")
+    if suspects and phase == "survivability-scan":
+        recommended_action = "survivability finding; require benchmark gate before final acceptance"
+    elif suspects:
+        recommended_action = "benchmark-gated rollback/protection experiment"
+    else:
+        recommended_action = "no obvious golden-cow violations under current rules"
+    return {
+        "schema": "cerebellum.golden_cow_audit.v1",
+        "ppl_profile": (manifest or {}).get("ppl_profile") or state.get("ppl_profile"),
+        "ablation_metric": (manifest or {}).get("ablation_metric") or state.get("ablation_metric"),
+        "current_ppl": state.get("current_ppl"),
+        "locked": len(locked),
+        "suspect_count": len(suspects),
+        "counts": counts,
+        "suspects": suspects,
+        "old_method_notes": old_method_notes,
+        "recommended_action": recommended_action,
+    }
+
+
+def golden_cow_watch_lines(audit: dict[str, Any], limit: int = 6) -> list[str]:
+    if not audit:
+        return ["No golden-cow audit available."]
+    lines = [
+        f"mode legacy-gated recommended  metric={audit.get('ablation_metric')}  profile={audit.get('ppl_profile')}  ppl={audit.get('current_ppl')}",
+        f"locked={audit.get('locked')}  suspects={audit.get('suspect_count')}  action={audit.get('recommended_action')}",
+    ]
+    counts = audit.get("counts") or {}
+    count_bits = [f"{key}={value}" for key, value in counts.items() if value]
+    if count_bits:
+        lines.append("risk counts  " + "  ".join(count_bits))
+    suspects = audit.get("suspects") or []
+    for row in suspects[:limit]:
+        reasons = ", ".join(row.get("reasons") or [])
+        lines.append(f"{row.get('level')} -> >= {row.get('floor')}  {row.get('tensor')}  {reasons}")
+    if len(suspects) > limit:
+        lines.append(f"... {len(suspects) - limit} more suspects; use `cerebellum legacy-plan RUN_DIR --json`")
+    return lines
+
+
+def same_path(a: str | Path | None, b: str | Path | None) -> bool:
+    if not a or not b:
+        return False
+    pa = Path(str(a))
+    pb = Path(str(b))
+    try:
+        return pa.resolve() == pb.resolve()
+    except OSError:
+        return str(pa) == str(pb)
+
+
+def legacy_flow_context(run_dir: Path) -> dict[str, Any]:
+    flow_path: Path | None = None
+    for parent in [run_dir, *run_dir.parents]:
+        candidate = parent / "legacy_flow.json"
+        if candidate.exists():
+            flow_path = candidate
+            break
+    if flow_path is None:
+        return {}
+    plan = read_json(flow_path, {})
+    if not isinstance(plan, dict):
+        return {}
+    phase = "unknown"
+    group: dict[str, Any] | None = None
+    groups: list[dict[str, Any]] = []
+    for row in plan.get("phases", []):
+        if row.get("name") == "survivability-scan":
+            groups = [item for item in row.get("groups", []) if isinstance(item, dict)]
+            break
+    for index, row in enumerate(groups, 1):
+        if same_path(row.get("run_dir"), run_dir):
+            phase = "survivability-scan"
+            group = {**row, "index": index, "total": len(groups)}
+            break
+    if group is None and same_path(plan.get("run_dir"), run_dir):
+        phase = "targeted-hillstep"
+    next_phases = []
+    seen = phase == "unknown"
+    for row in plan.get("phases", []):
+        name = row.get("name")
+        if not name:
+            continue
+        if name == phase:
+            seen = True
+            continue
+        if seen:
+            next_phases.append(str(name))
+    return {
+        "schema": "cerebellum.legacy_flow_context.v1",
+        "flow_path": str(flow_path),
+        "mode": plan.get("mode"),
+        "phase": phase,
+        "group": group,
+        "next_phases": next_phases[:5],
+        "survivability": plan.get("survivability") or {},
+        "baseline_gguf": plan.get("baseline_gguf"),
+        "candidate_gguf": plan.get("candidate_gguf"),
+        "watch": plan.get("watch") or {},
+    }
+
+
+def legacy_flow_watch_lines(
+    context: dict[str, Any],
+    state: dict[str, Any],
+    active: dict[str, Any],
+    manifest: dict[str, Any] | None = None,
+) -> list[str]:
+    if not context:
+        return ["No legacy-flow manifest found for this run."]
+    manifest = manifest or {}
+    live_levels = manifest.get("levels") or state.get("levels")
+    if isinstance(live_levels, list):
+        live_levels_s = ",".join(str(level) for level in live_levels)
+    else:
+        live_levels_s = str(live_levels or context.get("survivability", {}).get("levels") or "-")
+    live_commit_locks = manifest.get("commit_locks")
+    if live_commit_locks is None:
+        live_commit_locks = context.get("survivability", {}).get("commit_locks")
+    pure_effective = manifest.get("pure_quant_effective")
+    if pure_effective is None:
+        pure_effective = manifest.get("pure_quant", context.get("survivability", {}).get("pure_quant"))
+    scan_mode = context.get("survivability", {}).get("mode", "-")
+    if live_levels_s != str(context.get("survivability", {}).get("levels") or "-"):
+        scan_mode = "bidirectional no-commit survivability scan" if not live_commit_locks else "bidirectional survivability scan"
+    lines = [
+        f"mode {context.get('mode') or '-'}  phase={context.get('phase') or '-'}",
+    ]
+    group = context.get("group") or {}
+    if group:
+        lines.append(
+            f"group {group.get('index')}/{group.get('total')} {group.get('name')}  floor={group.get('floor')}  levels={live_levels_s}"
+        )
+        patterns = ", ".join(str(item) for item in group.get("patterns", []))
+        if patterns:
+            lines.append(f"patterns {patterns}")
+    survivability = context.get("survivability") or {}
+    if survivability:
+        lines.append(
+            f"scan={scan_mode}  pure_quant_effective={pure_effective}  max_regression={survivability.get('max_regression_pct')}%"
+        )
+        lines.append(f"commit_locks={live_commit_locks}  target_file={Path(str(survivability.get('target_tensor_file', '-'))).name}")
+    lines.append(f"baseline_ppl={state.get('current_ppl')}  active={active.get('event')} {active.get('level', '')} {active.get('tensor', '')}".strip())
+    if context.get("next_phases"):
+        lines.append("next " + " -> ".join(context["next_phases"]))
+    return lines
+
+
+def classic_ablation_root(run_dir: Path) -> Path:
+    parts = list(run_dir.parts)
+    for marker in ("forward", "reverse"):
+        if marker in parts:
+            idx = parts.index(marker)
+            return Path(*parts[:idx]) if idx > 0 else Path("/")
+    return run_dir
+
+
+def classic_ablation_phase_lines(root: Path, phase: str, enabled: bool = False) -> list[str]:
+    phase_root = root / phase
+    if not phase_root.exists():
+        return [f"No {phase} ablation results yet."]
+    rows: list[tuple[float, str]] = []
+    for path in phase_root.glob("*/" + CANDIDATE_FILES[0]):
+        for row in read_jsonl(path):
+            delta = row.get("delta")
+            delta_s = "-" if delta is None else f"{delta:+.4f}"
+            tensor = str(row.get("tensor") or path.parent.name)
+            verdict, verdict_code = ablation_verdict(delta, tensor, phase=phase)
+            mtime = path.stat().st_mtime if path.exists() else 0.0
+            rows.append(
+                (
+                    mtime,
+                    "".join(
+                        [
+                            color(f"{tensor:<12}", "37;1", enabled),
+                            " ",
+                            color(f"{row.get('level', '-'):<7}", "35;1", enabled),
+                            " ",
+                            color(f"{str(row.get('ppl', '-')):<12}", "33;1", enabled),
+                            " ",
+                            color(f"{delta_s:<12}", delta_code(delta), enabled),
+                            " ",
+                            color(f"{str(row.get('tensor_count', '-')):<7}", "36;1", enabled),
+                            " ",
+                            color(verdict, verdict_code, enabled),
+                        ]
+                    ),
+                )
+            )
+    if not rows:
+        return [f"No {phase} ablation results yet."]
+    lines = [
+        color(f"{'group':<12} {'quant':<7} {'ppl':<12} {'delta':<12} {'tensors':<7} verdict", "90;1", enabled),
+        color("─" * 92, "90", enabled),
+    ]
+    lines.extend(line for _mtime, line in sorted(rows, key=lambda item: item[0]))
+    return lines
+
+
+def classic_ablation_candidate_rows(root: Path, phase: str) -> list[dict[str, Any]]:
+    phase_root = root / phase
+    rows: list[dict[str, Any]] = []
+    if not phase_root.exists():
+        return rows
+    for path in phase_root.glob("*/" + CANDIDATE_FILES[0]):
+        for row in read_jsonl(path):
+            rows.append({**row, "group": row.get("tensor") or path.parent.name, "run_dir": str(path.parent)})
+    return rows
+
+
+def selected_forward_survivor_groups(root: Path, max_regression_pct: float = 2.0) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+    for row in classic_ablation_candidate_rows(root, "forward"):
+        baseline = row.get("baseline_ppl")
+        delta = row.get("delta")
+        try:
+            pct_delta = (float(delta) / float(baseline)) * 100.0 if baseline else 0.0
+        except (TypeError, ValueError):
+            continue
+        if pct_delta <= max_regression_pct:
+            selected.append({**row, "pct_delta": pct_delta})
+    return sorted(selected, key=lambda row: str(row.get("group") or ""))
+
+
+def write_forward_survivor_overrides(root: Path, output: Path, max_regression_pct: float = 2.0, target_type: str = "q2_K") -> list[dict[str, Any]]:
+    selected = selected_forward_survivor_groups(root, max_regression_pct=max_regression_pct)
+    overrides: dict[str, str] = {}
+    for row in selected:
+        type_file = row.get("type_file")
+        if not type_file:
+            continue
+        for tensor, qtype in read_tensor_type_map(Path(str(type_file))).items():
+            if normalize_quant_type_name(qtype) == normalize_quant_type_name(target_type):
+                overrides[tensor] = target_type
+    lines = [tensor_type_line(tensor, qtype) for tensor, qtype in sorted(overrides.items())]
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    return selected
+
+
+def legacy_plan_payload(run_dir: Path | None = None, source_gguf: str | None = None, output_dir: str | None = None) -> dict[str, Any]:
+    state: dict[str, Any] = {}
+    manifest: dict[str, Any] = {}
+    if run_dir:
+        state = read_json(run_dir / "state.json", {})
+        manifest = read_json(run_dir / "manifest.json", {})
+    audit = golden_cow_audit(state, manifest) if state else {}
+    source = source_gguf or manifest.get("source_gguf")
+    out = output_dir or (str((run_dir or Path.cwd()) / "legacy_gated") if run_dir else "legacy_gated")
+    benchmark_dir = str(Path(out) / "benchmark_results")
+    phases = [
+        {"name": "archive-current-run", "purpose": "preserve state, candidates, decisions, checkpoints, and frozen GGUFs before rollback"},
+        {
+            "name": "build-lower-quant-baseline",
+            "purpose": "use the F16 GGUF only as the llama-quantize source; serve and benchmark the produced lower quant output",
+        },
+        {"name": "baseline-full-record", "purpose": "record quant output size, type distribution, PPL, speed, HumanEval+, ARC, HellaSwag, MMLU-Redux"},
+        {"name": "group-ablation", "purpose": "test groups/layer clusters before per-tensor work"},
+        {"name": "golden-cow-protection", "purpose": "force floors for early blocks, attention, output, embeddings, norms, and fragile MLP groups"},
+        {"name": "interaction-check", "purpose": "test additive/layer-cluster interactions before accepting a bundle"},
+        {"name": "benchmark-gate", "purpose": "reject PPL wins that regress benchmark smoke/full suite beyond threshold"},
+        {"name": "final-comparison", "purpose": "publish only if size, TPS, PPL, and benchmark scores justify the variant"},
+    ]
+    commands = {
+        "current_watch": None if not run_dir else f"cerebellum watch {shlex.quote(str(run_dir))}",
+        "build_quant_baseline": None
+        if not source
+        else (
+            "llama-quantize --allow-requantize --tensor-type-file tensor_types.txt "
+            f"{shlex.quote(str(source))} {shlex.quote(str(Path(out) / 'baseline-or-candidate.gguf'))} Q4_K_M"
+        ),
+        "serve_quant_output": f"llama-server -m {shlex.quote(str(Path(out) / 'baseline-or-candidate.gguf'))} -ngl 99 --parallel 4 -c 24576 --jinja",
+        "benchmark_plan": f"cerebellum benchmark-plan --suite release-local --model MODEL --results-dir {shlex.quote(benchmark_dir)}",
+        "type_compare": None if not source else "cerebellum compare-gguf-types BASE.gguf CANDIDATE.gguf --json",
+        "protected_pipeline": None
+        if not source
+        else (
+            "cerebellum pipeline-plan "
+            f"--source-gguf {shlex.quote(str(source))} --output-dir {shlex.quote(str(out))} "
+            "--task-profile legacy-gated --benchmark-suite release-local --low-space"
+        ),
+    }
+    return {
+        "schema": "cerebellum.legacy_gated_plan.v1",
+        "run_dir": str(run_dir) if run_dir else None,
+        "source_gguf": source,
+        "output_dir": out,
+        "profile": TASK_PROFILES["legacy-gated"],
+        "protected_groups": LEGACY_GATED_GROUPS,
+        "phases": phases,
+        "commands": commands,
+        "golden_cow_audit": audit,
+    }
+
+
+def legacy_plan_markdown(plan: dict[str, Any]) -> str:
+    parts = [
+        "# Cerebellum Legacy-Gated Plan",
+        "",
+        f"run: `{plan.get('run_dir') or '-'}`",
+        f"source: `{plan.get('source_gguf') or '-'}`",
+        f"output: `{plan.get('output_dir')}`",
+        "",
+        "## Why",
+        "",
+        str(plan["profile"]["note"]),
+        "",
+        "## Phases",
+        "",
+        markdown_table(["Phase", "Purpose"], [[row["name"], row["purpose"]] for row in plan["phases"]]),
+        "",
+        "## Protected Groups",
+        "",
+        markdown_table(
+            ["Group", "Floor", "Patterns", "Why"],
+            [[row["name"], row["default_floor"], ", ".join(row["patterns"]), row["why"]] for row in plan["protected_groups"]],
+        ),
+    ]
+    audit = plan.get("golden_cow_audit") or {}
+    if audit:
+        parts.extend(["", "## Current Run Audit", ""])
+        parts.extend(golden_cow_watch_lines(audit, limit=12))
+    command_rows = [[key, str(value)] for key, value in (plan.get("commands") or {}).items() if value]
+    if command_rows:
+        parts.extend(["", "## Commands", "", markdown_table(["Command", "Value"], command_rows)])
+    return "\n".join(parts) + "\n"
+
+
+def legacy_plan_cmd(args: argparse.Namespace) -> None:
+    run_dir = resolve_run_dir(args.run_dir) if args.run_dir else None
+    plan = legacy_plan_payload(run_dir, args.source_gguf, args.output_dir)
+    if args.write:
+        Path(args.write).write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(args.write)
+        return
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+        return
+    print(legacy_plan_markdown(plan), end="")
+
+
+def legacy_flow_payload(args: argparse.Namespace) -> dict[str, Any]:
+    source = Path(args.source_gguf)
+    output_dir = Path(args.output_dir)
+    run_dir = Path(args.run_dir) if args.run_dir else output_dir / "run"
+    imatrix = Path(args.imatrix) if args.imatrix else output_dir / "imatrix.dat"
+    model_label = slug(args.model_name or source.stem).lower()
+    baseline_gguf = output_dir / f"{model_label}-{args.base_type.lower()}-baseline.gguf"
+    candidate_gguf = output_dir / f"{model_label}-cerebellum.gguf"
+    benchmark_dir = output_dir / "benchmark_results"
+    manifest_path = Path(args.write) if args.write else output_dir / "legacy_flow.json"
+    survivability_root = output_dir / "survivability"
+    selected_targets = output_dir / "selected_survivability_targets.json"
+    target_tensor_file = output_dir / "target_tensors.txt"
+    selected_override_file = output_dir / "selected_survivability_overrides.txt"
+    tensor_map = run_dir / "artifacts" / "final_types.txt"
+    quant_base = [args.quantize_bin, "--allow-requantize"]
+    bool_flag(quant_base, "--pure", args.pure_quant)
+    tensor_map_quant_base = [args.quantize_bin, "--allow-requantize"]
+    common_run = [
+        "cerebellum",
+        "run",
+        "--source-gguf",
+        str(source),
+        "--imatrix",
+        str(imatrix),
+        "--profile",
+        args.profile,
+        "--metric",
+        args.metric,
+        "--base-type",
+        args.base_type,
+        "--start-type",
+        args.start_type,
+        "--quantize-bin",
+        args.quantize_bin,
+        "--perplexity-bin",
+        args.perplexity_bin,
+        "--gpu-layers",
+        str(args.gpu_layers),
+        "--ctx-size",
+        str(args.ctx_size),
+        "--scratch-root",
+        str(args.scratch_root or output_dir / "scratch"),
+    ]
+    optional_flag(common_run, "--chunks", args.chunks)
+    optional_flag(common_run, "--distrobox", args.distrobox)
+    bool_flag(common_run, "--low-space", args.low_space)
+    bool_flag(common_run, "--serial-candidates", args.serial_candidates)
+    bool_flag(common_run, "--pure-quant", args.pure_quant)
+    group_scan_common = [
+        "cerebellum",
+        "group-scan",
+        "--source-gguf",
+        str(source),
+        "--corpus",
+        str(args.corpus or "CORPUS"),
+        "--imatrix",
+        str(imatrix),
+        "--profile",
+        args.profile,
+        "--family",
+        str(args.family or ""),
+        "--model-name",
+        model_label,
+        "--source-name",
+        str(args.source_name or ""),
+        "--base-type",
+        args.base_type,
+        "--start-type",
+        args.start_type,
+        "--target-type",
+        args.survivability_target_type,
+        "--quantize-bin",
+        args.quantize_bin,
+        "--perplexity-bin",
+        args.perplexity_bin,
+        "--gpu-layers",
+        str(args.gpu_layers),
+        "--ctx-size",
+        str(args.ctx_size),
+        "--hard-free-floor-gb",
+        str(args.hard_free_floor_gb),
+        "--min-free-gb",
+        str(args.min_free_gb),
+    ]
+    optional_flag(group_scan_common, "--chunks", args.chunks)
+    optional_flag(group_scan_common, "--distrobox", args.distrobox)
+    optional_flag(group_scan_common, "--baseline-ppl", args.baseline_ppl)
+    survivability_groups = []
+    for group in LEGACY_GATED_GROUPS:
+        if group.get("scan") is False:
+            continue
+        patterns = group.get("patterns") or []
+        group_run_dir = survivability_root / slug(group["name"]).lower()
+        tensor_regex = "|".join(re.escape(str(pattern)) for pattern in patterns)
+        survivability_groups.append(
+            {
+                "name": group["name"],
+                "run_dir": str(group_run_dir),
+                "floor": group["default_floor"],
+                "patterns": patterns,
+                "selection_rule": (
+                    "selected for the classic Cerebellum candidate when Q2_K group crush stays under "
+                    f"{args.max_regression_pct:g}% PPL regression and the benchmark smoke gate does not regress"
+                ),
+                "command_template": shell_join(
+                    [
+                        *group_scan_common,
+                        "--run-dir",
+                        group_run_dir,
+                        "--group-name",
+                        group["name"],
+                        "--tensor-regex",
+                        tensor_regex,
+                    ]
+                ),
+            }
+        )
+    phases = [
+        {
+            "name": "scan",
+            "status": "planned",
+            "purpose": "build imatrix and inventory quantizable tensors before any destructive candidate work",
+            "command": shell_join(["cerebellum", "imatrix", "--model", source, "--output", imatrix]),
+            "outputs": [str(imatrix)],
+        },
+        {
+            "name": "baseline",
+            "status": "planned",
+            "purpose": "build and benchmark the lower-quant baseline from the F16 source",
+            "command": shell_join([*quant_base, "--imatrix", imatrix, str(source), baseline_gguf, args.base_type]),
+            "outputs": [str(baseline_gguf)],
+        },
+        {
+            "name": "survivability-scan",
+            "status": "planned",
+            "purpose": "forward ablation: test each whole tensor group at Q2_K from the baseline",
+            "groups": survivability_groups,
+            "outputs": [str(survivability_root), str(selected_targets)],
+        },
+        {
+            "name": "target-selection",
+            "status": "planned",
+            "purpose": "write approved group-survivor overrides plus an optional tensor-name list for targeted refinement",
+            "command": shell_join(
+                [
+                    "cerebellum",
+                    "ablation-analyze",
+                    str(survivability_root),
+                    "--baseline-ppl",
+                    args.baseline_ppl or "BASELINE_PPL",
+                    "--target-type",
+                    args.survivability_target_type,
+                    "--json-output",
+                    selected_targets,
+                    "--output",
+                    selected_override_file,
+                    "--tensor-output",
+                    target_tensor_file,
+                ]
+            ),
+            "outputs": [str(selected_targets), str(selected_override_file), str(target_tensor_file)],
+        },
+        {
+            "name": "build-v1-stacked-q2",
+            "status": "planned",
+            "purpose": "build the fully stacked v1 candidate from all forward-survivor Q2 group overrides",
+            "command": shell_join([*tensor_map_quant_base, "--imatrix", imatrix, "--tensor-type-file", selected_override_file, str(source), output_dir / f"{model_label}-cerebellum-v1-stacked.gguf", args.base_type]),
+            "outputs": [str(output_dir / f"{model_label}-cerebellum-v1-stacked.gguf")],
+        },
+        {
+            "name": "reverse-ablation",
+            "status": "planned",
+            "purpose": "reverse ablation: from stacked v1, restore each selected group to the Gemma Q4 floor and keep Q2 only when restoration fails to improve quality",
+            "command": "planned group-scan reverse mode: use selected_survivability_overrides.txt as the base map, restore one group to q4_K, run PPL, then update the final override map",
+            "outputs": [str(output_dir / "reverse_survivability_results.json"), str(output_dir / "final_group_overrides.txt")],
+        },
+    ]
+    if args.with_targeted_hillstep:
+        phases.append(
+            {
+                "name": "targeted-hillstep",
+                "status": "optional",
+                "purpose": "optional refinement only inside selected survivor targets; not the default release recipe",
+                "command": shell_join([*common_run, "--run-dir", run_dir, "--levels", args.levels, "--tensor-file", target_tensor_file]),
+                "outputs": [str(run_dir / "state.json"), str(tensor_map)],
+            }
+        )
+        candidate_tensor_map = tensor_map
+        candidate_purpose = "build final candidate GGUF from exact targeted-hillstep tensor map"
+    else:
+        candidate_tensor_map = output_dir / "final_group_overrides.txt"
+        candidate_purpose = "build classic Cerebellum candidate GGUF from forward+reverse group ablation overrides"
+    phases.extend(
+        [
+        {
+            "name": "build-candidate",
+            "status": "planned",
+            "purpose": candidate_purpose,
+            "command": shell_join(
+                [
+                    *tensor_map_quant_base,
+                    "--imatrix",
+                    imatrix,
+                    "--tensor-type-file",
+                    candidate_tensor_map,
+                    str(source),
+                    candidate_gguf,
+                    args.base_type,
+                ]
+            ),
+            "outputs": [str(candidate_gguf)],
+        },
+        {
+            "name": "benchmark-gate",
+            "status": "planned",
+            "purpose": "gate against baseline on size, TPS, PPL, HumanEval+, ARC, HellaSwag, MMLU-Redux, and audit artifacts",
+            "command": shell_join(
+                [
+                    "cerebellum",
+                    "benchmark-run",
+                    "--suite",
+                    args.benchmark_suite,
+                    "--model",
+                    model_label,
+                    "--results-dir",
+                    benchmark_dir,
+                    "--execute",
+                    "--postprocess",
+                    "--require-complete",
+                ]
+            ),
+            "outputs": [str(benchmark_dir)],
+        },
+        ]
+    )
+    return {
+        "schema": "cerebellum.legacy_flow.v1",
+        "mode": "classic group-first Cerebellum",
+        "source_gguf": str(source),
+        "output_dir": str(output_dir),
+        "run_dir": str(run_dir),
+        "imatrix": str(imatrix),
+        "baseline_gguf": str(baseline_gguf),
+        "candidate_gguf": str(candidate_gguf),
+        "manifest_path": str(manifest_path),
+        "watch": {
+            "private": shell_join(["cerebellum", "watch", run_dir]),
+            "public": shell_join(["cerebellum", "watch", "--public", run_dir]),
+            "state_model": "same run state, event log, measurements, locks, ETA, and locked-layer map as normal Cerebellum watch",
+        },
+        "orchestration": {
+            "quant_ppl_overlap": "enabled in HillStepper: quant_worker and ppl_worker run in tandem; normal mode fills per-tensor candidates until the disk floor blocks another GGUF",
+            "low_space_mode": "serializes candidate testing with queue depth 1 and prunes measured candidate GGUFs immediately",
+            "cleanup": "durable state/checkpoints stay; measured non-winning candidate GGUFs are pruned unless --keep-losers or --keep-measured-candidates is set",
+            "resume": shell_join(["cerebellum", "resume", run_dir, "--low-space"] if args.low_space else ["cerebellum", "resume", run_dir]),
+            "queue": shell_join(["cerebellum", "queue", "add", "--kind", "pipeline", "--manifest", manifest_path]),
+        },
+        "protected_groups": LEGACY_GATED_GROUPS,
+        "survivability": {
+            "levels": args.survivability_levels,
+            "target_type": args.survivability_target_type,
+            "mode": "classic Q2_K no-commit group survivability scan",
+            "commit_locks": False,
+            "max_regression_pct": args.max_regression_pct,
+            "selected_targets": str(selected_targets),
+            "selected_override_file": str(selected_override_file),
+            "target_tensor_file": str(target_tensor_file),
+            "with_targeted_hillstep": args.with_targeted_hillstep,
+            "pure_quant": args.pure_quant,
+        },
+        "phases": phases,
+    }
+
+
+def legacy_flow_markdown(plan: dict[str, Any]) -> str:
+    rows = [[row["name"], row["status"], row["purpose"], row.get("command") or "-"] for row in plan["phases"]]
+    group_rows = []
+    for group in (next((row for row in plan["phases"] if row["name"] == "survivability-scan"), {}).get("groups") or []):
+        group_rows.append([group["name"], group["floor"], ", ".join(group["patterns"]), group["command_template"]])
+    parts = [
+        "# Cerebellum Legacy Flow",
+        "",
+        f"source: `{plan['source_gguf']}`",
+        f"run: `{plan['run_dir']}`",
+        f"baseline: `{plan['baseline_gguf']}`",
+        f"candidate: `{plan['candidate_gguf']}`",
+        "",
+        "## Watch",
+        "",
+        markdown_table(["View", "Command"], [["private", plan["watch"]["private"]], ["public", plan["watch"]["public"]]]),
+        "",
+        "## Orchestration",
+        "",
+        markdown_table(["Key", "Value"], [[key, str(value)] for key, value in plan["orchestration"].items()]),
+        "",
+        "## Phases",
+        "",
+        markdown_table(["Phase", "Status", "Purpose", "Command"], rows),
+    ]
+    if group_rows:
+        parts.extend(["", "## Survivability Groups", "", markdown_table(["Group", "Floor", "Patterns", "Command"], group_rows)])
+    return "\n".join(parts) + "\n"
+
+
+def legacy_forward_group_args(args: argparse.Namespace, plan: dict[str, Any], group: dict[str, Any], run_dir: Path) -> argparse.Namespace:
+    name = str(group["name"])
+    patterns = [str(pattern) for pattern in group.get("patterns") or []]
+    tensor_regex = "|".join(re.escape(pattern) for pattern in patterns)
+    return argparse.Namespace(
+        source_gguf=args.source_gguf,
+        corpus=args.corpus,
+        run_dir=str(run_dir),
+        tensor_regex=tensor_regex,
+        group_name=name,
+        run_name=f"{slug(args.model_name or Path(args.source_gguf).stem)}-classic-forward-{slug(name)}-{args.survivability_target_type}",
+        profile=args.profile,
+        family=args.family,
+        model_name=args.model_name,
+        source_name=args.source_name,
+        base_type=args.base_type,
+        start_type=args.start_type,
+        target_type=args.survivability_target_type,
+        base_map=getattr(args, "base_map", None),
+        baseline_ppl=args.baseline_ppl,
+        imatrix=plan["imatrix"],
+        quantize_bin=args.quantize_bin,
+        perplexity_bin=args.perplexity_bin,
+        gpu_layers=args.gpu_layers,
+        ctx_size=args.ctx_size,
+        chunks=args.chunks,
+        distrobox=args.distrobox,
+        quant_timeout=args.quant_timeout,
+        ppl_timeout=args.ppl_timeout,
+        min_free_gb=args.min_free_gb,
+        hard_free_floor_gb=args.hard_free_floor_gb,
+        token_embedding_type=args.token_embedding_type,
+        preview_limit=20,
+        prune_candidate=not args.keep_candidates,
+        dry_run=False,
+    )
+
+
+def legacy_forward_pending_groups(args: argparse.Namespace, plan: dict[str, Any], forward_root: Path) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    pending: list[dict[str, Any]] = []
+    skipped: list[dict[str, Any]] = []
+    for group in LEGACY_GATED_GROUPS:
+        if group.get("scan") is False:
+            continue
+        name = str(group["name"])
+        run_dir = forward_root / slug(name).lower()
+        state = read_json(run_dir / "state.json", {})
+        if state.get("run_status") == "complete":
+            skipped.append({"group": name, "run_dir": str(run_dir), "reason": "already complete"})
+            continue
+        pending.append({"group": group, "name": name, "run_dir": run_dir, "args": legacy_forward_group_args(args, plan, group, run_dir)})
+    return pending, skipped
+
+
+def legacy_forward_run_serial(args: argparse.Namespace, plan: dict[str, Any], forward_root: Path) -> dict[str, Any]:
+    pending, skipped = legacy_forward_pending_groups(args, plan, forward_root)
+    executed: list[dict[str, Any]] = []
+    for item in pending:
+        group_scan_cmd(item["args"])
+        result_state = read_json(item["run_dir"] / "state.json", {})
+        executed.append({"group": item["name"], "run_dir": str(item["run_dir"]), "status": result_state.get("run_status")})
+    return {"executed": executed, "skipped": skipped, "mode": "serial"}
+
+
+def legacy_forward_run_pipelined(args: argparse.Namespace, plan: dict[str, Any], forward_root: Path) -> dict[str, Any]:
+    pending, skipped = legacy_forward_pending_groups(args, plan, forward_root)
+    executed: list[dict[str, Any]] = []
+    prepared = [group_scan_prepare(item["args"]) for item in pending]
+    if not prepared:
+        return {"executed": executed, "skipped": skipped, "mode": "pipelined"}
+
+    def start_quant(job: dict[str, Any]) -> dict[str, Any]:
+        results: queue.Queue[tuple[dict[str, Any], int, str, float] | BaseException] = queue.Queue(maxsize=1)
+
+        def worker() -> None:
+            try:
+                q_rc, q_out, q_seconds = group_scan_run_quant(job)
+                results.put((job, q_rc, q_out, q_seconds))
+            except BaseException as exc:  # noqa: BLE001 - propagate background quant failure
+                results.put(exc)
+
+        thread = threading.Thread(target=worker, daemon=True)
+        thread.start()
+        return {"job": job, "thread": thread, "results": results}
+
+    def finish_quant(task: dict[str, Any]) -> tuple[dict[str, Any], float]:
+        task["thread"].join()
+        result = task["results"].get()
+        if isinstance(result, BaseException):
+            raise result
+        job, q_rc, q_out, q_seconds = result
+        if not group_scan_finalize_quant(job, q_rc, q_out, q_seconds):
+            raise SystemExit(f"group scan quantize failed for {job['group_name']}")
+        return job, q_seconds
+
+    current_task: dict[str, Any] | None = start_quant(prepared[0])
+    next_index = 1
+    while current_task is not None:
+        current_job, current_q_seconds = finish_quant(current_task)
+        next_task: dict[str, Any] | None = None
+        if next_index < len(prepared):
+            try:
+                next_job = prepared[next_index]
+                group_scan_assert_disk_floor(next_job["run_dir"], next_job.get("source", Path(next_job["args"].source_gguf)), next_job["args"], phase="pipeline_next_quant")
+                current_job["events"].write("pipeline_overlap", tensor=current_job["group_name"], level=current_job["args"].target_type, next_tensor=prepared[next_index]["group_name"])
+                next_task = start_quant(next_job)
+                next_index += 1
+            except SystemExit:
+                next_task = None
+        result = group_scan_run_ppl(current_job, current_q_seconds)
+        executed.append({"group": current_job["group_name"], "run_dir": str(current_job["run_dir"]), "status": result.get("status"), "ppl": result.get("ppl"), "delta": result.get("delta")})
+        if next_task is None and next_index < len(prepared):
+            next_task = start_quant(prepared[next_index])
+            next_index += 1
+        current_task = next_task
+    return {"executed": executed, "skipped": skipped, "mode": "pipelined"}
+
+
+def legacy_flow_execute_forward(args: argparse.Namespace, plan: dict[str, Any]) -> dict[str, Any]:
+    if not args.corpus:
+        raise SystemExit("--execute-forward requires --corpus")
+    if args.baseline_ppl is None:
+        raise SystemExit("--execute-forward requires --baseline-ppl")
+    root = Path(plan["output_dir"])
+    forward_root = root / "forward"
+    forward_root.mkdir(parents=True, exist_ok=True)
+    result = legacy_forward_run_serial(args, plan, forward_root) if args.serial_candidates else legacy_forward_run_pipelined(args, plan, forward_root)
+    return {
+        "schema": "cerebellum.legacy_flow_execute_forward.v1",
+        "output_dir": str(root),
+        "forward_root": str(forward_root),
+        **result,
+    }
+
+
+def legacy_flow_cmd(args: argparse.Namespace) -> None:
+    plan = legacy_flow_payload(args)
+    if args.execute_forward:
+        manifest = Path(args.write) if args.write else Path(plan["manifest_path"])
+        manifest.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        result = legacy_flow_execute_forward(args, plan)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return
+    if args.write:
+        output = Path(args.write)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(args.write)
+        return
+    if args.json:
+        print(json.dumps(plan, indent=2, sort_keys=True))
+        return
+    print(legacy_flow_markdown(plan), end="")
+
+
+def group_scan_tensor_names(source_gguf: Path, tensor_regex: str) -> list[str]:
+    try:
+        from gguf import GGUFReader
+    except Exception as exc:
+        raise SystemExit(f"cannot import gguf reader: {exc}") from exc
+    pattern = re.compile(tensor_regex)
+    reader = GGUFReader(str(source_gguf))
+    names = [t.name for t in reader.tensors]
+    return sorted(name for name in quantizable_tensor_names(names) if pattern.search(name))
+
+
+def group_scan_write_types(source: Path, path: Path, start_type: str, overrides: dict[str, str]) -> None:
+    write_tensor_types_map(source, overrides, start_type, path)
+
+
+def group_scan_base_overrides(path: str | None) -> dict[str, str]:
+    if not path:
+        return {}
+    return read_tensor_type_map(Path(path))
+
+
+def group_scan_quant_cmd(args: argparse.Namespace, type_file: Path, outfile: Path) -> list[str]:
+    cmd = [args.quantize_bin, "--allow-requantize"]
+    if args.imatrix:
+        cmd.extend(["--imatrix", str(args.imatrix)])
+    if args.token_embedding_type:
+        cmd.extend(["--token-embedding-type", str(args.token_embedding_type)])
+    cmd.extend(["--tensor-type-file", str(type_file), str(args.source_gguf), str(outfile), args.base_type])
+    return cmd
+
+
+def group_scan_ppl_cmd(args: argparse.Namespace, model: Path) -> list[str]:
+    cmd = [args.perplexity_bin, "--model", str(model), "--ctx-size", str(args.ctx_size), "-f", str(args.corpus), "-ngl", str(args.gpu_layers)]
+    if args.chunks is not None:
+        cmd.extend(["--chunks", str(args.chunks)])
+    return cmd
+
+
+def group_scan_prepare(args: argparse.Namespace) -> dict[str, Any]:
+    source = Path(args.source_gguf)
+    run_dir = Path(args.run_dir)
+    group_name = args.group_name or slug(args.tensor_regex)
+    run_id = args.run_name or f"cerebellum-group-scan-{slug(group_name)}"
+    artifacts = run_dir / "artifacts"
+    type_file = run_dir / "group_types.txt"
+    candidate = artifacts / f"{slug(group_name)}-{args.target_type}.gguf"
+    tmp_candidate = candidate.with_suffix(candidate.suffix + ".tmp")
+    tensor_names = group_scan_tensor_names(source, args.tensor_regex)
+    if not tensor_names:
+        raise SystemExit(f"no quantizable tensors matched --tensor-regex {args.tensor_regex!r}")
+    overrides = group_scan_base_overrides(getattr(args, "base_map", None))
+    overrides.update({name: args.target_type for name in tensor_names})
+    group_scan_write_types(source, type_file, args.start_type, overrides)
+    manifest = {
+        "schema": "cerebellum.group_scan.v1",
+        "run_id": run_id,
+        "run_dir": str(run_dir),
+        "source_gguf": str(source),
+        "corpus": str(args.corpus),
+        "model_family": args.family,
+        "model_name": args.model_name,
+        "source_name": args.source_name,
+        "ppl_profile": args.profile,
+        "group_name": group_name,
+        "tensor_regex": args.tensor_regex,
+        "tensor_count": len(tensor_names),
+        "base_type": args.base_type,
+        "start_type": args.start_type,
+        "levels": [args.target_type],
+        "target_type": args.target_type,
+        "base_map": str(args.base_map) if getattr(args, "base_map", None) else None,
+        "commit_locks": False,
+        "measurement_mode": "classic group no-commit scan",
+        "imatrix": str(args.imatrix) if args.imatrix else None,
+        "quantize_bin": args.quantize_bin,
+        "perplexity_bin": args.perplexity_bin,
+        "gpu_layers": args.gpu_layers,
+        "ctx_size": args.ctx_size,
+        "chunks": args.chunks,
+        "distrobox": args.distrobox,
+        "hard_free_floor_gb": args.hard_free_floor_gb,
+        "min_free_gb": args.min_free_gb,
+        "pure_quant_effective": False,
+        "type_file": str(type_file),
+        "candidate_gguf": str(candidate),
+    }
+    state = {
+        "schema": "cerebellum.group_scan_state.v1",
+        "run_id": run_id,
+        "run_status": "planned" if args.dry_run else "running",
+        "pid": os.getpid(),
+        "model_family": args.family,
+        "model_name": args.model_name,
+        "source_name": args.source_name,
+        "current_ppl": args.baseline_ppl,
+        "baseline_ppl": args.baseline_ppl,
+        "current_tensor": group_name,
+        "current_level": args.target_type,
+        "locked": {},
+        "tested": [],
+        "levels": [args.target_type],
+        "started_at": utc_now(),
+    }
+    atomic_write_json(run_dir / "manifest.json", manifest)
+    atomic_write_json(run_dir / "state.json", state)
+    events = EventLog(run_dir / EVENT_FILES[0], run_id)
+    candidates = EventLog(run_dir / CANDIDATE_FILES[0], run_id)
+    return {
+        "args": args,
+        "source": source,
+        "run_dir": run_dir,
+        "group_name": group_name,
+        "run_id": run_id,
+        "artifacts": artifacts,
+        "type_file": type_file,
+        "candidate": candidate,
+        "tmp_candidate": tmp_candidate,
+        "tensor_names": tensor_names,
+        "manifest": manifest,
+        "state": state,
+        "events": events,
+        "candidates": candidates,
+    }
+
+
+def group_scan_required_free_gb(source: Path, args: argparse.Namespace) -> float:
+    estimated_candidate_gb = max(bytes_to_gb(path_size(source)) * 0.45, 1.0)
+    return max(args.min_free_gb, args.hard_free_floor_gb + estimated_candidate_gb)
+
+
+def group_scan_assert_disk_floor(run_dir: Path, source: Path, args: argparse.Namespace, phase: str = "quant") -> None:
+    free_gb = disk_free_gb(run_dir)
+    required_free = group_scan_required_free_gb(source, args)
+    if free_gb < required_free:
+        raise SystemExit(f"not enough free space before {phase}: {free_gb:.1f} GiB free, need at least {required_free:.1f} GiB")
+
+
+def group_scan_run_quant(job: dict[str, Any]) -> tuple[int, str, float]:
+    args = job["args"]
+    group_name = job["group_name"]
+    artifacts = job["artifacts"]
+    type_file = job["type_file"]
+    candidate = job["candidate"]
+    tmp_candidate = job["tmp_candidate"]
+    events = job["events"]
+    group_scan_assert_disk_floor(job["run_dir"], job["source"], args, phase="quant")
+    artifacts.mkdir(parents=True, exist_ok=True)
+    if tmp_candidate.exists():
+        tmp_candidate.unlink()
+    events.write("group_scan_start", tensor=group_name, level=args.target_type, tensors=len(job["tensor_names"]))
+    events.write("quant_start", tensor=group_name, level=args.target_type, tmp_output=str(tmp_candidate), output=str(candidate))
+    try:
+        return run_external(
+            group_scan_quant_cmd(args, type_file, tmp_candidate),
+            args.quant_timeout,
+            args.distrobox,
+            heartbeat=lambda elapsed, pid: events.write("quant_heartbeat", tensor=group_name, level=args.target_type, elapsed_seconds=elapsed, child_pid=pid, tmp_output=str(tmp_candidate), size_bytes=path_size(tmp_candidate)),
+        )
+    except subprocess.TimeoutExpired as exc:
+        return 124, str(exc), float(args.quant_timeout)
+
+
+def group_scan_finalize_quant(job: dict[str, Any], q_rc: int, q_out: str, q_seconds: float) -> bool:
+    args = job["args"]
+    group_name = job["group_name"]
+    candidate = job["candidate"]
+    tmp_candidate = job["tmp_candidate"]
+    events = job["events"]
+    state = job["state"]
+    if q_rc == 0 and tmp_candidate.exists() and path_size(tmp_candidate) > 0:
+        os.replace(tmp_candidate, candidate)
+    elif tmp_candidate.exists():
+        tmp_candidate.unlink()
+    events.write("quant_finish", tensor=group_name, level=args.target_type, returncode=q_rc, seconds=q_seconds, size_bytes=path_size(candidate), output_tail=q_out[-2000:])
+    if q_rc != 0 or not candidate.exists():
+        state.update({"run_status": "failed", "finished_at": utc_now(), "failure": "quantize failed"})
+        atomic_write_json(job["run_dir"] / "state.json", state)
+        return False
+    return True
+
+
+def group_scan_run_ppl(job: dict[str, Any], q_seconds: float) -> dict[str, Any]:
+    args = job["args"]
+    group_name = job["group_name"]
+    candidate = job["candidate"]
+    events = job["events"]
+    candidates = job["candidates"]
+    state = job["state"]
+    events.write("ppl_start", tensor=group_name, level=args.target_type, model=str(candidate))
+    try:
+        p_rc, p_out, p_seconds = run_external(
+            group_scan_ppl_cmd(args, candidate),
+            args.ppl_timeout,
+            args.distrobox,
+            heartbeat=lambda elapsed, pid: events.write("ppl_heartbeat", tensor=group_name, level=args.target_type, elapsed_seconds=elapsed, child_pid=pid, model=str(candidate)),
+        )
+    except subprocess.TimeoutExpired as exc:
+        p_rc, p_out, p_seconds = 124, str(exc), float(args.ppl_timeout)
+    ppl, err = parse_ppl(p_out)
+    delta = (ppl - args.baseline_ppl) if ppl is not None and args.baseline_ppl is not None else None
+    events.write("ppl_finish", tensor=group_name, level=args.target_type, returncode=p_rc, seconds=p_seconds, ppl=ppl, ppl_error=err, delta=delta, output_tail=p_out[-2000:])
+    candidates.write("candidate", tensor=group_name, level=args.target_type, tensor_count=len(job["tensor_names"]), baseline_ppl=args.baseline_ppl, ppl=ppl, ppl_error=err, delta=delta, quant_seconds=q_seconds, ppl_seconds=p_seconds, size_bytes=path_size(candidate), status="done" if p_rc == 0 and ppl is not None else "failed", type_file=str(job["type_file"]), matched_tensors=job["tensor_names"][: args.preview_limit])
+    state.update({"run_status": "complete" if p_rc == 0 and ppl is not None else "failed", "finished_at": utc_now(), "last_tensor": group_name, "tested": [{"tensor": group_name, "winner": args.target_type, "ppl": ppl, "delta": delta, "tensor_count": len(job["tensor_names"]), "type_file": str(job["type_file"])}]})
+    atomic_write_json(job["run_dir"] / "state.json", state)
+    if args.prune_candidate and candidate.exists():
+        candidate.unlink()
+    return {"run_dir": str(job["run_dir"]), "group": group_name, "target_type": args.target_type, "tensor_count": len(job["tensor_names"]), "baseline_ppl": args.baseline_ppl, "ppl": ppl, "ppl_error": err, "delta": delta, "status": state["run_status"], "type_file": str(job["type_file"])}
+
+
+def group_scan_cmd(args: argparse.Namespace) -> None:
+    job = group_scan_prepare(args)
+    if args.dry_run:
+        print(
+            json.dumps(
+                {
+                    **job["manifest"],
+                    "matched_tensors": job["tensor_names"][: args.preview_limit],
+                    "quant_command": shell_join(group_scan_quant_cmd(args, job["type_file"], job["candidate"])),
+                    "ppl_command": shell_join(group_scan_ppl_cmd(args, job["candidate"])),
+                },
+                indent=2,
+                sort_keys=True,
+            )
+        )
+        return
+    q_rc, q_out, q_seconds = group_scan_run_quant(job)
+    if not group_scan_finalize_quant(job, q_rc, q_out, q_seconds):
+        raise SystemExit("group scan quantize failed")
+    print(json.dumps(group_scan_run_ppl(job, q_seconds), indent=2, sort_keys=True))
+
+
+def sparse_replay_default_plan(source_gguf: Path, limit: int | None = None) -> list[str]:
+    names = group_scan_tensor_names(source_gguf, r".*")
+    layer_re = re.compile(r"^blk\.(\d+)\.")
+    layers = sorted({int(m.group(1)) for name in names if (m := layer_re.match(name))})
+    selected: list[str] = []
+    if layers:
+        anchors = sorted({0, 1, 2, layers[len(layers) // 4], layers[len(layers) // 2], layers[-3], layers[-2], layers[-1]})
+        components = ["attn_q", "attn_v", "attn_output", "ffn_gate", "ffn_down"]
+        available = set(names)
+        for layer in anchors:
+            for component in components:
+                tensor = f"blk.{layer}.{component}.weight"
+                if tensor in available:
+                    selected.append(tensor)
+    if not selected:
+        selected = names
+    if limit is not None and limit > 0:
+        selected = selected[:limit]
+    return selected
+
+
+def sparse_replay_load_plan(args: argparse.Namespace) -> list[str]:
+    if args.probe_plan:
+        path = Path(args.probe_plan)
+        if path.suffix.lower() == ".json":
+            payload = read_json(path, {})
+            rows = payload.get("tensors") if isinstance(payload, dict) else payload
+            tensors = [str(row.get("name") or row.get("tensor") or row) for row in rows]
+        else:
+            tensors = [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip() and not line.startswith("#")]
+    else:
+        tensors = sparse_replay_default_plan(Path(args.source_gguf), args.max_probes)
+    if args.tensor_regex:
+        pattern = re.compile(args.tensor_regex)
+        tensors = [name for name in tensors if pattern.search(name)]
+    if not tensors:
+        raise SystemExit("sparse replay probe plan is empty")
+    return tensors
+
+
+def sparse_replay_write_single_type(path: Path, tensor: str, target_type: str) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(f"{tensor_type_line(tensor, target_type)}\n", encoding="utf-8")
+
+
+def sparse_replay_quant_cmd(args: argparse.Namespace, type_file: Path, outfile: Path, base_type: str | None = None) -> list[str]:
+    cmd = [args.quantize_bin, "--allow-requantize"]
+    if args.imatrix:
+        cmd.extend(["--imatrix", str(args.imatrix)])
+    if args.token_embedding_type:
+        cmd.extend(["--token-embedding-type", str(args.token_embedding_type)])
+    cmd.extend(["--tensor-type-file", str(type_file), str(args.source_gguf), str(outfile), base_type or args.probe_base_type])
+    return cmd
+
+
+def sparse_replay_ppl_cmd(args: argparse.Namespace, model: Path) -> list[str]:
+    return group_scan_ppl_cmd(args, model)
+
+
+def sparse_replay_ablation_payload(state: dict[str, Any], tensors: list[str]) -> dict[str, Any]:
+    return {
+        "schema": "cerebellum.ablation_results.v1",
+        "baseline_ppl": state.get("baseline_ppl"),
+        "baseline_error": state.get("baseline_ppl_error"),
+        "plan": {"tensors": [{"name": name, "hf_name": name} for name in tensors]},
+        "results": [
+            {
+                "tensor": row.get("tensor"),
+                "hf_name": row.get("tensor"),
+                "ppl": row.get("ppl"),
+                "ppl_error": row.get("ppl_error"),
+                "delta": row.get("delta"),
+                "status": row.get("status", "done"),
+            }
+            for row in state.get("tested", [])
+        ],
+    }
+
+
+def sparse_replay_prepare(args: argparse.Namespace) -> dict[str, Any]:
+    source = Path(args.source_gguf)
+    run_dir = Path(args.run_dir)
+    tensors = sparse_replay_load_plan(args)
+    run_id = args.run_name or f"cerebellum-sparse-replay-{slug(args.model_name or source.stem)}"
+    manifest = {
+        "schema": "cerebellum.sparse_replay.v1",
+        "run_id": run_id,
+        "run_dir": str(run_dir),
+        "source_gguf": str(source),
+        "corpus": str(args.corpus),
+        "model_family": args.family,
+        "model_name": args.model_name or source.stem,
+        "source_name": args.source_name or source.stem,
+        "ppl_profile": args.profile,
+        "base_type": args.probe_base_type,
+        "start_type": args.start_type,
+        "levels": [args.target_type],
+        "target_type": args.target_type,
+        "budget_gb": args.budget_gb,
+        "final_base_type": args.final_base_type,
+        "commit_locks": False,
+        "measurement_mode": "qwen36-27b-v4 sparse replay",
+        "imatrix": str(args.imatrix) if args.imatrix else None,
+        "quantize_bin": args.quantize_bin,
+        "perplexity_bin": args.perplexity_bin,
+        "gpu_layers": args.gpu_layers,
+        "ctx_size": args.ctx_size,
+        "chunks": args.chunks,
+        "distrobox": args.distrobox,
+        "tensor_count": len(tensors),
+    }
+    state = {
+        "schema": "cerebellum.sparse_replay_state.v1",
+        "run_id": run_id,
+        "run_status": "planned" if args.dry_run else "running",
+        "pid": os.getpid(),
+        "model_family": manifest["model_family"],
+        "model_name": manifest["model_name"],
+        "source_name": manifest["source_name"],
+        "source_gguf": str(source),
+        "corpus": str(args.corpus),
+        "ppl_profile": args.profile,
+        "base_type": args.probe_base_type,
+        "start_type": args.start_type,
+        "levels": [args.target_type],
+        "locked": {},
+        "tested": [],
+        "current_ppl": args.baseline_ppl,
+        "baseline_ppl": args.baseline_ppl,
+        "baseline_path": str(args.baseline_gguf) if args.baseline_gguf else None,
+        "last_tensor": None,
+        "totals": {},
+        "started_at": utc_now(),
+    }
+    atomic_write_json(run_dir / "manifest.json", manifest)
+    atomic_write_json(run_dir / "state.json", state)
+    atomic_write_json(run_dir / "ablation_plan.json", {"schema": "cerebellum.sparse_replay_plan.v1", "tensors": [{"name": name, "hf_name": name} for name in tensors]})
+    return {"args": args, "source": source, "run_dir": run_dir, "run_id": run_id, "tensors": tensors, "manifest": manifest, "state": state, "events": EventLog(run_dir / EVENT_FILES[0], run_id), "candidates": EventLog(run_dir / CANDIDATE_FILES[0], run_id), "types_dir": run_dir / "tensor_types", "artifacts": run_dir / "artifacts", "final_dir": run_dir / "final"}
+
+
+def sparse_replay_run_probe(job: dict[str, Any], tensor: str, index: int, total: int) -> None:
+    args = job["args"]
+    events = job["events"]
+    candidate_log = job["candidates"]
+    state = job["state"]
+    safe = slug(tensor)
+    type_file = job["types_dir"] / f"{index:04d}-{safe}-{args.target_type}.txt"
+    candidate = job["artifacts"] / f"{index:04d}-{safe}-{args.target_type}.gguf"
+    tmp_candidate = candidate.with_suffix(candidate.suffix + ".tmp")
+    sparse_replay_write_single_type(type_file, tensor, args.target_type)
+    state.update({"run_status": "running", "last_tensor": tensor, "current_tensor": tensor, "current_level": args.target_type})
+    atomic_write_json(job["run_dir"] / "state.json", state)
+    events.write("tensor_start", tensor=tensor, level=args.target_type, index=index, total=total, baseline_ppl=state.get("baseline_ppl"))
+    events.write("quant_start", tensor=tensor, level=args.target_type, tmp_output=str(tmp_candidate), output=str(candidate), type_file=str(type_file))
+    job["artifacts"].mkdir(parents=True, exist_ok=True)
+    if tmp_candidate.exists():
+        tmp_candidate.unlink()
+    try:
+        q_rc, q_out, q_seconds = run_external(sparse_replay_quant_cmd(args, type_file, tmp_candidate), args.quant_timeout, args.distrobox, heartbeat=lambda elapsed, pid: events.write("quant_heartbeat", tensor=tensor, level=args.target_type, elapsed_seconds=elapsed, child_pid=pid, tmp_output=str(tmp_candidate), size_bytes=path_size(tmp_candidate)))
+    except subprocess.TimeoutExpired as exc:
+        q_rc, q_out, q_seconds = 124, str(exc), float(args.quant_timeout)
+    if q_rc == 0 and tmp_candidate.exists() and path_size(tmp_candidate) > 0:
+        os.replace(tmp_candidate, candidate)
+    elif tmp_candidate.exists():
+        tmp_candidate.unlink()
+    events.write("quant_finish", tensor=tensor, level=args.target_type, returncode=q_rc, seconds=q_seconds, size_bytes=path_size(candidate), output_tail=q_out[-2000:])
+    ppl = err = delta = None
+    p_rc = 1
+    p_seconds = 0.0
+    if q_rc == 0 and candidate.exists():
+        events.write("ppl_start", tensor=tensor, level=args.target_type, model=str(candidate))
+        try:
+            p_rc, p_out, p_seconds = run_external(sparse_replay_ppl_cmd(args, candidate), args.ppl_timeout, args.distrobox, heartbeat=lambda elapsed, pid: events.write("ppl_heartbeat", tensor=tensor, level=args.target_type, elapsed_seconds=elapsed, child_pid=pid, model=str(candidate)))
+        except subprocess.TimeoutExpired as exc:
+            p_rc, p_out, p_seconds = 124, str(exc), float(args.ppl_timeout)
+        ppl, err = parse_ppl(p_out)
+        delta = (ppl - state["baseline_ppl"]) if ppl is not None and state.get("baseline_ppl") is not None else None
+        events.write("ppl_finish", tensor=tensor, level=args.target_type, returncode=p_rc, seconds=p_seconds, ppl=ppl, ppl_error=err, delta=delta, output_tail=p_out[-2000:])
+    status = "done" if q_rc == 0 and p_rc == 0 and ppl is not None else "failed"
+    row = {"tensor": tensor, "winner": args.target_type, "level": args.target_type, "baseline_ppl": state.get("baseline_ppl"), "ppl": ppl, "ppl_error": err, "delta": delta, "quant_seconds": q_seconds, "ppl_seconds": p_seconds, "size_bytes": path_size(candidate), "status": status, "type_file": str(type_file)}
+    candidate_log.write("candidate", **row)
+    state.setdefault("tested", []).append(row)
+    state["current_ppl"] = ppl if ppl is not None else state.get("current_ppl")
+    state["totals"] = totals_for_kept_candidates(state["tested"], state["tested"])
+    atomic_write_json(job["run_dir"] / "state.json", state)
+    atomic_write_json(job["run_dir"] / "ablation_results.json", sparse_replay_ablation_payload(state, job["tensors"]))
+    if args.prune_candidates and candidate.exists():
+        candidate.unlink()
+    if status != "done" and not args.continue_on_failure:
+        state.update({"run_status": "failed", "finished_at": utc_now(), "failure": f"probe failed: {tensor}"})
+        atomic_write_json(job["run_dir"] / "state.json", state)
+        raise SystemExit(f"sparse replay probe failed: {tensor}")
+
+
+def sparse_replay_allocate(job: dict[str, Any]) -> Path:
+    args = job["args"]
+    output = job["run_dir"] / "tensor_types_sparse_replay.txt"
+    cmd = [sys.executable, "-m", "cerebellum.cerebellum", "--ablation", str(job["run_dir"] / "ablation_results.json"), "--plan", str(job["run_dir"] / "ablation_plan.json"), "--source-gguf", str(args.source_gguf), "--budget-gb", str(args.budget_gb), "--base-type", args.probe_base_type, "--output", str(output)]
+    if args.imatrix:
+        cmd.extend(["--imatrix", str(args.imatrix)])
+    if args.quantize_bin:
+        cmd.extend(["--quantize-bin", str(args.quantize_bin)])
+    job["events"].write("allocate_start", budget_gb=args.budget_gb, output=str(output))
+    rc, out, seconds = run_external(cmd, args.allocate_timeout, args.distrobox)
+    job["events"].write("allocate_finish", returncode=rc, seconds=seconds, output_tail=out[-4000:], output=str(output))
+    if rc != 0 or not output.exists():
+        raise SystemExit("sparse replay allocation failed")
+    return output
+
+
+def sparse_replay_build_final(job: dict[str, Any], tensor_types: Path) -> Path:
+    args = job["args"]
+    job["final_dir"].mkdir(parents=True, exist_ok=True)
+    output = Path(args.final_gguf) if args.final_gguf else job["final_dir"] / f"{slug(args.model_name or Path(args.source_gguf).stem)}-cerebellum-sparse-replay.gguf"
+    tmp_output = output.with_suffix(output.suffix + ".tmp")
+    job["events"].write("final_quant_start", level=args.final_base_type, type_file=str(tensor_types), tmp_output=str(tmp_output), output=str(output))
+    rc, out, seconds = run_external(sparse_replay_quant_cmd(args, tensor_types, tmp_output, base_type=args.final_base_type), args.quant_timeout, args.distrobox, heartbeat=lambda elapsed, pid: job["events"].write("final_quant_heartbeat", elapsed_seconds=elapsed, child_pid=pid, tmp_output=str(tmp_output), size_bytes=path_size(tmp_output)))
+    if rc == 0 and tmp_output.exists() and path_size(tmp_output) > 0:
+        os.replace(tmp_output, output)
+    elif tmp_output.exists():
+        tmp_output.unlink()
+    job["events"].write("final_quant_finish", returncode=rc, seconds=seconds, size_bytes=path_size(output), output_tail=out[-4000:], output=str(output))
+    if rc != 0 or not output.exists():
+        raise SystemExit("sparse replay final quant failed")
+    return output
+
+
+def sparse_replay_measure_final(job: dict[str, Any], model: Path) -> dict[str, Any]:
+    args = job["args"]
+    events = job["events"]
+    events.write("final_ppl_start", model=str(model))
+    rc, out, seconds = run_external(sparse_replay_ppl_cmd(args, model), args.ppl_timeout, args.distrobox, heartbeat=lambda elapsed, pid: events.write("final_ppl_heartbeat", elapsed_seconds=elapsed, child_pid=pid, model=str(model)))
+    ppl, err = parse_ppl(out)
+    baseline = job["state"].get("baseline_ppl")
+    delta = (ppl - baseline) if ppl is not None and baseline is not None else None
+    events.write("final_ppl_finish", returncode=rc, seconds=seconds, ppl=ppl, ppl_error=err, delta=delta, output_tail=out[-4000:])
+    return {"returncode": rc, "seconds": seconds, "ppl": ppl, "ppl_error": err, "delta": delta}
+
+
+def sparse_replay_cmd(args: argparse.Namespace) -> None:
+    job = sparse_replay_prepare(args)
+    if args.dry_run:
+        print(json.dumps({**job["manifest"], "tensors": job["tensors"], "watch": f"cerebellum watch {job['run_dir']}"}, indent=2, sort_keys=True))
+        return
+    events = job["events"]
+    state = job["state"]
+    events.write("run_start", tensors=len(job["tensors"]), baseline_ppl=state.get("baseline_ppl"), mode="qwen36-27b-v4 sparse replay")
+    for idx, tensor in enumerate(job["tensors"], start=1):
+        sparse_replay_run_probe(job, tensor, idx, len(job["tensors"]))
+    tensor_types = sparse_replay_allocate(job)
+    final = sparse_replay_build_final(job, tensor_types)
+    final_ppl = sparse_replay_measure_final(job, final)
+    state.update({"run_status": "complete" if final_ppl.get("returncode") == 0 and final_ppl.get("ppl") is not None else "failed", "finished_at": utc_now(), "final": {"gguf": str(final), "tensor_types": str(tensor_types), "size_bytes": path_size(final), **final_ppl}, "current_ppl": final_ppl.get("ppl") or state.get("current_ppl")})
+    atomic_write_json(job["run_dir"] / "state.json", state)
+    summary = {"schema": "cerebellum.sparse_replay_summary.v1", "run_dir": str(job["run_dir"]), "final": state["final"], "tested": len(state.get("tested", []))}
+    atomic_write_json(job["run_dir"] / "sparse_replay_summary.json", summary)
+    events.write("run_finish", status=state["run_status"], final_gguf=str(final), final_ppl=final_ppl.get("ppl"), final_delta=final_ppl.get("delta"))
+    print(json.dumps(summary, indent=2, sort_keys=True))
+
+
+def public_model_card_policy_payload() -> dict[str, Any]:
+    sections = [
+        "Model Summary",
+        "Files",
+        "Quick Start",
+        "Recommended Runtime Settings",
+        "Benchmarks",
+        "Benchmark Artifacts",
+        "Hardware Requirements",
+        "Quantization Summary",
+        "Limitations and Caveats",
+        "Provenance and Hashes",
+        "License and Attribution",
+        "Support / Sponsored Runs",
+    ]
+    safe_patterns = [
+        "Lead with artifact value: base model, GGUF format, size, hardware fit, benchmarks, and runtime flags.",
+        "Describe Cerebellum as sensitivity-guided mixed-precision GGUF quantization.",
+        "Keep method language high-level: precision was allocated from measured sensitivity.",
+        "Tie claims to benchmark artifact files and exact runtime settings.",
+        "Use Cerebellum as the public brand; keep legacy package names out of public-facing prose.",
+    ]
+    risky_patterns = [
+        "Exact tensor, group, layer, override-map, ablation-delta, allocator, or recipe details.",
+        "Private automation, dashboard/control-plane details, devlogs, local ports, local paths, and upload logs.",
+        "Unreviewed user benchmark files, harm-check artifacts, agent workspaces, rowblock probes, and private release notes.",
+        "Overclaims such as zero loss, proof, broken alternatives, or active improvement unless audited artifacts prove it.",
+    ]
+    artifact_policy = [
+        {"artifact": "*_arc_results.json", "public": True, "note": "public-safe after benchmark audit"},
+        {"artifact": "*_hellaswag_results.json", "public": True, "note": "public-safe after benchmark audit"},
+        {"artifact": "*_mmlu_redux_results.json", "public": True, "note": "public-safe after benchmark audit"},
+        {"artifact": "*_evalplus*_results.json", "public": True, "note": "include EvalPlus sample/eval artifacts when audited"},
+        {"artifact": "*_detailed.jsonl", "public": True, "note": "publish only when intentionally audited for release"},
+        {"artifact": "upload/server/local logs", "public": False, "note": "summarize settings instead of publishing raw logs"},
+    ]
+    cleanup_shortlist = [
+        "README.md",
+        "legacy Qwen/Gemma/Granite README model cards",
+        "Gemma 4 HF card templates",
+        "private release notes with local paths",
+        "spaces/qwen36-cerebellum/README.md",
+    ]
+    return {
+        "schema": "cerebellum.public_model_card_policy.v1",
+        "sections": sections,
+        "safe_patterns": safe_patterns,
+        "risky_patterns": risky_patterns,
+        "artifact_policy": artifact_policy,
+        "support_placement": "after benchmark tables and before credits/license",
+        "cleanup_shortlist": cleanup_shortlist,
+    }
+
+
+def public_model_card_policy_markdown(payload: dict[str, Any]) -> str:
+    parts = [
+        "# Cerebellum Public Model Card Policy",
+        "",
+        "## Sections",
+        "",
+        markdown_table(["Section"], [[section] for section in payload["sections"]]),
+        "",
+        "## Public-Safe Language",
+        "",
+        markdown_table(["Pattern"], [[row] for row in payload["safe_patterns"]]),
+        "",
+        "## Remove From Public Cards",
+        "",
+        markdown_table(["Risk"], [[row] for row in payload["risky_patterns"]]),
+        "",
+        "## Benchmark Artifacts",
+        "",
+        markdown_table(
+            ["Artifact", "Public", "Note"],
+            [[row["artifact"], "yes" if row["public"] else "no", row["note"]] for row in payload["artifact_policy"]],
+        ),
+        "",
+        "## Support Placement",
+        "",
+        payload["support_placement"],
+        "",
+        "## Cleanup Shortlist",
+        "",
+        markdown_table(["Target"], [[row] for row in payload["cleanup_shortlist"]]),
+    ]
+    return "\n".join(parts) + "\n"
+
+
+def public_model_card_policy_cmd(args: argparse.Namespace) -> None:
+    payload = public_model_card_policy_payload()
+    if args.write:
+        Path(args.write).write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        print(args.write)
+        return
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+    print(public_model_card_policy_markdown(payload), end="")
+
+
+def benchmark_score_roots() -> list[Path]:
+    roots: list[Path] = []
+    for root in [Path.cwd() / "benchmark_results"]:
+        roots.append(root)
+    roots.extend(sorted(Path.cwd().glob("cerebellum-*/benchmark_results")))
+    runs_root = default_data_root()
+    if runs_root.exists():
+        roots.extend(path for path in runs_root.rglob("benchmarks") if path.is_dir())
+    seen: set[str] = set()
+    unique: list[Path] = []
+    for root in roots:
+        try:
+            key = str(root.resolve())
+        except OSError:
+            key = str(root)
+        if key not in seen:
+            seen.add(key)
+            unique.append(root)
+    return unique
+
+
+def infer_model_from_result_path(path: Path, data: dict[str, Any]) -> str:
+    model = data.get("model") or data.get("model_name")
+    if model:
+        return str(model)
+    stem = path.stem
+    for suffix in [
+        "_evalplus_chat_results",
+        "_evalplus_results",
+        "_humaneval_results",
+        "_arc_results",
+        "_hellaswag_results",
+        "_mmlu_redux_results",
+        "_mmlu_results",
+        "_perf_summary",
+        "_results",
+    ]:
+        if stem.endswith(suffix):
+            return stem[: -len(suffix)]
+    return stem
+
+
+def discover_recent_benchmark_scores(limit: int = 8, max_files: int = 500) -> list[dict[str, Any]]:
+    candidates: list[Path] = []
+    for root in benchmark_score_roots():
+        if not root.exists():
+            continue
+        for path in root.rglob("*.json"):
+            name = path.name
+            if "detailed" in name or "samples" in name or name.endswith("_eval_results.json"):
+                continue
+            if not (name.endswith("_results.json") or name.endswith("_summary.json") or name == "benchmark_report.json"):
+                continue
+            candidates.append(path)
+    candidates = sorted(candidates, key=lambda path: path.stat().st_mtime if path.exists() else 0, reverse=True)[:max_files]
+    rows: list[dict[str, Any]] = []
+    for path in candidates:
+        data = read_json(path, {})
+        if not isinstance(data, dict):
+            continue
+        metric = benchmark_metric(data)
+        if not metric:
+            continue
+        metric_name, value = metric
+        rows.append(
+            {
+                "model": infer_model_from_result_path(path, data),
+                "benchmark": benchmark_key(infer_benchmark_name(path, data)),
+                "metric": metric_name,
+                "value": value,
+                "path": str(path),
+                "updated_at": datetime.fromtimestamp(path.stat().st_mtime).astimezone().isoformat(timespec="seconds"),
+            }
+        )
+        if len(rows) >= max(1, limit):
+            break
+    return rows
+
+
+def home_payload(limit: int = 8) -> dict[str, Any]:
+    runs = []
+    for run_dir in known_run_dirs()[-max(1, limit) :]:
+        state = read_json(run_dir / "state.json", {})
+        manifest = read_json(run_dir / "manifest.json", {})
+        if not state and not manifest:
+            continue
+        audit = golden_cow_audit(state, manifest) if state else {}
+        runs.append(
+            {
+                "run_dir": str(run_dir),
+                "model": state.get("model_name") or manifest.get("model_name") or run_dir.name,
+                "family": state.get("model_family") or manifest.get("model_family"),
+                "status": state.get("run_status"),
+                "profile": state.get("ppl_profile") or manifest.get("ppl_profile"),
+                "metric": state.get("ablation_metric") or manifest.get("ablation_metric"),
+                "locked": len(state.get("locked", {})),
+                "current_ppl": state.get("current_ppl"),
+                "golden_cow_suspects": audit.get("suspect_count"),
+                "updated_at": state.get("updated_at") or manifest.get("created_at"),
+            }
+        )
+    commands = [
+        {"key": "1", "label": "Watch active run", "command": "cerebellum watch"},
+        {"key": "2", "label": "List runs", "command": "cerebellum runs"},
+        {"key": "3", "label": "Open legacy-gated plan", "command": "cerebellum legacy-plan RUN_DIR"},
+        {"key": "4", "label": "Legacy automated flow", "command": "cerebellum legacy-flow --source-gguf MODEL.gguf --output-dir cerebellum-MODEL"},
+        {"key": "5", "label": "Benchmark plan", "command": "cerebellum benchmark-plan --suite release-local"},
+        {"key": "6", "label": "Benchmark report", "command": "cerebellum benchmark-report RESULTS_DIR --leaderboard"},
+        {"key": "7", "label": "Task profiles", "command": "cerebellum task-profiles"},
+        {"key": "8", "label": "Recover run", "command": "cerebellum recover RUN_DIR"},
+        {"key": "9", "label": "Project inventory", "command": "cerebellum project"},
+        {"key": "10", "label": "Public model-card policy", "command": "cerebellum public-card-policy"},
+    ]
+    return {
+        "schema": "cerebellum.home.v1",
+        "commands": commands,
+        "recent_runs": runs,
+        "recent_scores": discover_recent_benchmark_scores(limit=limit),
+        "profiles": sorted(TASK_PROFILES),
+        "benchmark_suites": sorted(BENCHMARK_SUITES),
+    }
+
+
+def home_markdown(payload: dict[str, Any]) -> str:
+    parts = [
+        "# Cerebellum",
+        "",
+        "## Menu",
+        "",
+        markdown_table(["#", "Action", "Command"], [[row["key"], row["label"], f"`{row['command']}`"] for row in payload["commands"]]),
+    ]
+    runs = payload.get("recent_runs") or []
+    if runs:
+        run_rows = [
+            [
+                row.get("model") or "-",
+                row.get("status") or "-",
+                str(row.get("locked") or 0),
+                "-" if row.get("current_ppl") is None else str(row.get("current_ppl")),
+                "-" if row.get("golden_cow_suspects") is None else str(row.get("golden_cow_suspects")),
+                row.get("profile") or "-",
+                row.get("run_dir") or "-",
+            ]
+            for row in reversed(runs)
+        ]
+        parts.extend(["", "## Recent Runs", "", markdown_table(["Model", "Status", "Locks", "PPL", "Risk", "Profile", "Run"], run_rows)])
+    else:
+        parts.extend(["", "## Recent Runs", "", "No Cerebellum runs found yet."])
+    scores = payload.get("recent_scores") or []
+    if scores:
+        score_rows = [
+            [
+                row.get("model") or "-",
+                row.get("benchmark") or "-",
+                row.get("metric") or "-",
+                f"{float(row['value']):.2f}" if row.get("value") is not None else "-",
+                row.get("path") or "-",
+            ]
+            for row in scores
+        ]
+        parts.extend(["", "## Recent Scores", "", markdown_table(["Model", "Benchmark", "Metric", "Score", "Artifact"], score_rows)])
+    parts.extend(
+        [
+            "",
+            "## Profiles",
+            "",
+            ", ".join(f"`{name}`" for name in payload.get("profiles", [])),
+            "",
+            "## Benchmark Suites",
+            "",
+            ", ".join(f"`{name}`" for name in payload.get("benchmark_suites", [])),
+            "",
+            "Use `cerebellum COMMAND --help` for command-specific options.",
+        ]
+    )
+    return "\n".join(parts) + "\n"
+
+
+def home_cmd(args: argparse.Namespace) -> None:
+    payload = home_payload(limit=getattr(args, "limit", 8))
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return
+    print(home_markdown(payload), end="")
 
 
 def parse_ppl(output: str) -> tuple[float | None, float | None]:
@@ -1061,7 +3104,10 @@ def append_event(path: Path, event: str, **fields: Any) -> None:
 
 
 def run_glob(root: Path) -> list[Path]:
-    return sorted(root.glob("families/*/*/sources/*/runs/*/manifest.json"))
+    manifests = list(root.glob("families/**/sources/*/runs/*/manifest.json"))
+    manifests.extend(root.glob("runs/*/manifest.json"))
+    manifests.extend(path for path in root.rglob("manifest.json") if (path.parent / "state.json").exists())
+    return sorted(set(manifests))
 
 
 def project_glob(root: Path) -> list[Path]:
@@ -1149,6 +3195,8 @@ def known_run_dirs() -> list[Path]:
             continue
         for manifest in run_glob(root):
             run_dir = manifest.parent
+            if "backups" in run_dir.parts:
+                continue
             key = str(run_dir.resolve())
             if key not in seen:
                 seen.add(key)
@@ -1177,6 +3225,11 @@ def run_is_live(run_dir: Path) -> bool:
     if state.get("run_status") != "running":
         return False
     return any(row["kind"] == "runner" for row in process_rows_for_run(run_dir))
+
+
+def run_sort_mtime(run_dir: Path) -> float:
+    candidates = [run_dir / "state.json", run_dir / "manifest.json", first_existing(run_dir, EVENT_FILES), first_existing(run_dir, CANDIDATE_FILES)]
+    return max((path.stat().st_mtime for path in candidates if path.exists()), default=0.0)
 
 
 def scratch_run_root(run_dir: Path, manifest: dict[str, Any] | None = None, state: dict[str, Any] | None = None) -> Path | None:
@@ -1217,6 +3270,9 @@ def resolve_run_dir(ref: str | None) -> Path:
     if len(live) == 1:
         return live[0]
     if not live:
+        recent = sorted(known_run_dirs(), key=run_sort_mtime, reverse=True)
+        if recent:
+            return recent[0]
         raise SystemExit("no active Cerebellum run found; pass RUN_DIR or model name")
     options = "\n".join(f"  {path}" for path in live[:20])
     raise SystemExit(f"multiple active Cerebellum runs found; pass RUN_DIR or model name\n{options}")
@@ -1929,6 +3985,7 @@ class Config:
     chunks: int | None
     imatrix: Path | None = None
     tensor_file: Path | None = None
+    base_map: Path | None = None
     scratch_root: Path | None = None
     backup_root: Path | None = None
     max_temp_gb: float = 80.0
@@ -1949,6 +4006,8 @@ class Config:
     noise_pct: float = 0.0
     layers: set[int] | None = None
     tensor_regex: str | None = None
+    pure_quant: bool = False
+    commit_locks: bool = True
 
 
 @dataclass
@@ -1984,6 +4043,7 @@ class HillStepper:
         )
         self.events = EventLog(self.paths.events, cfg.run_id, cfg)
         self.candidate_log = EventLog(self.paths.candidates, cfg.run_id, cfg)
+        self.base_overrides = read_tensor_type_map(cfg.base_map) if cfg.base_map else {}
         self.stop_requested = False
         self._install_signals()
 
@@ -2013,6 +4073,8 @@ class HillStepper:
             "base_type": self.cfg.base_type,
             "start_type": self.cfg.start_type,
             "levels": self.cfg.levels,
+            "base_map": str(self.cfg.base_map) if self.cfg.base_map else None,
+            "base_map_count": len(self.base_overrides),
             "locked": {},
             "tested": [],
             "current_ppl": None,
@@ -2059,6 +4121,8 @@ class HillStepper:
             "base_type": self.cfg.base_type,
             "start_type": self.cfg.start_type,
             "levels": self.cfg.levels,
+            "base_map": str(self.cfg.base_map) if self.cfg.base_map else None,
+            "base_map_count": len(self.base_overrides),
             "layers": sorted(self.cfg.layers) if self.cfg.layers else None,
             "tensor_regex": self.cfg.tensor_regex,
             "low_space": self.cfg.low_space,
@@ -2066,6 +4130,11 @@ class HillStepper:
             "prune_measured_candidates": self.cfg.prune_measured_candidates,
             "quantize_bin": self.cfg.quantize_bin,
             "perplexity_bin": self.cfg.perplexity_bin,
+            "pure_quant": self.cfg.pure_quant,
+            "pure_quant_effective": False,
+            "pure_quant_note": "disabled for HillStepper tensor-type-file quantization because llama.cpp skips manual overrides under --pure",
+            "commit_locks": self.cfg.commit_locks,
+            "measurement_mode": "commit-locks" if self.cfg.commit_locks else "no-commit scan",
             "gpu_layers": self.cfg.gpu_layers,
             "ctx_size": self.cfg.ctx_size,
             "chunks": self.cfg.chunks,
@@ -2149,7 +4218,8 @@ class HillStepper:
         print(f"Run dir : {self.cfg.run_dir}")
         print(f"Run id  : {self.cfg.run_id}")
         print(f"Levels  : {', '.join(self.cfg.levels)}")
-        print(f"Tensors : {locked}/{tensors} locked")
+        label = "locked" if self.cfg.commit_locks else "scanned"
+        print(f"Tensors : {locked}/{tensors} {label}")
         print()
 
     def render_tensor_table(self, tensor: str, idx: int, total: int, baseline_ppl: float | None, rows: list[Candidate]) -> None:
@@ -2184,7 +4254,7 @@ class HillStepper:
         extra = extra or {}
         if self.cfg.tensor_file:
             names = [line.strip() for line in self.cfg.tensor_file.read_text().splitlines() if line.strip()]
-            names = sorted(quantizable_tensor_names(set(names) | set(locked) | set(extra)))
+            names = sorted(quantizable_tensor_names(set(names) | set(self.base_overrides) | set(locked) | set(extra)))
         else:
             try:
                 from gguf import GGUFReader
@@ -2192,10 +4262,11 @@ class HillStepper:
                 reader = GGUFReader(str(self.cfg.source_gguf))
                 names = quantizable_tensor_names([t.name for t in reader.tensors])
             except Exception:
-                names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
+                names = sorted(quantizable_tensor_names(set(self.base_overrides) | set(locked) | set(extra)))
         if not names:
-            names = sorted(quantizable_tensor_names(set(locked) | set(extra)))
-        merged = dict(locked)
+            names = sorted(quantizable_tensor_names(set(self.base_overrides) | set(locked) | set(extra)))
+        merged = dict(self.base_overrides)
+        merged.update(locked)
         merged.update(extra)
         lines = [tensor_type_line(name, merged.get(name, self.cfg.start_type)) for name in names]
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -2218,8 +4289,9 @@ class HillStepper:
             reader = GGUFReader(str(self.cfg.source_gguf))
             names = quantizable_tensor_names([t.name for t in reader.tensors])
         except Exception:
-            names = sorted(quantizable_tensor_names(set(locked) | set(extra or {})))
-        merged = dict(locked)
+            names = sorted(quantizable_tensor_names(set(self.base_overrides) | set(locked) | set(extra or {})))
+        merged = dict(self.base_overrides)
+        merged.update(locked)
         merged.update(extra or {})
         lines = [tensor_type_line(name, merged.get(name, self.cfg.start_type)) for name in names]
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -2232,6 +4304,9 @@ class HillStepper:
 
     def quantize_cmd(self, type_file: Path, outfile: Path) -> list[str]:
         cmd = [self.cfg.quantize_bin, "--allow-requantize"]
+        # llama.cpp applies --tensor-type-file overrides only outside --pure.
+        # A complete tensor map already forces the intended baseline type, so
+        # do not combine --pure with per-tensor maps.
         if self.cfg.imatrix:
             cmd.extend(["--imatrix", str(self.cfg.imatrix)])
         if self.cfg.token_embedding_type:
@@ -2278,10 +4353,13 @@ class HillStepper:
             path=str(self.paths.baseline),
             returncode=rc,
             seconds=seconds,
+            size_bytes=path_size(self.paths.baseline),
             output_tail=output[-2000:],
         )
         if rc != 0:
             raise SystemExit("baseline quantization failed; see events.jsonl")
+        state.setdefault("start_quant_size_bytes", path_size(self.paths.baseline))
+        state.setdefault("start_quant_path", str(self.paths.baseline))
         self.events.write("baseline_ppl_start", path=str(self.paths.baseline))
         rc, output, seconds = run_external(
             self.ppl_cmd(self.paths.baseline),
@@ -2353,7 +4431,10 @@ class HillStepper:
         self.events.write("tensor_start", tensor=tensor, index=idx, total=total, baseline_ppl=baseline_ppl)
         self.render_tensor_table(tensor, idx, total, baseline_ppl, candidates)
 
-        ready: queue.Queue[Candidate | None] = queue.Queue(maxsize=1 if (self.cfg.low_space or self.cfg.serial_candidates) else 2)
+        # In normal mode, quantize should stay ahead of PPL until disk pressure
+        # says another candidate would violate the configured free-space floor.
+        queue_depth = 1 if (self.cfg.low_space or self.cfg.serial_candidates) else max(2, len(candidates))
+        ready: queue.Queue[Candidate | None] = queue.Queue(maxsize=queue_depth)
         results: list[Candidate] = []
         quant_done = threading.Event()
 
@@ -2486,7 +4567,8 @@ class HillStepper:
                 )
                 results.append(c)
                 if (self.cfg.low_space or self.cfg.prune_measured_candidates) and not self.cfg.keep_losers:
-                    _level, _ppl, current_best, _reason = self.choose_winner(self.cfg.start_type, baseline_ppl, results)
+                    baseline_level = self.base_overrides.get(tensor, self.cfg.start_type)
+                    _level, _ppl, current_best, _reason = self.choose_winner(baseline_level, baseline_ppl, results)
                     survivor = tensor_tmp / "best-so-far.gguf"
                     for done in results:
                         if done is current_best and done.gguf_path.exists():
@@ -2515,9 +4597,11 @@ class HillStepper:
             self.save_state(state, checkpoint=True)
             raise SystemExit("stop requested; state saved")
 
-        best_level, best_ppl, best_candidate, winner_reason = self.choose_winner(self.cfg.start_type, baseline_ppl, candidates)
-        state["locked"][tensor] = best_level
-        state["current_ppl"] = best_ppl
+        baseline_level = self.base_overrides.get(tensor, self.cfg.start_type)
+        best_level, best_ppl, best_candidate, winner_reason = self.choose_winner(baseline_level, baseline_ppl, candidates)
+        if self.cfg.commit_locks:
+            state["locked"][tensor] = best_level
+            state["current_ppl"] = best_ppl
         state["last_tensor"] = tensor
         state["tested"].append(
             {
@@ -2527,6 +4611,7 @@ class HillStepper:
                 "baseline_ppl": baseline_ppl,
                 "finished_at": utc_now(),
                 "reason": winner_reason,
+                "committed": self.cfg.commit_locks,
             }
         )
         for c in candidates:
@@ -2538,53 +4623,55 @@ class HillStepper:
 
         self.write_types(state["locked"], self.paths.current_types)
         old_baseline = self.paths.baseline
-        if best_candidate is not None and best_candidate.gguf_path.exists():
-            old_backup = old_baseline.with_suffix(".previous.gguf")
-            if old_baseline.exists():
-                os.replace(old_baseline, old_backup)
-            os.replace(best_candidate.gguf_path, old_baseline)
-            if old_backup.exists():
-                old_backup.unlink()
-        elif best_candidate is not None:
-            tmp_baseline = old_baseline.with_suffix(old_baseline.suffix + ".tmp")
-            if tmp_baseline.exists():
-                tmp_baseline.unlink()
-            self.events.write("baseline_rebuild_start", path=str(old_baseline), reason="winning candidate artifact missing")
-            rc, output, seconds = run_external(
-                self.quantize_cmd(self.paths.current_types, tmp_baseline),
-                self.cfg.quant_timeout,
-                self.cfg.distrobox,
-                heartbeat=lambda elapsed, pid: self.events.write(
-                    "baseline_rebuild_heartbeat",
-                    path=str(old_baseline),
-                    elapsed_seconds=elapsed,
-                    child_pid=pid,
-                    size_bytes=path_size(tmp_baseline),
-                ),
-            )
-            self.events.write(
-                "baseline_rebuild_finish",
-                path=str(old_baseline),
-                returncode=rc,
-                seconds=seconds,
-                size_bytes=path_size(tmp_baseline),
-                output_tail=output[-2000:],
-            )
-            if rc != 0 or not tmp_baseline.exists() or path_size(tmp_baseline) <= 0:
+        if self.cfg.commit_locks:
+            if best_candidate is not None and best_candidate.gguf_path.exists():
+                old_backup = old_baseline.with_suffix(".previous.gguf")
+                if old_baseline.exists():
+                    os.replace(old_baseline, old_backup)
+                os.replace(best_candidate.gguf_path, old_baseline)
+                if old_backup.exists():
+                    old_backup.unlink()
+            elif best_candidate is not None:
+                tmp_baseline = old_baseline.with_suffix(old_baseline.suffix + ".tmp")
                 if tmp_baseline.exists():
                     tmp_baseline.unlink()
-                raise SystemExit("baseline rebuild failed after tensor lock; see events.jsonl")
-            old_backup = old_baseline.with_suffix(".previous.gguf")
-            if old_baseline.exists():
-                os.replace(old_baseline, old_backup)
-            os.replace(tmp_baseline, old_baseline)
-            if old_backup.exists():
-                old_backup.unlink()
-        self.save_state(state, checkpoint=(len(state["locked"]) % self.cfg.backup_every == 0))
-        self.events.write("tensor_locked", tensor=tensor, winner=best_level, ppl=best_ppl, baseline_ppl=baseline_ppl, reason=winner_reason)
+                self.events.write("baseline_rebuild_start", path=str(old_baseline), reason="winning candidate artifact missing")
+                rc, output, seconds = run_external(
+                    self.quantize_cmd(self.paths.current_types, tmp_baseline),
+                    self.cfg.quant_timeout,
+                    self.cfg.distrobox,
+                    heartbeat=lambda elapsed, pid: self.events.write(
+                        "baseline_rebuild_heartbeat",
+                        path=str(old_baseline),
+                        elapsed_seconds=elapsed,
+                        child_pid=pid,
+                        size_bytes=path_size(tmp_baseline),
+                    ),
+                )
+                self.events.write(
+                    "baseline_rebuild_finish",
+                    path=str(old_baseline),
+                    returncode=rc,
+                    seconds=seconds,
+                    size_bytes=path_size(tmp_baseline),
+                    output_tail=output[-2000:],
+                )
+                if rc != 0 or not tmp_baseline.exists() or path_size(tmp_baseline) <= 0:
+                    if tmp_baseline.exists():
+                        tmp_baseline.unlink()
+                    raise SystemExit("baseline rebuild failed after tensor lock; see events.jsonl")
+                old_backup = old_baseline.with_suffix(".previous.gguf")
+                if old_baseline.exists():
+                    os.replace(old_baseline, old_backup)
+                os.replace(tmp_baseline, old_baseline)
+                if old_backup.exists():
+                    old_backup.unlink()
+        self.save_state(state, checkpoint=(len(state["tested"]) % self.cfg.backup_every == 0))
+        event_name = "tensor_locked" if self.cfg.commit_locks else "tensor_scanned"
+        self.events.write(event_name, tensor=tensor, winner=best_level, ppl=best_ppl, baseline_ppl=baseline_ppl, reason=winner_reason)
 
         for c in candidates:
-            if c is best_candidate and self.cfg.keep_winners:
+            if c is best_candidate and self.cfg.keep_winners and self.cfg.commit_locks:
                 winner_dir = self.paths.artifacts / "winners"
                 winner_dir.mkdir(parents=True, exist_ok=True)
                 meta = {
@@ -2611,19 +4698,33 @@ class HillStepper:
         self.write_manifest()
         state = self.load_state()
         tensors = self.discover_tensors()
-        remaining = [t for t in tensors if t not in state["locked"]]
+        completed_key = "locked" if self.cfg.commit_locks else "tested"
+        completed_tensors = (
+            set(state.get("locked", {}))
+            if self.cfg.commit_locks
+            else {row.get("tensor") for row in state.get("tested", []) if row.get("tensor")}
+        )
+        remaining = [t for t in tensors if t not in completed_tensors]
         state["run_status"] = "running"
         self.save_state(state)
         removed_markers = clear_terminal_markers(self.cfg.run_dir)
-        self.render_banner(len(tensors), len(state["locked"]))
-        self.events.write("run_start", tensors=len(tensors), locked=len(state["locked"]), cleared_markers=removed_markers)
+        self.render_banner(len(tensors), len(completed_tensors))
+        self.events.write(
+            "run_start",
+            tensors=len(tensors),
+            locked=len(state["locked"]),
+            scanned=len(state.get("tested", [])) if not self.cfg.commit_locks else None,
+            commit_locks=self.cfg.commit_locks,
+            cleared_markers=removed_markers,
+        )
         self.build_baseline_if_needed(state)
         for tensor in remaining:
             if self.stop_requested:
                 break
             idx = tensors.index(tensor) + 1
             self.test_tensor(state, tensor, idx, len(tensors))
-        state["run_status"] = "complete" if len(state["locked"]) == len(tensors) else "stopped"
+        completed_count = len(state.get(completed_key, {}))
+        state["run_status"] = "complete" if completed_count == len(tensors) else "stopped"
         self.write_types(state["locked"], self.paths.final_types)
         atomic_write_json(self.paths.timing, state["totals"])
         self.save_state(state, checkpoint=True)
@@ -2631,7 +4732,7 @@ class HillStepper:
         tmp_marker = marker.with_suffix(".tmp")
         tmp_marker.write_text(utc_now() + "\n")
         os.replace(tmp_marker, marker)
-        self.events.write("run_finish", status=state["run_status"], locked=len(state["locked"]), tensors=len(tensors))
+        self.events.write("run_finish", status=state["run_status"], locked=len(state["locked"]), scanned=len(state.get("tested", [])), tensors=len(tensors), commit_locks=self.cfg.commit_locks)
 
 
 def build_run_dir(args: argparse.Namespace) -> Path:
@@ -2648,6 +4749,10 @@ def build_run_dir(args: argparse.Namespace) -> Path:
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Cerebellum quantization toolbox")
     sub = parser.add_subparsers(dest="cmd")
+    home = sub.add_parser("home", help="show the Cerebellum local menu and recent run summary")
+    home.add_argument("--limit", type=int, default=8)
+    home.add_argument("--json", action="store_true")
+
     run = sub.add_parser("run", help="run or resume a Cerebellum quant search")
     run.add_argument("--source-gguf", required=True)
     run.add_argument("--corpus", default=None, help="PPL/calibration corpus path; optional when --profile resolves locally")
@@ -2670,6 +4775,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     run.add_argument("--run-name", default=None)
     run.add_argument("--run-dir", default=None)
     run.add_argument("--tensor-file", default=None)
+    run.add_argument("--base-map", default=None, help="Seed every generated tensor map from an existing Cerebellum tensor-type file")
     run.add_argument("--layers", default=None, help="Target only layer numbers, e.g. 0,1,8-12")
     run.add_argument("--tensor-regex", default=None, help="Target only tensors matching this regex")
     run.add_argument("--scratch-root", default=None, help="Large GGUF artifact/temp root, separate from metadata run dir")
@@ -2680,6 +4786,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     run.add_argument("--imatrix", default=None)
     run.add_argument("--quantize-bin", default=DEFAULT_QUANTIZE)
     run.add_argument("--perplexity-bin", default=DEFAULT_PERPLEXITY)
+    run.add_argument("--pure-quant", action="store_true", help="Pass --pure to llama-quantize so mixed presets do not promote selected tensors")
     run.add_argument("--gpu-layers", type=int, default=99)
     run.add_argument("--ctx-size", type=int, default=2048)
     run.add_argument("--chunks", type=int, default=None)
@@ -2691,6 +4798,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     run.add_argument("--ppl-timeout", type=int, default=900)
     run.add_argument("--keep-losers", action="store_true")
     run.add_argument("--no-keep-winners", action="store_true")
+    run.add_argument("--no-commit-locks", dest="commit_locks", action="store_false", help="Measure candidate tensors without carrying winners into later tensors")
+    run.set_defaults(commit_locks=True)
     run.add_argument("--low-space", action="store_true", help="Serialize candidate testing and prune measured GGUFs immediately")
     run.add_argument("--serial-candidates", action="store_true", help="Do not let CPU quantization run ahead of GPU PPL")
     run.add_argument("--prune-measured-candidates", action="store_true", default=True, help="Delete measured non-winning candidate GGUFs during each tensor")
@@ -2720,8 +4829,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     watch.add_argument("--once", action="store_true", help="render one frame and exit")
     watch.add_argument("--stall-warn-seconds", type=float, default=300.0)
     watch.add_argument("--stall-fail-seconds", type=float, default=900.0)
-    watch.add_argument("--events-limit", type=int, default=12)
-    watch.add_argument("--measurements-limit", type=int, default=8)
+    watch.add_argument("--events-limit", type=int, default=DEFAULT_WATCH_EVENTS_LIMIT, help="event rows to show; 0 shows all")
+    watch.add_argument("--measurements-limit", type=int, default=0, help="measurement rows to show; 0 shows all")
     watch.add_argument("--tui", action="store_true", help="open scrollable interactive terminal UI")
     watch.add_argument("--public", action="store_true", help="render a screenshot-safe view without tensor, candidate, path, or event details")
     watch.add_argument("--plain", action="store_true")
@@ -2735,6 +4844,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     resume = sub.add_parser("resume", help="resume an existing run from its manifest/state")
     resume.add_argument("run_dir")
     resume.add_argument("--low-space", action="store_true", help="resume with serialized/pruned low-space candidate flow")
+    resume.add_argument("--no-low-space", action="store_true", help="override a saved low-space run and resume with overlapped candidate quant/PPL workers")
     resume.add_argument("--min-free-gb", type=float, default=None)
     resume.add_argument("--hard-free-floor-gb", type=float, default=None)
     resume.add_argument("--backup-root", default=None)
@@ -2858,6 +4968,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     inventory.add_argument("--top", type=int, default=25, help="number of largest buckets/files to show")
     inventory.add_argument("--json", action="store_true")
 
+    history = sub.add_parser("history", help="build/search a browsable Cerebellum model history index")
+    history.add_argument("--root", action="append", default=[], help="root to scan; may be repeated; defaults to repo and game-drive run index")
+    history.add_argument("--query", default=None, help="filter files by model/method/script/path text")
+    history.add_argument("--limit", type=int, default=5000, help="max interesting files to inspect")
+    history.add_argument("--include-chat-logs", action="store_true", help="also scan known local Codex/Claude/OpenCode/Gemini session roots")
+    history.add_argument("--chat-root", action="append", default=[], help="extra/explicit chat-session root to scan; may be repeated")
+    history.add_argument("--output", default=None, help="write searchable JSON index")
+    history.add_argument("--markdown", default=None, help="write Markdown history report")
+    history.add_argument("--html", default=None, help="write browser-searchable HTML view")
+    history.add_argument("--json", action="store_true")
+
     schedule = sub.add_parser("schedule", help="run multiple Cerebellum jobs from a JSON schedule")
     schedule.add_argument("--file", default=None)
     schedule.add_argument("--template", action="store_true", help="print an example schedule JSON")
@@ -2915,6 +5036,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     pipeline_plan_parser.add_argument("--levels", default=",".join(DEFAULT_LEVELS))
     pipeline_plan_parser.add_argument("--quantize-bin", default=DEFAULT_QUANTIZE)
     pipeline_plan_parser.add_argument("--perplexity-bin", default=DEFAULT_PERPLEXITY)
+    pipeline_plan_parser.add_argument("--pure-quant", action="store_true", help="Pass --pure to llama-quantize in generated commands")
     pipeline_plan_parser.add_argument("--gpu-layers", type=int, default=99)
     pipeline_plan_parser.add_argument("--ctx-size", type=int, default=2048)
     pipeline_plan_parser.add_argument("--chunks", type=int, default=None)
@@ -2971,6 +5093,126 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
     task_profiles = sub.add_parser("task-profiles", help="list task-specific Cerebellum variant profiles")
     task_profiles.add_argument("--json", action="store_true")
+
+    legacy_plan = sub.add_parser("legacy-plan", help="plan the old group-first benchmark-gated Cerebellum workflow")
+    legacy_plan.add_argument("run_dir", nargs="?", help="optional run directory or model/run name to audit")
+    legacy_plan.add_argument("--source-gguf", default=None, help="source GGUF for a new protected workflow plan")
+    legacy_plan.add_argument("--output-dir", default=None, help="output directory for a new protected workflow plan")
+    legacy_plan.add_argument("--write", default=None, help="write plan JSON to this path")
+    legacy_plan.add_argument("--json", action="store_true")
+
+    legacy_flow = sub.add_parser("legacy-flow", help="write the classic group-first Cerebellum flow")
+    legacy_flow.add_argument("--source-gguf", required=True)
+    legacy_flow.add_argument("--output-dir", required=True)
+    legacy_flow.add_argument("--run-dir", default=None)
+    legacy_flow.add_argument("--imatrix", default=None)
+    legacy_flow.add_argument("--corpus", default=None)
+    legacy_flow.add_argument("--model-name", default=None)
+    legacy_flow.add_argument("--family", default=None)
+    legacy_flow.add_argument("--source-name", default=None)
+    legacy_flow.add_argument("--profile", choices=["wiki", "agentic", "code", "math", "dialogue", "all-around", "custom"], default="custom")
+    legacy_flow.add_argument("--metric", choices=["ppl", "humaneval", "arc", "mmlu", "tool-call", "dialogue"], default="ppl")
+    legacy_flow.add_argument("--base-type", default="Q4_K_M")
+    legacy_flow.add_argument("--start-type", default="q4_K")
+    legacy_flow.add_argument("--levels", default=",".join(DEFAULT_LEVELS))
+    legacy_flow.add_argument("--survivability-levels", default="q2_K")
+    legacy_flow.add_argument("--survivability-target-type", default="q2_K", help="override type written for selected group-survivor tensors")
+    legacy_flow.add_argument("--with-targeted-hillstep", action="store_true", help="after group survivability, run optional per-tensor hillstep on selected targets")
+    legacy_flow.add_argument("--max-regression-pct", type=float, default=2.0)
+    legacy_flow.add_argument("--baseline-ppl", type=float, default=None, help="baseline PPL used to classify survivability logs")
+    legacy_flow.add_argument("--quantize-bin", default=DEFAULT_QUANTIZE)
+    legacy_flow.add_argument("--perplexity-bin", default=DEFAULT_PERPLEXITY)
+    legacy_flow.add_argument("--pure-quant", action="store_true", help="Pass --pure through generated quantization commands")
+    legacy_flow.add_argument("--gpu-layers", type=int, default=99)
+    legacy_flow.add_argument("--ctx-size", type=int, default=2048)
+    legacy_flow.add_argument("--chunks", type=int, default=None)
+    legacy_flow.add_argument("--scratch-root", default=None)
+    legacy_flow.add_argument("--distrobox", default=None)
+    legacy_flow.add_argument("--quant-timeout", type=int, default=1800)
+    legacy_flow.add_argument("--ppl-timeout", type=int, default=900)
+    legacy_flow.add_argument("--min-free-gb", type=float, default=15.0)
+    legacy_flow.add_argument("--hard-free-floor-gb", type=float, default=15.0)
+    legacy_flow.add_argument("--token-embedding-type", default="f16")
+    legacy_flow.add_argument("--low-space", action="store_true")
+    legacy_flow.add_argument("--serial-candidates", action="store_true")
+    legacy_flow.add_argument("--execute-forward", action="store_true", help="run the classic forward group ablation queue, skipping completed groups")
+    legacy_flow.add_argument("--keep-candidates", action="store_true", help="keep measured forward candidate GGUFs during --execute-forward")
+    legacy_flow.add_argument("--benchmark-suite", choices=sorted(BENCHMARK_SUITES), default="release-local")
+    legacy_flow.add_argument("--write", default=None, help="write flow JSON to this path")
+    legacy_flow.add_argument("--json", action="store_true")
+
+    group_scan = sub.add_parser("group-scan", help="run one classic Cerebellum group ablation candidate")
+    group_scan.add_argument("--source-gguf", required=True)
+    group_scan.add_argument("--corpus", required=True)
+    group_scan.add_argument("--run-dir", required=True)
+    group_scan.add_argument("--tensor-regex", required=True)
+    group_scan.add_argument("--group-name", default=None)
+    group_scan.add_argument("--run-name", default=None)
+    group_scan.add_argument("--profile", default="wiki")
+    group_scan.add_argument("--family", default=None)
+    group_scan.add_argument("--model-name", default=None)
+    group_scan.add_argument("--source-name", default=None)
+    group_scan.add_argument("--base-type", default="Q4_K_M")
+    group_scan.add_argument("--start-type", default="q4_K")
+    group_scan.add_argument("--target-type", default="q2_K")
+    group_scan.add_argument("--base-map", default=None, help="existing tensor-type map to apply before this group override")
+    group_scan.add_argument("--baseline-ppl", type=float, default=None)
+    group_scan.add_argument("--imatrix", default=None)
+    group_scan.add_argument("--quantize-bin", default=DEFAULT_QUANTIZE)
+    group_scan.add_argument("--perplexity-bin", default=DEFAULT_PERPLEXITY)
+    group_scan.add_argument("--gpu-layers", type=int, default=99)
+    group_scan.add_argument("--ctx-size", type=int, default=2048)
+    group_scan.add_argument("--chunks", type=int, default=None)
+    group_scan.add_argument("--distrobox", default=None)
+    group_scan.add_argument("--quant-timeout", type=int, default=1800)
+    group_scan.add_argument("--ppl-timeout", type=int, default=900)
+    group_scan.add_argument("--min-free-gb", type=float, default=15.0)
+    group_scan.add_argument("--hard-free-floor-gb", type=float, default=15.0)
+    group_scan.add_argument("--token-embedding-type", default="f16")
+    group_scan.add_argument("--preview-limit", type=int, default=20)
+    group_scan.add_argument("--prune-candidate", action="store_true", default=True)
+    group_scan.add_argument("--keep-candidate", dest="prune_candidate", action="store_false")
+    group_scan.add_argument("--dry-run", action="store_true")
+
+    sparse_replay = sub.add_parser("sparse-replay", help="run the OG Qwen3.6-27B-v4 style sparse ablation replay pipeline")
+    sparse_replay.add_argument("--source-gguf", required=True)
+    sparse_replay.add_argument("--corpus", required=True)
+    sparse_replay.add_argument("--run-dir", required=True)
+    sparse_replay.add_argument("--baseline-ppl", type=float, required=True)
+    sparse_replay.add_argument("--baseline-gguf", default=None)
+    sparse_replay.add_argument("--probe-plan", default=None, help="JSON or newline tensor list; defaults to sparse layer/component anchors")
+    sparse_replay.add_argument("--max-probes", type=int, default=None, help="limit default/generated probe plan")
+    sparse_replay.add_argument("--tensor-regex", default=None)
+    sparse_replay.add_argument("--run-name", default=None)
+    sparse_replay.add_argument("--profile", default="wiki")
+    sparse_replay.add_argument("--family", default=None)
+    sparse_replay.add_argument("--model-name", default=None)
+    sparse_replay.add_argument("--source-name", default=None)
+    sparse_replay.add_argument("--probe-base-type", default="Q4_K_M", help="baseline quant used while crushing one tensor")
+    sparse_replay.add_argument("--start-type", default="q4_K")
+    sparse_replay.add_argument("--target-type", default="q2_K")
+    sparse_replay.add_argument("--final-base-type", default="Q2_K", help="base type used for the final allocated GGUF")
+    sparse_replay.add_argument("--budget-gb", type=float, required=True)
+    sparse_replay.add_argument("--final-gguf", default=None)
+    sparse_replay.add_argument("--imatrix", default=None)
+    sparse_replay.add_argument("--quantize-bin", default=DEFAULT_QUANTIZE)
+    sparse_replay.add_argument("--perplexity-bin", default=DEFAULT_PERPLEXITY)
+    sparse_replay.add_argument("--gpu-layers", type=int, default=99)
+    sparse_replay.add_argument("--ctx-size", type=int, default=2048)
+    sparse_replay.add_argument("--chunks", type=int, default=None)
+    sparse_replay.add_argument("--distrobox", default=None)
+    sparse_replay.add_argument("--quant-timeout", type=int, default=1800)
+    sparse_replay.add_argument("--ppl-timeout", type=int, default=900)
+    sparse_replay.add_argument("--allocate-timeout", type=int, default=1800)
+    sparse_replay.add_argument("--token-embedding-type", default="f16")
+    sparse_replay.add_argument("--prune-candidates", action="store_true", default=True)
+    sparse_replay.add_argument("--keep-candidates", dest="prune_candidates", action="store_false")
+    sparse_replay.add_argument("--continue-on-failure", action="store_true")
+    sparse_replay.add_argument("--dry-run", action="store_true")
+
+    public_card_policy = sub.add_parser("public-card-policy", help="print sanitized public model-card policy")
+    public_card_policy.add_argument("--write", default=None, help="write policy JSON to this path")
+    public_card_policy.add_argument("--json", action="store_true")
 
     system = sub.add_parser("system", help="inspect local resources and tool availability")
     system.add_argument("--json", action="store_true")
@@ -3114,6 +5356,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     ablation_analyze.add_argument("--target-type", default="q2_K", help="override quant type for selected classes")
     ablation_analyze.add_argument("--override-classes", default="demotable,beneficial,tolerant", help="comma-separated classes to write to --output")
     ablation_analyze.add_argument("--output", help="write llama-quantize tensor-type override file")
+    ablation_analyze.add_argument("--tensor-output", help="write newline tensor names for a follow-up --tensor-file run")
     ablation_analyze.add_argument("--json-output", help="write JSON analysis sidecar")
     ablation_analyze.add_argument("--json", action="store_true", help="print JSON instead of a table")
 
@@ -3154,7 +5397,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         and sys.argv[1] not in {
             "run", "imatrix", "status", "events", "runs", "schedule", "db", "report",
             "export", "auth", "upload", "api", "system", "doctor", "self-test", "provenance", "inspect-gguf-types", "finalize", "package", "plan-space",
-            "public-audit", "public-history-audit", "public-export", "release-gate", "artifact-inventory",
+            "public-audit", "public-history-audit", "public-export", "release-gate", "artifact-inventory", "history",
             "benchmark-plan", "benchmark-run", "benchmark-postprocess", "benchmark-ingest", "benchmark-status", "benchmark-rebench-plan", "benchmark-manifest", "benchmark-audit",
             "benchmark-report", "cpu-offload-smoke", "cpu-offload-build-plan", "compare-gguf-types", "compare-locks",
             "tutorial", "tips", "watch", "stop", "--help", "-h",
@@ -3162,6 +5405,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
             "backup",
             "resume",
             "recover",
+            "group-scan",
+            "sparse-replay",
             "project",
         }
     ):
@@ -3718,6 +5963,7 @@ def resume_cmd(args: argparse.Namespace) -> None:
         imatrix=manifest.get("imatrix"),
         quantize_bin=manifest.get("quantize_bin") or DEFAULT_QUANTIZE,
         perplexity_bin=manifest.get("perplexity_bin") or DEFAULT_PERPLEXITY,
+        pure_quant=bool(manifest.get("pure_quant", state.get("pure_quant", False))),
         gpu_layers=manifest.get("gpu_layers", 99),
         ctx_size=manifest.get("ctx_size", 2048),
         chunks=manifest.get("chunks"),
@@ -3729,8 +5975,9 @@ def resume_cmd(args: argparse.Namespace) -> None:
         ppl_timeout=manifest.get("ppl_timeout", 900),
         keep_losers=False,
         no_keep_winners=False,
-        low_space=args.low_space or bool(manifest.get("low_space")),
-        serial_candidates=bool(manifest.get("serial_candidates")) or args.low_space,
+        commit_locks=bool(manifest.get("commit_locks", state.get("commit_locks", True))),
+        low_space=False if args.no_low_space else (args.low_space or bool(manifest.get("low_space"))),
+        serial_candidates=False if args.no_low_space else (bool(manifest.get("serial_candidates")) or args.low_space),
         prune_measured_candidates=bool(manifest.get("prune_measured_candidates", state.get("prune_measured_candidates", True))),
         plain=args.plain,
         no_color=args.no_color,
@@ -3844,60 +6091,83 @@ def grid_watch_cmd(args: argparse.Namespace) -> None:
                     grid_line(color("phase     ", "90", enabled) + color(public_job, health["code"], enabled), color("disk       ", "90", enabled) + color(f"{disk_free_gb(run_dir):.1f} GiB free", "36", enabled), width),
                     grid_line(color("health    ", "90", enabled) + color(health["health"], health["code"], enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
                     grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} total {eta['total']}", "36;1", enabled), color("done       ", "90", enabled) + color(eta["completion_at"], "36;1", enabled), width),
-                    grid_line(color("view      ", "90", enabled) + color("public-safe telemetry", "36;1", enabled), color("details    ", "90", enabled) + color("redacted", "33;1", enabled), width),
                 ]
             else:
+                eta_detail = model.get("eta_detail") or {}
+                job_eta = eta_detail.get("job") or {}
+                tensor_eta = eta_detail.get("tensor") or {}
+                phase_eta = eta_detail.get("phase") or {}
+                flow_eta = eta_detail.get("flow") or {}
                 overview = [
                     grid_line(color("progress  ", "90", enabled) + color(progress_left, "32;1", enabled), color("resources  ", "90", enabled) + color(resource_bits[0], "36;1", enabled), width),
                     grid_line(color("cpu/gpu   ", "90", enabled) + color((" | ".join(row["kind"] for row in processes[:3]) if processes else "idle"), "36;1", enabled), color("jobs       ", "90", enabled) + color(("  ".join(resource_bits[1:]) if len(resource_bits) > 1 else "idle"), "36;1", enabled), width),
                     grid_line(color("tensor    ", "90", enabled) + color(f"{active.get('tensor')}  {active.get('level')}", "33;1", enabled), color("disk       ", "90", enabled) + color(f"{disk_free_gb(run_dir):.1f} GiB free", "36", enabled), width),
-                    grid_line(color("job       ", "90", enabled) + color(job_label, health["code"], enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes_dense(model['baseline_size'])} active {fmt_bytes_dense(model['active_size'])}", "36;1", enabled), width),
+                    grid_line(color("current   ", "90", enabled) + color(f"job {job_label}", health["code"], enabled), color("gguf       ", "90", enabled) + color(f"base {fmt_bytes_dense(model['baseline_size'])} active {fmt_bytes_dense(model['active_size'])}", "36;1", enabled), width),
                     grid_line(color("storage   ", "90", enabled) + color(f"tmp {fmt_bytes(model['tmp_size'])} artifacts {fmt_bytes(model['artifacts_size'])}", "36;1", enabled), color("pid        ", "90", enabled) + color(str(health["expected_pid"] or "-"), health["code"], enabled), width),
-                    grid_line(color("health    ", "90", enabled) + color(str(health["reason"]), health["code"], enabled), color("confidence ", "90", enabled) + color(eta["confidence"], "32;1" if eta["confidence"] == "high" else "33;1", enabled), width),
-                    grid_line(color("eta       ", "90", enabled) + color(f"current {eta['current']} avg/tensor {eta['avg_tensor']} total {eta['total']}", "36;1", enabled), color("done       ", "90", enabled) + color(eta["completion_at"], "36;1", enabled), width),
-                    grid_line(color("avg layer ", "90", enabled) + color(eta["avg_layer"], "36;1", enabled), color("floor      ", "90", enabled) + color(f"{manifest.get('hard_free_floor_gb', 10.0)} GiB hard floor", "31;1" if disk_free_gb(run_dir) < 20 else "36", enabled), width),
+                    grid_line(color("health    ", "90", enabled) + color(str(health["reason"]), health["code"], enabled), color("confidence ", "90", enabled) + color(eta_detail.get("confidence", eta["confidence"]), "32;1" if eta_detail.get("confidence", eta["confidence"]) == "high" else "33;1", enabled), width),
+                    grid_line(color("job eta   ", "90", enabled) + color(f"{job_eta.get('label', '-')} est {job_eta.get('estimate', '-')} rem {job_eta.get('remaining', '-')}", "36;1", enabled), color("tensorETA ", "90", enabled) + color(f"est {tensor_eta.get('estimate', '-')} rem {tensor_eta.get('remaining', '-')}", "36;1", enabled), width),
+                    grid_line(color("phase eta ", "90", enabled) + color(f"rem {phase_eta.get('remaining', '-')} ({phase_eta.get('tensors_remaining', '-')} tensors)", "36;1", enabled), color("flow eta  ", "90", enabled) + color(f"rem {flow_eta.get('remaining', '-')}", "36;1", enabled), width),
+                    grid_line(color("eta src   ", "90", enabled) + color(str(eta_detail.get("source") or "-"), "36;1", enabled), color("floor      ", "90", enabled) + color(f"{manifest.get('hard_free_floor_gb', 10.0)} GiB hard floor", "31;1" if disk_free_gb(run_dir) < 20 else "36", enabled), width),
                 ]
             print_heavy_box("OPERATIONS", overview, width, "34;1", enabled)
             print()
 
             if public_view:
-                measure_lines = [
-                    "Candidate tensor names, quant levels, PPL deltas, and GGUF paths are redacted.",
-                    "Use the private watch view for factory debugging.",
-                ]
-                print_heavy_box("PUBLIC VIEW", measure_lines, width, "32;1", enabled)
+                if args.once:
+                    return
+                time.sleep(args.interval)
+                continue
             else:
-                measure_lines = [f"{'quant':<7} {'ppl':<12} {'delta':<12} {'size':<12} tensor"]
-                measure_lines.append("─" * (width - 4))
-                for row in candidates[-max(1, args.measurements_limit) :]:
-                    delta = row.get("delta")
-                    delta_s = "-" if delta is None else f"{delta:+.4f}"
-                    marker, marker_code = delta_marker(delta)
-                    line = (
-                        color(f"{row.get('level', '-'):<7}", "35;1", enabled)
-                        + color(f"{str(row.get('ppl', '-')):<12}", "33;1", enabled)
-                        + color(f"{delta_s:<12}", delta_code(delta), enabled)
-                        + color(f"{fmt_bytes_dense(row.get('size_bytes')):<12}", size_code(row.get("size_bytes"), model["baseline_size"]), enabled)
-                        + color(f"{row.get('tensor', '')}", "33", enabled)
-                        + (" " + color(marker, marker_code, enabled) if marker else "")
-                    )
-                    measure_lines.append(line)
-                print_heavy_box("RECENT MEASUREMENTS", measure_lines, width, "32;1", enabled)
+                schema = str(manifest.get("schema") or state.get("schema") or "")
+                is_group_scan = schema.startswith("cerebellum.group_scan")
+                if not is_group_scan:
+                    measure_lines = [f"{'quant':<7} {'ppl':<12} {'delta':<12} {'size':<12} tensor"]
+                    measure_lines.append("─" * (width - 4))
+                    visible_candidates = limited_tail(candidates, args.measurements_limit)
+                    for row in visible_candidates:
+                        delta = row.get("delta")
+                        delta_s = "-" if delta is None else f"{delta:+.4f}"
+                        verdict, verdict_code = candidate_measurement_verdict(row, candidates)
+                        ppl_value = row.get("ppl")
+                        ppl_s = "-" if ppl_value is None else str(ppl_value)
+                        line = (
+                            color(f"{row.get('level', '-'):<7}", "35;1", enabled)
+                            + color(f"{ppl_s:<12}", "33;1", enabled)
+                            + color(f"{delta_s:<12}", delta_code(delta), enabled)
+                            + color(f"{fmt_bytes_dense(row.get('size_bytes')):<12}", size_code(row.get("size_bytes"), model["baseline_size"]), enabled)
+                            + color(f"{row.get('tensor', '')}", "33", enabled)
+                            + " "
+                            + color(verdict, verdict_code, enabled)
+                        )
+                        measure_lines.append(line)
+                    print_heavy_box("RECENT MEASUREMENTS", measure_lines, width, "32;1", enabled)
+                    print()
+                ablation_root = classic_ablation_root(run_dir)
+                if (ablation_root / "forward").exists() or (ablation_root / "reverse").exists():
+                    print_heavy_box("FORWARD ABLATION", classic_ablation_phase_lines(ablation_root, "forward", enabled), width, "32;1", enabled)
+                    print()
+                    print_heavy_box("REVERSE ABLATION", classic_ablation_phase_lines(ablation_root, "reverse", enabled), width, "35;1", enabled)
+                    print()
+                commit_locks = bool(manifest.get("commit_locks", True))
+                if is_group_scan:
+                    layer_title = "GROUP VERDICTS"
+                    layer_lines = ["Forward and reverse no-commit group verdicts are shown above."]
+                else:
+                    layer_title = "LOCKED LAYER MAP" if commit_locks else "SCAN FINDINGS"
+                    layer_lines = locked_layer_lines(state) or (["No locked tensors yet."] if commit_locks else ["No scan findings yet."])
+                print_heavy_box(layer_title, layer_lines, width, "35;1", enabled)
                 print()
-                locked_lines = locked_layer_lines(state) or ["No locked tensors yet."]
-                print_heavy_box("LOCKED LAYER MAP", locked_lines, width, "35;1", enabled)
+                strategy_lines = golden_cow_watch_lines(model.get("golden_cow_audit") or {}, limit=8)
+                print_heavy_box("LEGACY / GATED STRATEGY", strategy_lines, width, "31;1", enabled)
+                print()
+                flow_lines = legacy_flow_watch_lines(model.get("legacy_flow") or {}, state, active, manifest)
+                print_heavy_box("LEGACY FLOW", flow_lines, width, "36;1", enabled)
             print()
 
-            if public_view:
-                event_lines = [
-                    "Event stream redacted for public screenshots.",
-                    "Ctrl+C exits UI only. Use private tooling to stop or recover a run.",
-                ]
-            else:
-                event_parts = []
-                for row in events[-min(5, max(1, args.events_limit)) :]:
-                    event_parts.append(f"{row.get('event')} {row.get('level', '')} {row.get('tensor', '')}".strip())
-                event_lines = [" | ".join(event_parts), f"run {run_id}", "Ctrl+C exits UI only. Use `cerebellum stop RUN_DIR` to stop."]
+            event_lines = [
+                f"{row.get('event')} {row.get('level', '')} {row.get('tensor', '')}".strip()
+                for row in limited_tail(events, args.events_limit)
+            ] or ["No events yet."]
             print_heavy_box("EVENT STRIP", event_lines, width, "33;1", enabled)
             if args.once:
                 return
@@ -3930,6 +6200,7 @@ def build_watch_model(
     if active_tensor:
         current_tensors.add(active_tensor)
     visible_candidates = [row for row in candidates if row.get("tensor") in current_tensors] if current_tensors else []
+    visible_candidates.extend(in_progress_candidate_rows(current_events, candidates))
     status = state.get("run_status")
     terminal_events = {"run_stopped", "run_finish", "tensor_interrupted", "signal_received", "rollback_finish"}
     if status in {"stopped", "complete", "failed"}:
@@ -3945,8 +6216,9 @@ def build_watch_model(
             {},
         )
     total = run_start.get("tensors") or next((row.get("total") for row in reversed(current_events) if row.get("total")), None)
-    locked = len(state.get("locked", {}))
-    bar, progress = progress_bar(locked, total, width=22)
+    commit_locks = bool(manifest.get("commit_locks", True))
+    progress_count = len(state.get("locked", {})) if commit_locks else len(state.get("tested", []))
+    bar, progress = progress_bar(progress_count, total, width=22)
     active_age = event_age_seconds(active)
     last_age = event_age_seconds(events[-1]) if events else None
     processes = process_rows_for_run(run_dir)
@@ -3957,6 +6229,8 @@ def build_watch_model(
     artifacts_root = run_artifacts_root(run_dir, manifest, state)
     baseline_path = Path(state.get("baseline_path") or artifacts_root / "current_baseline.gguf")
     active_path = active.get("tmp_output") or active.get("output") or active.get("model")
+    flow_context = legacy_flow_context(run_dir)
+    eta_detail = eta_detail_values(run_dir, state, manifest, events, candidates, active, active_age, total, flow_context)
     return {
         "state": state,
         "manifest": manifest,
@@ -3981,6 +6255,9 @@ def build_watch_model(
         "active_size": path_size(Path(active_path)) if active_path else None,
         "tmp_size": dir_size(tmp_root),
         "artifacts_size": dir_size(artifacts_root),
+        "golden_cow_audit": golden_cow_audit(state, manifest, flow_context),
+        "legacy_flow": flow_context,
+        "eta_detail": eta_detail,
     }
 
 
@@ -3988,7 +6265,7 @@ def tui_watch_cmd(args: argparse.Namespace) -> None:
     import curses
 
     run_dir = resolve_run_dir(args.run_dir)
-    panes = ["events", "measurements", "processes", "files"]
+    panes = ["events", "measurements", "flow", "strategy", "processes", "files"]
     offsets = {name: 0 for name in panes}
     active_pane = 0
 
@@ -4009,13 +6286,15 @@ def tui_watch_cmd(args: argparse.Namespace) -> None:
             state = model["state"]
             manifest = model["manifest"]
             active = model["active"]
-            eta_grid = eta_grid_values(state, model["active_age"], model["total"])
+            eta_detail = model.get("eta_detail") or {}
+            phase_eta = (eta_detail.get("phase") or {}).get("remaining", "-")
+            flow_eta = (eta_detail.get("flow") or {}).get("remaining", "-")
             title = " CEREBELLUM LIVE "
             stdscr.addnstr(0, max(0, (w - len(title)) // 2), title, w - 1, curses.color_pair(1) | curses.A_BOLD)
             summary = [
                 f"run {manifest.get('run_id') or state.get('run_id') or run_dir.name}",
                 f"model {state.get('model_family')}/{state.get('model_name')}  status {state.get('run_status')}  profile {manifest.get('ppl_profile') or state.get('ppl_profile') or 'custom'}",
-                f"progress {model['bar']} {model['progress']}  ppl {state.get('current_ppl')}  eta {model['eta']} done {eta_grid['completion_at']} ({model['eta_basis']})",
+                f"progress {model['bar']} {model['progress']}  ppl {state.get('current_ppl')}  phase eta {phase_eta}  flow eta {flow_eta} ({eta_detail.get('confidence', model['eta_basis'])})",
                 f"active {active.get('event')} {active.get('level')} {active.get('tensor')}  age {fmt_seconds(model['active_age'])}  last event {fmt_seconds(model['last_age'])}",
                 f"sizes current {fmt_bytes_dense(model['baseline_size'])}  active {fmt_bytes_dense(model['active_size'])}  tmp {fmt_bytes_dense(model['tmp_size'])}  artifacts {fmt_bytes_dense(model['artifacts_size'])}  disk {disk_free_gb(run_dir):.1f} GiB free",
             ]
@@ -4041,7 +6320,12 @@ def tui_watch_cmd(args: argparse.Namespace) -> None:
                     delta = row.get("delta")
                     delta_s = "-" if delta is None else f"{delta:+.4f}"
                     marker, _marker_code = delta_marker(delta)
-                    lines.append(f"{row.get('level', '-'):<6} ppl={row.get('ppl', '-')} delta={delta_s:<12} q={fmt_bytes_dense(row.get('size_bytes')):<12} {row.get('tensor', '')} {marker}")
+                    verdict, _verdict_code = ablation_verdict(delta, str(row.get("tensor") or "tensor"))
+                    lines.append(f"{row.get('level', '-'):<6} ppl={row.get('ppl', '-')} delta={delta_s:<12} q={fmt_bytes_dense(row.get('size_bytes')):<12} {row.get('tensor', '')} {marker} {verdict}")
+            elif pane == "strategy":
+                lines.extend(golden_cow_watch_lines(model.get("golden_cow_audit") or {}, limit=body_h - 1))
+            elif pane == "flow":
+                lines.extend(legacy_flow_watch_lines(model.get("legacy_flow") or {}, state, active, manifest))
             elif pane == "processes":
                 for row in model["processes"]:
                     lines.append(f"{row['kind']:<9} pid={row['pid']:<7} etime={row['etime']:<9} cpu={row['pcpu']:>6}% mem={row['pmem']:>5}% {row['cmd'][:90]}")
@@ -5918,6 +8202,104 @@ def bool_flag(parts: list[str], flag: str, enabled: bool) -> None:
         parts.append(flag)
 
 
+def legacy_gated_workflow_detail(
+    source: Path,
+    output_dir: Path,
+    run_dir: Path,
+    imatrix: Path,
+    final_gguf: Path,
+    benchmark_dir: Path,
+    args: argparse.Namespace,
+) -> dict[str, Any]:
+    tensor_map = run_dir / "artifacts" / "final_types.txt"
+    baseline_quant = output_dir / f"{slug(args.model_name or source.stem).lower()}-baseline.gguf"
+    quant_base = [args.quantize_bin, "--allow-requantize"]
+    bool_flag(quant_base, "--pure", getattr(args, "pure_quant", False))
+    tensor_map_quant_base = [args.quantize_bin, "--allow-requantize"]
+    steps = [
+        {
+            "name": "scan",
+            "purpose": "build imatrix and tensor inventory, then classify architecture groups before ablation",
+            "command": shell_join(["cerebellum", "imatrix", "--model", source, "--output", imatrix]),
+            "outputs": [str(imatrix)],
+        },
+        {
+            "name": "lower-quant-baseline",
+            "purpose": "build a lower quant from the F16 source; serve and benchmark this quant output, not the F16 source",
+            "command": shell_join([*quant_base, "--imatrix", imatrix, str(source), baseline_quant, args.base_type]),
+            "outputs": [str(baseline_quant)],
+        },
+        {
+            "name": "survivability-scan",
+            "purpose": "test whole blocks/groups first and record PPL/benchmark deltas before per-tensor work",
+            "command": shell_join(["cerebellum", "legacy-flow", "--source-gguf", source, "--output-dir", output_dir]),
+            "outputs": [str(output_dir / "legacy_flow.json")],
+        },
+        {
+            "name": "reverse-ablation",
+            "purpose": "from the first compressed candidate, restore groups one at a time to find Q2 regularization vs real damage",
+            "command": "planned manual/queued group runs; do not infer from a single tensor",
+            "outputs": [str(output_dir / "reverse_ablation_results.json")],
+        },
+        {
+            "name": "targeted-hillstep",
+            "purpose": "use hillstep only inside approved groups/layers after group evidence and protected floors",
+            "command": shell_join(["cerebellum", "run", "--source-gguf", source, "--run-dir", run_dir, "--imatrix", imatrix, "--profile", args.profile, "--metric", args.metric or "ppl"]),
+            "outputs": [str(run_dir / "state.json"), str(tensor_map)],
+        },
+        {
+            "name": "allocate",
+            "purpose": "rank promotions/demotions by measured quality gain or cost per GiB and reject bad bundles",
+            "command": "planned allocator: use measured deltas, size budget, protected floors, and benchmark gates",
+            "outputs": [str(tensor_map)],
+        },
+        {
+            "name": "build",
+            "purpose": "call stock llama-quantize with imatrix and exact tensor map to produce the candidate GGUF",
+            "command": shell_join(
+                [
+                    *tensor_map_quant_base,
+                    "--imatrix",
+                    imatrix,
+                    "--tensor-type-file",
+                    tensor_map,
+                    str(source),
+                    final_gguf,
+                    args.base_type,
+                ]
+            ),
+            "outputs": [str(final_gguf)],
+        },
+        {
+            "name": "gate",
+            "purpose": "run size, PPL, TPS, EvalPlus, ARC, HellaSwag, MMLU-Redux, and audit wrong answers before release",
+            "command": shell_join(["cerebellum", "benchmark-run", "--suite", args.benchmark_suite, "--model", final_gguf.stem, "--results-dir", benchmark_dir, "--execute", "--postprocess"]),
+            "outputs": [str(benchmark_dir)],
+        },
+    ]
+    lessons = [
+        "Qwen36-27B v4 used selected tensor maps and corrected benchmark gates; it was not an exhaustive tensor walk.",
+        "Qwen36-35B v1 showed blanket group demotion can break behavior; v2 reduced the override set and verified benchmarks.",
+        "Gemma 4 experiments showed higher precision can be worse than the calibrated lower quant for some routed tensors.",
+        "PPL is useful but not sufficient; downstream benchmarks and audit checks decide whether a candidate ships.",
+    ]
+    return {
+        "schema": "cerebellum.legacy_gated_workflow.v1",
+        "mode": "group-first benchmark-gated",
+        "hillstep_role": "targeted refinement after scan/group/reverse-ablation evidence",
+        "source_role": "F16 GGUF is the quantization source only; quant outputs are served and benchmarked",
+        "orchestration": {
+            "quant_ppl_overlap": "HillStepper overlaps candidate quantization with PPL measurement when low-space and serial-candidates are disabled",
+            "low_space_mode": "serialize candidate testing and prune measured GGUFs immediately",
+            "watch": shell_join(["cerebellum", "watch", run_dir]),
+            "cleanup": "keep durable state/checkpoints; prune non-winning measured candidates unless explicitly kept",
+        },
+        "steps": steps,
+        "protected_groups": LEGACY_GATED_GROUPS,
+        "lessons": lessons,
+    }
+
+
 def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
     output_dir = Path(args.output_dir)
     run_dir = Path(args.run_dir) if args.run_dir else output_dir / "run"
@@ -5971,6 +8353,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
     optional_flag(run_parts, "--chunks", args.chunks)
     optional_flag(run_parts, "--distrobox", args.distrobox)
     bool_flag(run_parts, "--low-space", effective_low_space)
+    bool_flag(run_parts, "--pure-quant", getattr(args, "pure_quant", False))
 
     final_quant_parts = [
         args.quantize_bin,
@@ -6065,6 +8448,11 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         if args.task_profile == "cpu-offload"
         else None
     )
+    legacy_gated = (
+        legacy_gated_workflow_detail(source, output_dir, run_dir, imatrix, final_gguf, benchmark_dir, args)
+        if args.task_profile == "legacy-gated"
+        else None
+    )
     return {
         "pipeline": "cerebellum",
         "source_gguf": str(source),
@@ -6077,6 +8465,7 @@ def pipeline_plan(args: argparse.Namespace) -> dict[str, Any]:
         "task_profile_detail": task_profile,
         "resource_strategy": task_profile.get("resource_strategy") if task_profile else None,
         "cpu_offload_plan": cpu_offload,
+        "legacy_gated_workflow": legacy_gated,
         "low_space": effective_low_space,
         "ppl_profile": effective_profile,
         "ablation_metric": effective_metric,
@@ -7723,6 +10112,9 @@ def ablation_analyze_cmd(args: argparse.Namespace) -> None:
     if args.output:
         lines = [tensor_type_line(row["tensor"], args.target_type) for row in overrides]
         Path(args.output).write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
+    if getattr(args, "tensor_output", None):
+        lines = [str(row["tensor"]) for row in overrides]
+        Path(args.tensor_output).write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
     if args.json_output:
         Path(args.json_output).write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     if args.json:
@@ -7731,6 +10123,8 @@ def ablation_analyze_cmd(args: argparse.Namespace) -> None:
     print(ablation_analyze_text(report), end="")
     if args.output:
         print(f"\nWrote {len(overrides)} overrides to {args.output}")
+    if getattr(args, "tensor_output", None):
+        print(f"\nWrote {len(overrides)} tensor names to {args.tensor_output}")
 
 
 def write_report_files(run_dir: Path, report: dict[str, Any], formats: list[str]) -> list[Path]:
@@ -8107,7 +10501,7 @@ def package_cmd(args: argparse.Namespace) -> None:
 PUBLIC_AUDIT_PATH_PATTERNS = [
     (re.compile(r"(^|/)scripts/"), "private script path"),
     (re.compile(r"(^|/)tests/"), "test/factory path ignored for public origin"),
-    (re.compile(r"(^|/)osmosis/dashboard/"), "private dashboard path"),
+    (re.compile(r"(^|/)(osmosis|cerebellum)/dashboard/"), "private dashboard path"),
     (re.compile(r"(^|/)docs/devlog/"), "private devlog path"),
     (re.compile(r"devlog", re.IGNORECASE), "devlog content/path"),
     (re.compile(r"ablation", re.IGNORECASE), "raw ablation artifact/path"),
@@ -8588,6 +10982,501 @@ def artifact_inventory_args_from_query(qs: dict[str, list[str]]) -> argparse.Nam
         raise ValueError("top must be 100 or lower")
     root = validate_artifact_inventory_root(Path(root_value), allow_broad=query_bool(qs, "allow_broad"))
     return argparse.Namespace(root=str(root), top=top)
+
+
+HISTORY_SKIP_PARTS = {
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".cache",
+    ".bench-venv",
+    ".venv",
+    "venv",
+    "site-packages",
+    "dist-packages",
+    "node_modules",
+    "unsloth_compiled_cache",
+}
+HISTORY_PPL_RE = re.compile(r"Final estimate:\s*PPL\s*=\s*([0-9.]+)\s*\+/-\s*([0-9.]+)", re.IGNORECASE)
+HISTORY_INLINE_PPL_RE = re.compile(r"\b(?:PPL|perplexity)\b[^0-9]{0,32}([0-9][0-9,.]*\.?[0-9]*)", re.IGNORECASE)
+HISTORY_BENCH_RE = re.compile(
+    r"\b(HumanEval|EvalPlus|ARC|HellaSwag|MMLU(?:-Redux|-Pro)?|GPQA(?:-Diamond)?|MMMLU|HLE|LiveCodeBench|AIME|IFEval|BFCL|SWE-bench)\b[^0-9%]{0,56}([0-9]+(?:\.[0-9]+)?)%?",
+    re.IGNORECASE,
+)
+HISTORY_CHAT_TOOL_MARKERS = (".codex", ".claude", ".opencode", "gemini")
+HISTORY_MODEL_TERM_RE = re.compile(
+    r"(gemma[-_ ]?4[-_ ]?(?:e2b|e4b|12b|26b|codex)|qwen(?:3(?:\.5|\.6)?|35|36)?[-_ ]?(?:9b|14b|27b|30b|32b|122b)?|granite[-_ ]?4(?:\.1)?[-_ ]?(?:h[-_ ]?small|30b)?|glm[-_ ]?5(?:\.1)?)",
+    re.IGNORECASE,
+)
+
+
+def history_default_roots() -> list[Path]:
+    roots = [Path.cwd()]
+    game_runs = Path("/var/home/deucebucket/games/cerebellum-runs")
+    if game_runs.exists():
+        roots.append(game_runs)
+    return roots
+
+
+def history_known_chat_roots() -> list[Path]:
+    home = Path.home()
+    candidates = [
+        home / ".codex" / "sessions",
+        home / ".codex",
+        home / ".claude" / "projects",
+        home / ".opencode",
+        home / ".local" / "share" / "opencode",
+        home / ".config" / "opencode",
+        home / ".gemini",
+        home / ".config" / "gemini",
+    ]
+    return [path for path in candidates if path.exists()]
+
+
+def history_path_skipped(path: Path) -> bool:
+    return any(part in HISTORY_SKIP_PARTS for part in path.parts)
+
+
+def history_model_id_from_path(path: Path) -> str:
+    parts = path.parts
+    if "models" in parts:
+        idx = parts.index("models")
+        if idx + 1 < len(parts):
+            return parts[idx + 1]
+    if "families" in parts:
+        idx = parts.index("families")
+        if idx + 2 < len(parts):
+            return f"{parts[idx + 1]}/{parts[idx + 2]}"
+    for part in reversed(parts):
+        low = part.lower()
+        if any(token in low for token in ("gemma", "qwen", "granite", "glm", "cerebellum")) and part not in {"benchmark_results", "benchmarks"}:
+            return part
+    return path.parent.name or path.name
+
+
+def history_model_ids_from_text(text: str) -> list[str]:
+    seen: list[str] = []
+    for match in HISTORY_MODEL_TERM_RE.finditer(text):
+        model = slug(match.group(1).replace("_", "-").replace(" ", "-")).lower()
+        if model and model not in seen:
+            seen.append(model)
+    return seen[:12]
+
+
+def history_is_chat_file(path: Path) -> bool:
+    text = str(path).lower()
+    return any(marker in text for marker in HISTORY_CHAT_TOOL_MARKERS) and path.suffix.lower() in {"", ".json", ".jsonl", ".md", ".txt", ".log"}
+
+
+def history_model_bucket(models: dict[str, dict[str, Any]], model_id: str) -> dict[str, Any]:
+    return models.setdefault(
+        model_id,
+        {
+            "model": model_id,
+            "paths": [],
+            "methods": [],
+            "scripts": [],
+            "manifests": [],
+            "ppl_results": [],
+            "benchmark_results": [],
+            "notes": [],
+        },
+    )
+
+
+def history_add_unique(row: dict[str, Any], key: str, value: Any, limit: int = 100) -> None:
+    if value in (None, "", []):
+        return
+    items = row.setdefault(key, [])
+    if value not in items and len(items) < limit:
+        items.append(value)
+
+
+def history_float(text: str) -> float:
+    return float(text.replace(",", "").rstrip(".,;:"))
+
+
+def history_manifest_summary(path: Path, data: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "path": str(path),
+        "run_id": data.get("run_id"),
+        "profile": data.get("ppl_profile") or data.get("profile"),
+        "corpus": data.get("corpus"),
+        "chunks": data.get("chunks"),
+        "ctx_size": data.get("ctx_size"),
+        "base_type": data.get("base_type"),
+        "start_type": data.get("start_type"),
+        "levels": data.get("levels"),
+        "commit_locks": data.get("commit_locks"),
+        "current_ppl": data.get("current_ppl") or data.get("baseline_ppl"),
+    }
+
+
+def history_ppl_results_from_log(path: Path) -> list[dict[str, Any]]:
+    try:
+        text = path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return []
+    chunks = None
+    ctx = None
+    chunk_match = re.search(r"calculating perplexity over\s+([0-9]+)\s+chunks,\s*n_ctx=([0-9]+)", text)
+    if chunk_match:
+        chunks = int(chunk_match.group(1))
+        ctx = int(chunk_match.group(2))
+    return [
+        {"path": str(path), "ppl": float(match.group(1)), "error": float(match.group(2)), "chunks": chunks, "ctx_size": ctx}
+        for match in HISTORY_PPL_RE.finditer(text)
+    ][-3:]
+
+
+def history_extract_doc_signals(path: Path, text: str) -> dict[str, list[dict[str, Any]]]:
+    methods: list[dict[str, Any]] = []
+    benchmarks: list[dict[str, Any]] = []
+    notes: list[dict[str, Any]] = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        low = stripped.lower()
+        if any(token in low for token in ("method", "workflow", "baseline", "ablation", "imatrix", "wikitext", "wiki", "q2_k", "q3_k", "q4_k", "q5_k", "q6_k", "f16", "bf16")):
+            if len(methods) < 30:
+                methods.append({"path": str(path), "line": lineno, "text": stripped[:280]})
+        for match in HISTORY_BENCH_RE.finditer(stripped):
+            if len(benchmarks) < 100:
+                value = history_float(match.group(2))
+                if value > 100.0:
+                    continue
+                benchmarks.append(
+                    {
+                        "path": str(path),
+                        "line": lineno,
+                        "benchmark": benchmark_key(match.group(1)),
+                        "metric": "percent",
+                        "value": value,
+                        "text": stripped[:280],
+                    }
+                )
+        if "ppl" in low or "perplexity" in low:
+            match = HISTORY_INLINE_PPL_RE.search(stripped)
+            if match and len(notes) < 100:
+                notes.append({"path": str(path), "line": lineno, "kind": "ppl-note", "value": history_float(match.group(1)), "text": stripped[:280]})
+    return {"methods": methods, "benchmarks": benchmarks, "notes": notes}
+
+
+def history_extract_chat_hits(path: Path, text: str) -> list[dict[str, Any]]:
+    terms = ["cerebellum", "/var/home/deucebucket/ai-drive/cerebellum", "gemma", "qwen", "granite", "gguf", "imatrix", "wikitext"]
+    hits: list[dict[str, Any]] = []
+    for lineno, line in enumerate(text.splitlines(), 1):
+        low = line.lower()
+        if not any(term in low for term in terms):
+            continue
+        hits.append({"path": str(path), "line": lineno, "models": history_model_ids_from_text(line), "text": line.strip()[:360]})
+        if len(hits) >= 20:
+            break
+    return hits
+
+
+def history_interesting_file(path: Path) -> bool:
+    name = path.name.lower()
+    return (
+        path.name in {"manifest.json", "state.json"}
+        or name.endswith((".log", ".md", ".json", ".jsonl", ".sh", ".py"))
+    )
+
+
+def history_scan_roots(roots: list[Path], query: str | None = None, limit: int = 5000, include_chat_logs: bool = False, chat_roots: list[Path] | None = None) -> dict[str, Any]:
+    query_l = (query or "").lower()
+    effective_roots = list(roots)
+    if include_chat_logs:
+        effective_roots.extend(chat_roots or history_known_chat_roots())
+    models: dict[str, dict[str, Any]] = {}
+    scanned_files = 0
+    benchmark_paths: list[Path] = []
+    for root in effective_roots:
+        root = root.expanduser()
+        if not root.exists():
+            continue
+        for path in root.rglob("*"):
+            if scanned_files >= max(1, limit):
+                break
+            is_chat = history_is_chat_file(path)
+            if not path.is_file() or history_path_skipped(path) or (not history_interesting_file(path) and not is_chat):
+                continue
+            if query_l:
+                haystack = str(path).lower()
+                if query_l not in haystack:
+                    try:
+                        haystack += "\n" + path.read_text(encoding="utf-8", errors="replace")[:8192].lower()
+                    except OSError:
+                        pass
+                if query_l not in haystack:
+                    continue
+            scanned_files += 1
+            low_name = path.name.lower()
+            if is_chat:
+                try:
+                    text = path.read_text(encoding="utf-8", errors="replace")[:512_000]
+                except OSError:
+                    continue
+                hits = history_extract_chat_hits(path, text)
+                if not hits:
+                    continue
+                model_ids = sorted({model for hit in hits for model in hit.get("models", [])}) or ["chat-session-evidence"]
+                for chat_model_id in model_ids:
+                    chat_row = history_model_bucket(models, chat_model_id)
+                    history_add_unique(chat_row, "paths", str(path.parent))
+                    for hit in hits:
+                        history_add_unique(chat_row, "chat_logs", hit)
+                continue
+            model_id = history_model_id_from_path(path)
+            if path.name in {"manifest.json", "state.json"}:
+                row = history_model_bucket(models, model_id)
+                history_add_unique(row, "paths", str(path.parent))
+                try:
+                    data = json.loads(path.read_text(encoding="utf-8"))
+                except Exception:
+                    data = {}
+                if isinstance(data, dict):
+                    summary = history_manifest_summary(path, data)
+                    history_add_unique(row, "manifests", summary)
+                    if summary.get("current_ppl") is not None:
+                        history_add_unique(row, "ppl_results", {"path": str(path), "kind": "state", "ppl": summary["current_ppl"], "profile": summary.get("profile")})
+                continue
+            if low_name.endswith(".log"):
+                results = history_ppl_results_from_log(path)
+                if not results:
+                    continue
+                row = history_model_bucket(models, model_id)
+                history_add_unique(row, "paths", str(path.parent))
+                for result in results:
+                    history_add_unique(row, "ppl_results", result)
+                continue
+            if low_name.endswith((".json", ".jsonl")):
+                if "benchmark" in str(path).lower() or any(token in low_name for token in ("arc", "mmlu", "humaneval", "evalplus", "hellaswag", "speed")):
+                    benchmark_paths.append(path)
+                continue
+            if low_name.endswith((".sh", ".py")):
+                if any(token in str(path).lower() for token in ("benchmark", "run", "quant", "ppl", "ablation", "cerebellum")):
+                    row = history_model_bucket(models, model_id)
+                    history_add_unique(row, "paths", str(path.parent))
+                    history_add_unique(row, "scripts", str(path))
+                continue
+            if low_name.endswith(".md"):
+                try:
+                    signals = history_extract_doc_signals(path, path.read_text(encoding="utf-8", errors="replace"))
+                except OSError:
+                    continue
+                if not signals["methods"] and not signals["benchmarks"] and not signals["notes"]:
+                    continue
+                row = history_model_bucket(models, model_id)
+                history_add_unique(row, "paths", str(path.parent))
+                for method in signals["methods"]:
+                    history_add_unique(row, "methods", method)
+                for bench in signals["benchmarks"]:
+                    history_add_unique(row, "benchmark_results", bench)
+                for note in signals["notes"]:
+                    history_add_unique(row, "notes", note)
+    for record in benchmark_records(benchmark_paths) if benchmark_paths else []:
+        row = history_model_bucket(models, str(record["model"]))
+        history_add_unique(row, "benchmark_results", record)
+    model_rows = sorted(models.values(), key=lambda item: str(item["model"]).lower())
+    return {
+        "schema": "cerebellum.history.v1",
+        "generated_at": utc_now(),
+        "roots": [str(root) for root in roots],
+        "chat_roots": [str(root) for root in (chat_roots or history_known_chat_roots())] if include_chat_logs else [],
+        "include_chat_logs": include_chat_logs,
+        "query": query,
+        "scanned_files": scanned_files,
+        "models": model_rows,
+        "leaderboard": history_leaderboard(model_rows),
+        "ranking_policy": "Best-model ranking uses measured quality-percentage benchmarks only. PPL, speed, and size are supporting context because they are not directly comparable across corpora/models.",
+    }
+
+
+def history_leaderboard(models: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for model in models:
+        scores: dict[str, list[float]] = {}
+        for bench in model.get("benchmark_results", []):
+            metric = str(bench.get("metric", ""))
+            if metric not in {"percent", "accuracy", "pass_at_1", "score"}:
+                continue
+            value = bench.get("value")
+            if value is None:
+                continue
+            value_f = float(value)
+            if metric == "pass_at_1" and value_f <= 1.0:
+                value_f *= 100.0
+            if value_f > 100.0:
+                continue
+            key = str(bench.get("benchmark_key") or bench.get("benchmark") or "unknown")
+            scores.setdefault(key, []).append(value_f)
+        if not scores:
+            continue
+        avg_scores = {key: sum(values) / len(values) for key, values in scores.items()}
+        ppls = [float(row["ppl"]) for row in model.get("ppl_results", []) if row.get("ppl") is not None]
+        rows.append(
+            {
+                "model": model["model"],
+                "average_score": sum(avg_scores.values()) / len(avg_scores),
+                "benchmarks": len(avg_scores),
+                "benchmark_scores": avg_scores,
+                "best_ppl": min(ppls) if ppls else None,
+            }
+        )
+    rows.sort(key=lambda row: (row["average_score"], row["benchmarks"]), reverse=True)
+    return rows
+
+
+def history_markdown(report: dict[str, Any]) -> str:
+    model_rows = []
+    for model in report["models"]:
+        ppls = [float(row["ppl"]) for row in model.get("ppl_results", []) if row.get("ppl") is not None]
+        model_rows.append(
+            [
+                str(model["model"]),
+                str(len(model.get("manifests", []))),
+                "-" if not ppls else f"{min(ppls):.2f}",
+                str(len(model.get("benchmark_results", []))),
+                str(len(model.get("methods", []))),
+                str(len(model.get("scripts", []))),
+            ]
+        )
+    leaderboard_rows = [
+        [
+            row["model"],
+            f"{float(row['average_score']):.2f}%",
+            str(row["benchmarks"]),
+            "-" if row.get("best_ppl") is None else f"{float(row['best_ppl']):.2f}",
+        ]
+        for row in report["leaderboard"][:20]
+    ]
+    parts = [
+        "# Cerebellum History",
+        "",
+        f"generated: `{report['generated_at']}`",
+        f"roots: `{', '.join(report['roots'])}`",
+        f"chat roots: `{', '.join(report.get('chat_roots', [])) or '-'}`",
+        f"query: `{report.get('query') or '-'}`",
+        f"scanned files: `{report['scanned_files']}`",
+        "",
+        "## Models",
+        "",
+        markdown_table(["Model", "Manifests", "Best PPL", "Bench rows", "Recreate notes", "Scripts"], model_rows),
+        "",
+        "## Best-Model View",
+        "",
+        report["ranking_policy"],
+        "",
+        markdown_table(["Model", "Avg quality", "Benchmarks", "Best PPL"], leaderboard_rows) if leaderboard_rows else "No comparable benchmark rows found.",
+    ]
+    for model in report["models"]:
+        parts.extend(["", f"## {model['model']}", ""])
+        manifests = [
+            [
+                str(row.get("profile") or "-"),
+                str(row.get("base_type") or "-"),
+                str(row.get("chunks") or "-"),
+                str(row.get("current_ppl") or "-"),
+                str(row.get("path") or "-"),
+            ]
+            for row in model.get("manifests", [])[:8]
+        ]
+        if manifests:
+            parts.extend([markdown_table(["Profile", "Base", "Chunks", "PPL", "Manifest"], manifests), ""])
+        for method in model.get("methods", [])[:8]:
+            parts.append(f"- method: `{method['path']}:{method['line']}` {method['text']}")
+        for script in model.get("scripts", [])[:8]:
+            parts.append(f"- script: `{script}`")
+        for hit in model.get("chat_logs", [])[:5]:
+            parts.append(f"- chat: `{hit['path']}:{hit['line']}` {hit['text']}")
+    return "\n".join(parts) + "\n"
+
+
+def history_html(report: dict[str, Any]) -> str:
+    data = html.escape(json.dumps(report, sort_keys=True))
+    model_rows = []
+    for model in report["models"]:
+        ppls = [float(row["ppl"]) for row in model.get("ppl_results", []) if row.get("ppl") is not None]
+        search = " ".join(
+            [
+                str(model["model"]),
+                " ".join(str(item.get("text", "")) for item in model.get("methods", [])[:12]),
+                " ".join(str(item.get("text", "")) for item in model.get("chat_logs", [])[:12]),
+                " ".join(str(item.get("path", "")) for item in model.get("manifests", [])[:12]),
+                " ".join(str(item) for item in model.get("scripts", [])[:12]),
+            ]
+        ).lower()
+        model_rows.append(
+            "<tr data-search=\"{}\"><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>".format(
+                html.escape(search),
+                html.escape(str(model["model"])),
+                "-" if not ppls else f"{min(ppls):.2f}",
+                str(len(model.get("benchmark_results", []))),
+                str(len(model.get("methods", []))),
+            )
+        )
+    board_rows = "".join(
+        "<tr><td>{}</td><td>{:.2f}%</td><td>{}</td><td>{}</td></tr>".format(
+            html.escape(str(row["model"])),
+            float(row["average_score"]),
+            int(row["benchmarks"]),
+            "-" if row.get("best_ppl") is None else f"{float(row['best_ppl']):.2f}",
+        )
+        for row in report["leaderboard"][:50]
+    )
+    return f"""<!doctype html>
+<meta charset="utf-8">
+<title>Cerebellum History</title>
+<style>
+body {{ font-family: system-ui, sans-serif; margin: 24px; color: #161616; background: #fafafa; }}
+input {{ width: min(720px, 100%); padding: 10px; font-size: 16px; }}
+table {{ border-collapse: collapse; width: 100%; margin-top: 16px; background: white; }}
+th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }}
+th {{ background: #f0f0f0; }}
+pre {{ white-space: pre-wrap; background: #fff; border: 1px solid #ddd; padding: 12px; max-height: 420px; overflow: auto; }}
+</style>
+<h1>Cerebellum History</h1>
+<p>{html.escape(report['ranking_policy'])}</p>
+<input id="q" placeholder="Search model, method, script, manifest path..." autofocus>
+<h2>Best-Model View</h2>
+<table><thead><tr><th>Model</th><th>Avg quality</th><th>Benchmarks</th><th>Best PPL</th></tr></thead><tbody>{board_rows}</tbody></table>
+<h2>Models</h2>
+<table id="models"><thead><tr><th>Model</th><th>Best PPL</th><th>Bench rows</th><th>Method notes</th></tr></thead><tbody>{''.join(model_rows)}</tbody></table>
+<h2>Raw JSON</h2>
+<pre>{data}</pre>
+<script>
+const q = document.getElementById('q');
+const rows = [...document.querySelectorAll('#models tbody tr')];
+q.addEventListener('input', () => {{
+  const term = q.value.trim().toLowerCase();
+  rows.forEach(row => row.style.display = row.dataset.search.includes(term) ? '' : 'none');
+}});
+</script>
+"""
+
+
+def history_cmd(args: argparse.Namespace) -> None:
+    roots = [Path(item) for item in args.root] if args.root else history_default_roots()
+    chat_roots = [Path(item) for item in args.chat_root] if args.chat_root else None
+    report = history_scan_roots(roots, query=args.query, limit=max(1, args.limit), include_chat_logs=args.include_chat_logs, chat_roots=chat_roots)
+    if args.output:
+        Path(args.output).write_text(json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    if args.markdown:
+        Path(args.markdown).write_text(history_markdown(report), encoding="utf-8")
+    if args.html:
+        Path(args.html).write_text(history_html(report), encoding="utf-8")
+    if args.json:
+        print(json.dumps(report, indent=2, sort_keys=True))
+        return
+    if args.output or args.markdown or args.html:
+        for label, value in [("history JSON", args.output), ("history Markdown", args.markdown), ("history HTML", args.html)]:
+            if value:
+                print(f"{label}: {value}")
+        return
+    print(history_markdown(report), end="")
 
 
 def repo_relative_path(path: Path) -> Path:
@@ -9977,6 +12866,22 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                 self._json(artifact_inventory(Path(args.root), top=args.top))
             except ValueError as exc:
                 self._json({"error": str(exc)}, 400)
+        elif parsed.path == "/history":
+            try:
+                limit = int(qs.get("limit", ["5000"])[0])
+                roots = [Path(item) for item in (qs.get("root") or qs.get("roots") or [])] or history_default_roots()
+                chat_roots = [Path(item) for item in qs.get("chat_root", [])] or None
+                self._json(
+                    history_scan_roots(
+                        roots,
+                        query=qs.get("query", [None])[0],
+                        limit=limit,
+                        include_chat_logs=query_bool(qs, "include_chat_logs"),
+                        chat_roots=chat_roots,
+                    )
+                )
+            except (ValueError, OSError) as exc:
+                self._json({"error": str(exc)}, 400)
         elif parsed.path == "/public-export-plan":
             try:
                 args = public_export_plan_args_from_query(qs)
@@ -10029,6 +12934,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "inspect_gguf_types": "cerebellum inspect-gguf-types MODEL.gguf --by-component --by-layer --json",
                         "compare_gguf_types": "cerebellum compare-gguf-types BASE.gguf CANDIDATE.gguf --json",
                         "artifact_inventory": "cerebellum artifact-inventory ROOT --json",
+                        "history": "cerebellum history --query gemma4 --include-chat-logs --json",
                         "public_export_plan": "cerebellum public-export OUT --dry-run --json",
                         "release_gate": "cerebellum release-gate README.md docs benchmark_results --remote origin --benchmark-results benchmark_results --require-benchmarks --json",
                         "benchmark_rebench_plan": "cerebellum benchmark-rebench-plan --suite humaneval --json",
@@ -10068,6 +12974,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         "inspect_gguf_types": "/inspect-gguf-types?gguf=MODEL.gguf&by_component=true&by_layer=true",
                         "compare_gguf_types": "/compare-gguf-types?baseline=BASE.gguf&candidate=CANDIDATE.gguf",
                         "artifact_inventory": "/artifact-inventory?root=ROOT&top=25",
+                        "history": "/history?query=gemma4&limit=5000&include_chat_logs=true",
                         "public_export_plan": "/public-export-plan?path=README.md&path=docs",
                         "benchmark_rebench_plan": "/benchmark-rebench-plan?suite=humaneval",
                         "hf_stats": "/hf-stats?author=deucebucket",
@@ -10108,6 +13015,7 @@ class CerebellumAPI(BaseHTTPRequestHandler):
                         {"path": "/inspect-gguf-types", "params": ["gguf", "by_layer?", "by_component?"], "returns": "GGUF tensor type inventory by type, component, layer, and tensor"},
                         {"path": "/compare-gguf-types", "params": ["baseline", "candidate", "baseline_label?", "candidate_label?", "reference_map?"], "returns": "GGUF tensor type comparison and Dynamic GGUF profile"},
                         {"path": "/artifact-inventory", "params": ["root", "top?", "allow_broad?"], "returns": "preservation-first legacy artifact inventory"},
+                        {"path": "/history", "params": ["root?", "query?", "limit?", "include_chat_logs?", "chat_root?"], "returns": "searchable Cerebellum model/method/benchmark/chat-evidence history index"},
                         {"path": "/public-export-plan", "params": ["path?", "paths?", "max_bytes?"], "returns": "sanitized public export dry-run manifest"},
                         {"path": "/benchmark-rebench-plan", "params": ["suite=humaneval|release?", "results_root?", "port?", "model?", "correction_issue?"], "returns": "published-model corrected rebench queue"},
                         {"path": "/hf-stats", "params": ["author?", "period=recent|all-time?", "publisher_org?", "limit?"], "returns": "HF model release telemetry"},
@@ -10132,7 +13040,7 @@ def api_cmd(args: argparse.Namespace) -> None:
     CerebellumAPI.db_path = Path(args.db)
     server = ThreadingHTTPServer((args.host, args.port), CerebellumAPI)
     print(f"Cerebellum API: http://{args.host}:{args.port}")
-    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /queue /queue/job /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-status /cpu-offload-smoke /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
+    print("Endpoints: /health /runs /projects /run /events /measurements /report /export /recover /provenance /package /queue /queue/job /system /space /pipeline-plan /pipeline-run /pipeline-status /benchmark-plan /benchmark-status /cpu-offload-smoke /benchmark-manifest /benchmark-audit /benchmark-report /inspect-gguf-types /compare-gguf-types /artifact-inventory /history /public-export-plan /benchmark-rebench-plan /tutorial /self-test /commands /schema /db/families")
     server.serve_forever()
 
 
@@ -10184,6 +13092,7 @@ def schedule_cmd(args: argparse.Namespace) -> None:
             run_name=job.get("run_name"),
             run_dir=job.get("run_dir"),
             tensor_file=job.get("tensor_file"),
+            base_map=job.get("base_map"),
             layers=job.get("layers"),
             tensor_regex=job.get("tensor_regex"),
             scratch_root=job.get("scratch_root"),
@@ -10245,12 +13154,15 @@ def run_from_namespace(args: argparse.Namespace) -> None:
         levels=[level.strip() for level in args.levels.split(",") if level.strip()],
         imatrix=Path(args.imatrix) if args.imatrix else None,
         tensor_file=Path(args.tensor_file) if args.tensor_file else None,
+        base_map=Path(args.base_map) if getattr(args, "base_map", None) else None,
         layers=parse_layer_spec(args.layers),
         tensor_regex=args.tensor_regex,
         scratch_root=Path(args.scratch_root) if args.scratch_root else None,
         backup_root=Path(args.backup_root) if args.backup_root else None,
         quantize_bin=args.quantize_bin,
         perplexity_bin=args.perplexity_bin,
+        pure_quant=args.pure_quant,
+        commit_locks=args.commit_locks,
         gpu_layers=args.gpu_layers,
         ctx_size=args.ctx_size,
         chunks=args.chunks,
@@ -10276,6 +13188,12 @@ def run_from_namespace(args: argparse.Namespace) -> None:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
+    if args.cmd is None:
+        home_cmd(argparse.Namespace(limit=8, json=False))
+        return
+    if args.cmd == "home":
+        home_cmd(args)
+        return
     if args.cmd == "imatrix":
         raise SystemExit("use the public cerebellum CLI entrypoint for imatrix generation")
     if args.cmd == "status":
@@ -10344,6 +13262,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "artifact-inventory":
         artifact_inventory_cmd(args)
         return
+    if args.cmd == "history":
+        history_cmd(args)
+        return
     if args.cmd == "schedule":
         schedule_cmd(args)
         return
@@ -10367,6 +13288,21 @@ def main(argv: list[str] | None = None) -> None:
         return
     if args.cmd == "task-profiles":
         task_profiles_cmd(args)
+        return
+    if args.cmd == "legacy-plan":
+        legacy_plan_cmd(args)
+        return
+    if args.cmd == "legacy-flow":
+        legacy_flow_cmd(args)
+        return
+    if args.cmd == "group-scan":
+        group_scan_cmd(args)
+        return
+    if args.cmd == "sparse-replay":
+        sparse_replay_cmd(args)
+        return
+    if args.cmd == "public-card-policy":
+        public_model_card_policy_cmd(args)
         return
     if args.cmd == "system":
         system_cmd(args)
@@ -10443,4 +13379,6 @@ def main(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    main(sys.argv[1:])

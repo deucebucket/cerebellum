@@ -101,11 +101,11 @@ def main(argv: list[str] | None = None) -> None:
     next_command = " ".join(next_parts)
 
     if args.mode == "stream":
-        from osmosis.imatrix_stream import generate_imatrix_streaming
+        from cerebellum.imatrix_stream import generate_imatrix_streaming
 
         generate_imatrix_streaming(args.model, str(output), verbose=args.verbose)
     else:
-        from osmosis.imatrix_gen import generate_imatrix
+        from cerebellum.imatrix_gen import generate_imatrix
 
         generate_imatrix(
             args.model,

@@ -10,10 +10,10 @@ from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 
-from osmosis.dashboard.models import (
+from cerebellum.dashboard.models import (
     Job,
     Schedule,
     ModelWatch,
@@ -28,9 +28,17 @@ from osmosis.dashboard.models import (
     PIPELINE_PHASES,
     stable_model_id,
 )
-from osmosis.hillstep import DEFAULT_DB, audit_jsonl_file, queue_get_job, queue_list_jobs
-from osmosis.dashboard.worker import Worker, event_bus
-from osmosis.dashboard.scheduler import Scheduler
+from cerebellum.hillstep import (
+    DEFAULT_DB,
+    audit_jsonl_file,
+    build_watch_model,
+    fmt_bytes_dense,
+    queue_get_job,
+    queue_list_jobs,
+    resolve_run_dir,
+)
+from cerebellum.dashboard.worker import Worker, event_bus
+from cerebellum.dashboard.scheduler import Scheduler
 
 
 DB_PATH = os.environ.get("CEREBELLUM_DB", DEFAULT_DB)
@@ -140,6 +148,169 @@ def _file_size_gb(path: Path) -> float:
         return round(path.stat().st_size / 1e9, 2)
     except OSError:
         return 0.0
+
+
+def _raw_bytes(value) -> int | None:
+    try:
+        if value is None:
+            return None
+        size = int(value)
+    except (TypeError, ValueError):
+        return None
+    return size if size > 0 else None
+
+
+def _path_size_bytes(value) -> int | None:
+    if not value:
+        return None
+    try:
+        path = Path(value)
+        return path.stat().st_size if path.exists() else None
+    except OSError:
+        return None
+
+
+def _start_quant_size(model: dict) -> dict:
+    state = model.get("state") or {}
+    manifest = model.get("manifest") or {}
+    for source, fields in (("state", state), ("manifest", manifest)):
+        for key in ("start_quant_size_bytes", "base_quant_size_bytes", "q4_base_size_bytes", "baseline_start_size_bytes"):
+            size = _raw_bytes(fields.get(key))
+            if size:
+                return {"bytes": size, "display": fmt_bytes_dense(size), "source": f"{source}.{key}"}
+        for key in ("start_quant_path", "base_quant_path", "q4_base_path", "baseline_start_path"):
+            size = _path_size_bytes(fields.get(key))
+            if size:
+                return {"bytes": size, "display": fmt_bytes_dense(size), "source": f"{source}.{key}"}
+
+    start_type = str(manifest.get("start_type") or state.get("start_type") or "").lower()
+    for row in model.get("all_candidates") or []:
+        if start_type and str(row.get("level") or "").lower() != start_type:
+            continue
+        size = _raw_bytes(row.get("size_bytes"))
+        if size:
+            return {"bytes": size, "display": fmt_bytes_dense(size), "source": f"first {row.get('level')} candidate"}
+
+    for row in model.get("events") or []:
+        if row.get("event") != "baseline_quant_start":
+            continue
+        size = _path_size_bytes(row.get("path"))
+        if size:
+            return {"bytes": size, "display": fmt_bytes_dense(size), "source": "baseline_quant_start path"}
+
+    size = _raw_bytes(model.get("baseline_size"))
+    if size:
+        return {"bytes": size, "display": fmt_bytes_dense(size), "source": "current baseline fallback"}
+    return {"bytes": None, "display": "-", "source": "unavailable"}
+
+
+def mobile_watch_payload(run_dir: str | None = None) -> dict:
+    resolved = resolve_run_dir(run_dir)
+    model = build_watch_model(resolved)
+    state = model.get("state") or {}
+    manifest = model.get("manifest") or {}
+    active = model.get("active") or {}
+    health = model.get("health") or {}
+    eta_detail = model.get("eta_detail") or {}
+    locked = state.get("locked") or {}
+    tested = state.get("tested") or []
+    events = model.get("events") or []
+    recent_events = [
+        {
+            "event": row.get("event"),
+            "level": row.get("level"),
+            "tensor": row.get("tensor"),
+            "timestamp_utc": row.get("timestamp_utc"),
+        }
+        for row in events[-5:]
+    ]
+    recent_locks = [
+        {
+            "tensor": row.get("tensor"),
+            "winner": row.get("winner") or locked.get(row.get("tensor")),
+            "ppl": row.get("ppl"),
+            "delta": row.get("delta"),
+        }
+        for row in tested[-8:]
+        if row.get("tensor")
+    ]
+    candidates = [
+        {
+            "tensor": row.get("tensor"),
+            "level": row.get("level"),
+            "ppl": row.get("ppl"),
+            "delta": row.get("delta"),
+            "status": row.get("status"),
+            "size": fmt_bytes_dense(_raw_bytes(row.get("size_bytes"))),
+        }
+        for row in (model.get("candidates") or [])[-8:]
+    ]
+    total = model.get("total") or 0
+    completed = len(locked) if manifest.get("commit_locks", True) else len(tested)
+    pct = round((completed / total * 100.0), 1) if total else 0.0
+    start_quant = _start_quant_size(model)
+    final = dict(state.get("final") or manifest.get("final") or {})
+    if final.get("size_bytes") is not None:
+        final["size"] = fmt_bytes_dense(_raw_bytes(final.get("size_bytes")))
+    benchmarks = state.get("benchmarks") or manifest.get("benchmarks") or []
+    return {
+        "schema": "cerebellum.mobile_watch.v1",
+        "run_dir": str(resolved),
+        "run_id": manifest.get("run_id") or state.get("run_id") or resolved.name,
+        "model": {
+            "family": state.get("model_family") or manifest.get("model_family"),
+            "name": state.get("model_name") or manifest.get("model_name"),
+            "base_type": manifest.get("base_type") or state.get("base_type"),
+            "start_type": manifest.get("start_type") or state.get("start_type"),
+        },
+        "status": state.get("run_status") or "unknown",
+        "health": {
+            "state": health.get("health") or "unknown",
+            "reason": health.get("reason") or "",
+            "stale": bool(health.get("stale")),
+        },
+        "progress": {
+            "completed": completed,
+            "total": total,
+            "percent": pct,
+            "label": model.get("progress"),
+        },
+        "active": {
+            "event": active.get("event"),
+            "tensor": active.get("tensor"),
+            "level": active.get("level"),
+            "age": model.get("active_age"),
+            "path": str(model.get("active_path") or ""),
+        },
+        "eta": {
+            "summary": model.get("eta"),
+            "basis": model.get("eta_basis"),
+            "job": (eta_detail.get("job") or {}).get("remaining"),
+            "tensor": (eta_detail.get("tensor") or {}).get("remaining"),
+            "phase": (eta_detail.get("phase") or {}).get("remaining"),
+            "confidence": eta_detail.get("confidence"),
+        },
+        "sizes": {
+            "start_quant": start_quant,
+            "current_baseline": {"bytes": model.get("baseline_size"), "display": fmt_bytes_dense(model.get("baseline_size"))},
+            "active": {"bytes": model.get("active_size"), "display": fmt_bytes_dense(model.get("active_size"))},
+            "tmp": {"bytes": model.get("tmp_size"), "display": fmt_bytes_dense(model.get("tmp_size"))},
+            "artifacts": {"bytes": model.get("artifacts_size"), "display": fmt_bytes_dense(model.get("artifacts_size"))},
+        },
+        "locks": {
+            "count": len(locked),
+            "recent": recent_locks,
+        },
+        "candidates": candidates,
+        "events": recent_events,
+        "pipeline": {
+            "schema": manifest.get("schema") or state.get("schema"),
+            "mode": manifest.get("measurement_mode"),
+        },
+        "final": final,
+        "benchmarks": benchmarks,
+        "last_event_age": model.get("last_age"),
+    }
 
 
 def _benchmark_label(path: Path) -> str:
@@ -1309,6 +1480,27 @@ def health():
         sess.close()
 
 
+@app.get("/api/watch/mobile")
+def watch_mobile_api(run_dir: Optional[str] = Query(None)):
+    try:
+        return envelope(mobile_watch_payload(run_dir))
+    except SystemExit as exc:
+        raise HTTPException(status_code=404, detail=envelope(None, str(exc))) from exc
+
+
+@app.get("/assets/cerebellum-logo.png")
+def cerebellum_logo_asset():
+    for path in (
+        REPO_ROOT / "cerebellum_logo_transparent_500kb.png",
+        REPO_ROOT / "cerebellum_logo_transparent.png",
+        REPO_ROOT / "cerebellum_logo_500kb.png",
+        REPO_ROOT / "cerebellum_logo.png",
+    ):
+        if path.exists():
+            return FileResponse(path)
+    raise HTTPException(status_code=404, detail="logo not found")
+
+
 # ── WebSocket ──────────────────────────────────────────────────────
 
 @app.websocket("/ws")
@@ -1331,6 +1523,7 @@ async def websocket_endpoint(ws: WebSocket):
 # ── Dashboard Frontend ─────────────────────────────────────────────
 
 DASHBOARD_HTML = Path(__file__).parent / "templates" / "index.html"
+MOBILE_WATCH_HTML = Path(__file__).parent / "templates" / "mobile_watch.html"
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -1340,10 +1533,17 @@ def dashboard():
     return HTMLResponse("<h1>Cerebellum Dashboard</h1><p>Frontend not found.</p>")
 
 
+@app.get("/mobile", response_class=HTMLResponse)
+def mobile_watch():
+    if MOBILE_WATCH_HTML.exists():
+        return HTMLResponse(MOBILE_WATCH_HTML.read_text())
+    return HTMLResponse("<h1>Cerebellum Mobile Watch</h1><p>Frontend not found.</p>")
+
+
 def run():
     """Entry point: start the dashboard server."""
     import uvicorn
     host = os.environ.get("CEREBELLUM_HOST", "0.0.0.0")
     port = int(os.environ.get("CEREBELLUM_PORT", "8920"))
     reload = os.environ.get("CEREBELLUM_RELOAD", "0") == "1"
-    uvicorn.run("osmosis.dashboard.server:app", host=host, port=port, reload=reload)
+    uvicorn.run("cerebellum.dashboard.server:app", host=host, port=port, reload=reload)

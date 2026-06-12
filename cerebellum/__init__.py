@@ -1,7 +1,9 @@
 """Cerebellum public Python package.
 
-The implementation still lives in the legacy ``osmosis`` package during the
-rename. New user-facing entrypoints should import through ``cerebellum``.
+Ablation-informed mixed-precision GGUF quantization. The legacy ``osmosis``
+package name is now a deprecation shim that re-exports from here.
 """
 
-from osmosis.hillstep import *  # noqa: F403
+from cerebellum.hillstep import *  # noqa: F403
+
+__version__ = "0.2.0"

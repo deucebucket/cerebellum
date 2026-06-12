@@ -10,7 +10,7 @@ to Q2_K and measures the real PPL delta. Negative delta = tensor is BETTER
 at lower precision. Positive delta = tensor needs protection.
 
 Usage:
-    python -m osmosis.cerebellum \
+    python -m cerebellum.cerebellum \
         --ablation osmosis-qwen36-27b/ablation_results.json \
         --plan osmosis-qwen36-27b/ablation_plan.json \
         --source-gguf qwen3.6-27b-f16.gguf \
@@ -23,7 +23,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-from osmosis.budget import (
+from cerebellum.budget import (
     QUANT_BPW,
     PROMOTION_ORDER,
     HF_TO_GGUF_COMPONENT,

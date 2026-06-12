@@ -19,7 +19,7 @@ Pipeline:
   6. Save modified fp16 model (ready for standard GGUF quantization)
 
 Usage:
-    python -m osmosis.micro_quantizer \\
+    python -m cerebellum.micro_quantizer \\
         --model path/to/fp16 \\
         --output path/to/prescaled \\
         --alpha 0.5 \\

@@ -10,7 +10,7 @@ divergence: tensors with high reconstruction error at low bits need more
 precision.
 
 Usage:
-    python -m osmosis.sensitivity_stream \
+    python -m cerebellum.sensitivity_stream \
         --model Qwen/Qwen3.6-27B \
         --output sensitivity_multi.json \
         -v

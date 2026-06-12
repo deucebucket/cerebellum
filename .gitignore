@@ -1,5 +1,6 @@
 # Output directories
 osmosis.egg-info/
+cerebellum.egg-info/
 
 # Cache
 .hf_cache/
@@ -26,7 +27,9 @@ run_*.sh
 # Keep ablation script in repo
 !scripts/ablation_run.sh
 
-# Old experimental modules (kept locally, not in repo)
+# Old experimental modules (kept locally, not in repo).
+# Now live in cerebellum/_legacy/; the osmosis/*.py shims for them stay local too.
+cerebellum/_legacy/
 osmosis/ab_test.py
 osmosis/benchmark.py
 osmosis/cli.py
@@ -55,6 +58,7 @@ docs/multi_domain_ablation.md
 docs/cerebellum_cblm_format.md
 docs/cerebellum_success_patterns.md
 osmosis/dashboard/
+cerebellum/dashboard/
 !docs/getting_started.md
 !docs/cli_reference.md
 !docs/public_release_scope.md

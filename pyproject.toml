@@ -3,9 +3,9 @@ requires = ["setuptools>=68.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "osmosis"
+name = "cerebellum"
 version = "0.2.0"
-description = "Cerebellum engine files for ablation-informed GGUF quantization"
+description = "Cerebellum: ablation-informed mixed-precision GGUF quantization"
 requires-python = ">=3.10"
 license = {text = "Apache-2.0"}
 dependencies = [
@@ -20,10 +20,12 @@ dev = ["pytest", "ruff"]
 
 [project.scripts]
 cerebellum = "cerebellum.cli:main"
-osmosis = "osmosis.cli:main"
+# Deprecated alias kept for old scripts; remove after the shim window closes.
+osmosis = "cerebellum._legacy.cli:main"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
 [tool.setuptools.packages.find]
-include = ["osmosis*", "cerebellum*"]
+# "osmosis*" ships the deprecation shim package only.
+include = ["cerebellum*", "osmosis*"]

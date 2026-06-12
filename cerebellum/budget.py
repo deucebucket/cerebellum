@@ -1,4 +1,4 @@
-"""Budget-constrained bit allocator for Osmosis.
+"""Budget-constrained bit allocator for Cerebellum.
 
 Given a multi-depth sensitivity report and a target file size in GB, enhances
 llama-quantize's built-in allocation with targeted tensor promotions based on
@@ -9,7 +9,7 @@ hardcoded per-tensor heuristics. We start from the best-fitting base type and
 use sensitivity data to surgically promote the tensors that benefit most.
 
 Usage:
-    python -m osmosis.budget \
+    python -m cerebellum.budget \
         --sensitivity osmosis-qwen36-27b/sensitivity_multi.json \
         --source-gguf qwen3.6-27b-f16.gguf \
         --budget-gb 12.0 \
@@ -377,7 +377,7 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="Osmosis budget allocator — fit a model to your VRAM budget"
+        description="Cerebellum budget allocator — fit a model to your VRAM budget"
     )
     parser.add_argument("--sensitivity", required=True, help="Sensitivity report JSON")
     parser.add_argument("--source-gguf", required=True, help="F16 source GGUF")
