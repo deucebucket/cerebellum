@@ -434,6 +434,12 @@ def cmd_status(argv: list[str]) -> int:
             file=sys.stderr,
         )
         return 2
+    try:
+        from cerebellum._banner import banner
+        print(banner())
+        print()
+    except Exception:
+        pass
     print(render_status())
     return 0
 
