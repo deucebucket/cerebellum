@@ -36,7 +36,11 @@ are screened by the source's reported KL divergence; heavy ablations
 
 Org collections: [DB-Cerebellum](https://huggingface.co/DB-Cerebellum).
 
-## Support
+## Benchmark Evidence
 
-Priority runs, commissioned quants, and sponsorship links will be published with
-the next public release.
+The `benchmarks/` directory holds the published per-model evidence: summary
+JSONs and per-question detailed answer files for every benchmark number in the
+model cards. `docs/benchmark_protocol.md` documents the exact harness rules,
+runtime flags, and audit requirements a result must clear before it is
+published. Anyone with the model file and these documents can reproduce or
+dispute any published score. That is the point.

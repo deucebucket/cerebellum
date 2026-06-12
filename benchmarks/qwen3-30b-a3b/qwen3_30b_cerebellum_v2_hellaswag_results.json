@@ -1,0 +1,9 @@
+{
+  "benchmark": "hellaswag",
+  "model": "qwen3_30b_cerebellum_v2",
+  "accuracy": 80.26289583748257,
+  "correct": 8060,
+  "total": 10042,
+  "elapsed_seconds": 1172.3020617961884,
+  "timestamp": "2026-05-02 10:58"
+}

@@ -1,0 +1,42 @@
+{
+  "model": "cerebellum_v4",
+  "prompt_tokens": 997,
+  "completion_tokens": 512,
+  "total_elapsed_s": 14.0388822555542,
+  "prompt_tok_per_s": 71.01704978012457,
+  "gen_tok_per_s": 36.47013990714521,
+  "raw_response": {
+    "choices": [
+      {
+        "finish_reason": "length",
+        "index": 0,
+        "message": {
+          "role": "assistant",
+          "content": "",
+          "reasoning_content": "Here's a thinking process:\n\n1.  **Analyze User Input:**\n   - **Task:** Summarize the provided text.\n   - **Constraint:** Exactly three sentences.\n   - **Input Text:** A biographical/career summary of English actor Robert Boulter, detailing his work in film, television, and theatre from 2000 to 2011 (and beyond, though the text cuts off). It lists specific roles, plays, TV shows, and films, along with some critical reception and co-stars.\n   - **Key Information to Extract:**\n     - Who: Robert Boulter, English actor (film, TV, theatre).\n     - What: Career spanning early 2000s to 2010s, known for roles in TV series like *The Bill*, *Judge John Deed*, *Waking the Dead*, and theatre plays like *Herons*, *Mercury Fur*, *Citizenship*, and films like *Daylight Robbery*, *Donkey Punch*, *Mercenaries*.\n     - Notable aspects: Critical acclaim for intense performances, frequent collaborations (e.g., with Ben Whishaw), recurring roles across different media.\n     - Constraint: Exactly three sentences.\n\n2.  **Draft - Mental Refinement (Sentence 1: Introduction/Overview):**\n   Robert Boulter is an English actor known for his extensive work across film, television, and theatre since the early 2000s.\n   *(Check: Covers who and medium. Good.)*\n\n3.  **Draft - Mental Refinement (Sentence 2: Key Roles/Highlights):**\n   His career features notable television appearances in series such as *The Bill*, *Judge John Deed*, and *Waking the Dead*, alongside critically acclaimed stage performances in plays like *Herons* and *Mercury Fur*.\n   *(Check: Covers specific notable works mentioned in the text. Good.)*\n\n4.  **Draft - Mental Refinement (Sentence 3: Additional context/Conclusion):**\n   Throughout his career, Boulter has frequently collaborated with fellow actors like Ben Whishaw and earned praise for his intense and versatile portrayals across various productions.\n   *(Check: Covers the collaboration/critical reception aspect. Good.)*\n\n5.  **Check Constraints:**\n   - Exactly three sentences? Let's count: 1, 2, 3. Yes.\n   - Covers"
+        }
+      }
+    ],
+    "created": 1777454121,
+    "model": "qwen3.6-27b-cerebellum-v4.gguf",
+    "system_fingerprint": "b0-unknown",
+    "object": "chat.completion",
+    "usage": {
+      "completion_tokens": 512,
+      "prompt_tokens": 997,
+      "total_tokens": 1509
+    },
+    "id": "chatcmpl-J2XEzwhJlWJJixVO0xsIM3ARQ9Rj3FxD",
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 997,
+      "prompt_ms": 1018.394,
+      "prompt_per_token_ms": 1.021458375125376,
+      "prompt_per_second": 978.9924135452486,
+      "predicted_n": 512,
+      "predicted_ms": 13002.03,
+      "predicted_per_token_ms": 25.39458984375,
+      "predicted_per_second": 39.37846628564924
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "benchmark": "hellaswag",
+  "model": "granite41_30b_cerebellum_v2",
+  "accuracy": 88.92650866361282,
+  "correct": 8930,
+  "total": 10042,
+  "elapsed_seconds": 2657.3800716400146,
+  "timestamp": "2026-05-02 13:02"
+}

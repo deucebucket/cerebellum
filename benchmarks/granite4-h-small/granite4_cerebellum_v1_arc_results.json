@@ -1,0 +1,9 @@
+{
+  "benchmark": "arc_challenge",
+  "model": "granite4_cerebellum_v1",
+  "accuracy": 90.69965870307168,
+  "correct": 1063,
+  "total": 1172,
+  "elapsed_seconds": 1613.524628162384,
+  "timestamp": "2026-05-02 06:17"
+}

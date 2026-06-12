@@ -12,7 +12,6 @@ Public material may include:
 - high-level reproducible recipes
 - public CLI surface documentation
 - safe release metadata such as model hashes, runtime flags, and links
-- sponsor, commission, and priority-run links
 
 Public material must not include:
 
