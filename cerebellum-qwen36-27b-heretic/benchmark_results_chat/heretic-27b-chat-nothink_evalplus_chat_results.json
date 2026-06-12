@@ -1,0 +1,12 @@
+{
+  "benchmark": "evalplus_humaneval_plus_chat",
+  "model": "heretic-27b-chat-nothink",
+  "pass_at_1_base": 89.63,
+  "pass_at_1_plus": 84.76,
+  "total_problems": 164,
+  "elapsed_seconds": 523.9,
+  "enable_thinking": false,
+  "thinking_budget_tokens": 0,
+  "max_tokens": 1536,
+  "timestamp": "2026-06-11 20:20"
+}

@@ -1,0 +1,8 @@
+{
+  "benchmark": "hellaswag",
+  "model": "stock-27b-cerebellum-v4-recheck",
+  "accuracy": 92.29,
+  "total": 10042,
+  "elapsed_seconds": 5378.0,
+  "timestamp": "2026-06-11 20:09"
+}

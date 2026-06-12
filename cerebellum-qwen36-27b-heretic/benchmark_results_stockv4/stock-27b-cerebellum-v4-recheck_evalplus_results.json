@@ -1,0 +1,9 @@
+{
+  "benchmark": "evalplus_humaneval_plus",
+  "model": "stock-27b-cerebellum-v4-recheck",
+  "pass_at_1_plus": 56.71,
+  "pass_at_1_base": 62.2,
+  "total_problems": 164,
+  "elapsed_seconds": 348.6,
+  "timestamp": "2026-06-11 18:40"
+}
