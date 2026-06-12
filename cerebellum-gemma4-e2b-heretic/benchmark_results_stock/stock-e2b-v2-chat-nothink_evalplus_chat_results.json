@@ -1,0 +1,12 @@
+{
+  "benchmark": "evalplus_humaneval_plus_chat",
+  "model": "stock-e2b-v2-chat-nothink",
+  "pass_at_1_base": 53.66,
+  "pass_at_1_plus": 48.78,
+  "total_problems": 164,
+  "elapsed_seconds": 604.1,
+  "enable_thinking": false,
+  "thinking_budget_tokens": 0,
+  "max_tokens": 1536,
+  "timestamp": "2026-06-11 22:03"
+}

@@ -1,0 +1,9 @@
+{
+  "benchmark": "evalplus_humaneval_plus",
+  "model": "heretic-e2b-cerebellum-v1",
+  "pass_at_1_plus": 21.95,
+  "pass_at_1_base": 22.56,
+  "total_problems": 164,
+  "elapsed_seconds": 2630.5,
+  "timestamp": "2026-06-11 21:43"
+}
