@@ -310,3 +310,11 @@ or prior checkpoint; (c) prompt format is identical between conditions.
 - **Fix**: both scripts now raise RuntimeError after exhausted retries (runs are checkpoint-resumable) with linear backoff. Artifact-corrected heretic-27B base ≈ 75.6%.
 - **Prevention rule**: a harness must never synthesize an answer; abort > fabricate. Audit give-up census after every code bench (already policy via audit_evalplus_completions.py — this is why it worked).
 - **Related comparison error**: the May 27B "81.10 HumanEval" was measured with thinking enabled via chat endpoint — not comparable to no-think raw-completions runs. Same-harness same-night pairs are the only valid comparisons.
+
+## BE-16 — MMLU loader subject-boundary off-by-one duplicates 12 entries (found 2026-06-11, E4B audit)
+- **Benchmark**: MMLU-Redux (`benchmark_mmlu_redux.py` dataset loader)
+- **What broke**: 12 truly identical entries (same subject/choices/answer) in the 2400-question set — a subject-boundary off-by-one in the loader. Inflates scores by ≤0.05pp (immaterial but real).
+- **How discovered**: E4B ship-gate audit duplicate census.
+- **Fix**: pending — dedupe at load; non-blocking for tonight's publications (footnoted on affected cards).
+- **Prevention rule**: duplicate census (task_id/question identity) is now part of every audit pass.
+- **Also recurring**: meta.json lacks GGUF SHA256 — add fingerprint at bench time for cross-model cache traceability.

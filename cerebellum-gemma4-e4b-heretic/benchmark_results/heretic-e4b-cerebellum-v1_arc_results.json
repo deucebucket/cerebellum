@@ -1,0 +1,8 @@
+{
+  "benchmark": "arc_challenge",
+  "model": "heretic-e4b-cerebellum-v1",
+  "accuracy": 87.37,
+  "total": 1172,
+  "elapsed_seconds": 42.3,
+  "timestamp": "2026-06-11 20:45"
+}
