@@ -21,3 +21,11 @@
 3. **Prompt-Conditional Routing:** Can we train the refiner's internal attention heads to act as a router, attending *only* to the specific RAG-injected tokens and ignoring the native context window entirely?
 
 **Execution Mandate:** Do not accept "impossible" as an answer. Design PyTorch scripts to empirically test Weight-Level Subspace Masking and True Zero-Init immediately.
+
+## Roadmap: Vanilla First, Fork Later, Upstream Last
+
+Sequencing for the injection work, in order of dependency:
+
+1. **Now — vanilla dead blocks.** Attention-dead, subspace-masked FFN refiner blocks that are mathematically exact under standard `h = h + layer(h)` execution. No gate approximation, no custom C++. Every published artifact must load and run on stock llama.cpp, and every published number must be measured there (PyTorch-path numbers are iteration-only and labeled as such).
+2. **Next — a measured llama.cpp fork for live inline data.** Runtime retrieval injection and per-layer bias wires need engine support. Verified 2026-06-11: vanilla qwen2 in llama.cpp neither loads nor applies optional FFN/attention bias tensors, so there is no code-change-free path today. A fork is the experiment bed, not the product.
+3. **Later — upstream.** The qwen2 graph builder already consults `attn_output.bias` if present; only the loader line is missing, and the llama/Granite arch already treats these biases as optional. If the dead-block models prove the use case, a small parity PR to llama.cpp would make bias wires vanilla-legal in future releases. Adoption first, then the ask.

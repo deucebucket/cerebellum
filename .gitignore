@@ -70,3 +70,4 @@ osmosis-qwen36-27b/ablation_logs/
 osmosis-qwen36-27b/*.log
 osmosis-qwen36-27b/brain_scan*.json
 .bench-venv/
+.venv/

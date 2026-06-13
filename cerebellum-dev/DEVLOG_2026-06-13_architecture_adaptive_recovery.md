@@ -16,13 +16,24 @@ not a 4am rescue.
 | architecture | sacred-tensor-finding phase | proof |
 |---|---|---|
 | PLE (Gemma 4 E-series, 26B) | PLE protection sweep | recovered pipeline_gemma4_26b.sh Ph4+Ph6; PLE@Q5_K PPL 104->55 |
-| hybrid SSM / MoE coder (Qwen 3.6 27B) | CODING ABLATION (HumanEval per group, then per layer band) | osmosis-qwen36-27b/coding_ablation/; attn_qkv demote 75->28.7% HumanEval |
+| hybrid SSM (Qwen 3.6 27B) | per-GROUP CODING ABLATION (HumanEval per tensor group, then per layer band) | osmosis-qwen36-27b/coding_ablation/; attn_qkv demote 75->28.7% HumanEval |
+| PLE/MoE (Gemma 4 26B) | per-BUILD ITERATION: build candidate -> full HumanEval -> adjust map -> rebuild (v1->v7) + PLE sweep + router surgery | Gemma triangulation 2026-06-13 HIGH conf; NO per-group coding ablation (definitive negative); v1-v7 each a full build w/ HumanEval |
 | dense (some) | trust PPL ablation, attention sometimes improves when demoted | Granite findings |
 | any model where coding matters | coding ablation is MANDATORY, multi-domain PPL is INSUFFICIENT | hillstep -14 HE pts; overnight Flash/North false no-ships |
 
+## THE UNIFYING PRINCIPLE (the actual lost step, stated correctly)
+
+Real HumanEval ALWAYS drove the override map. The granularity was architecture-specific:
+- 27B: HumanEval measured per tensor GROUP (fine-grained ablation)
+- 26B: HumanEval measured per BUILD VERSION, iterated v1->v7 (coarse-grained, hand-evolved)
+Either way: REAL HumanEval, never PPL alone, and ALWAYS iterated/measured before shipping.
+"Coding ablation" is one form (27B); "build-bench-adjust-rebuild iteration" is the other
+(26B). Both are valid; the model's structure picks which. Multi-domain PPL is NEITHER.
+
 ## Why the overnight builds "failed"
-Flash, North, 12B are MoE/coder-class. They got ablate_multidomain.py (PPL on
-wiki/code/math/dialogue text), never the coding ablation their class needs. Their
+Flash, North, 12B got ablate_multidomain.py (PPL on wiki/code/math/dialogue text)
+and STOPPED after one allocation. They never iterated with real HumanEval at EITHER
+granularity (per-group like 27B, or per-build like 26B). Their
 "already packed / no-ship" verdicts are INVALID. PPL-on-code-text cannot see
 coding collapse (27B: attn_qkv PPL moved <1%, HumanEval fell 46 points).
 

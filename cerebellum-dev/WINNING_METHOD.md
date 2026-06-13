@@ -32,21 +32,41 @@ This is the method that produced every shipped Cerebellum model. The hill-climbe
 6. Reverse ablation from fully-demoted v1: confirm which groups show real regression
    when restored. If regression is uniform across all layers, no surgical layer
    selection needed; keep all at same quant.
-7. Optional per-layer ablation: if a group shows interesting per-layer variation,
-   probe key layers (first/last/mid). Result may identify critical layers for
-   surgical promotion.
-8. Optional router curve: for MoE models, test router tensor at Q2_K, Q3_K, Q4_K,
+7. **CODING ABLATION (canonical — the step the reconstruction guides lost).** The group
+   PPL ablation above is a cheap sieve; it is BLIND to coding. For each tensor group,
+   demote it to Q2_K, build, serve on llama-server, and run **REAL HumanEval pass@1**
+   (temp 0, max_tokens 512, 164 problems, parallel 4) — code generated, executed,
+   unit-tested. Record the delta vs the base build's HumanEval baseline; classify
+   CRITICAL / MEDIUM / DISPOSABLE. Then drill the coding-critical groups by **layer
+   band** (early/middle/late thirds, then individual layers in the worst third).
+   Pipelined: CPU builds the next candidate while the GPU evals the current one; KEEP
+   the least-damaging GGUF, PRUNE the rest. Script: `scripts/coding_ablation.py`
+   (`groups`, then `layers --phase2`). Full procedure + artifact citations:
+   `knowledge/REAL_PIPELINE_RECONSTRUCTED.md`.
+   **Proof this is non-negotiable (27B v4, coding_ablation.log):** demoting `attn_qkv`
+   to Q2_K moved PPL <1% but dropped HumanEval **75.0% → 28.7% (-46 pts)**;
+   `ssm_alpha` -52.4%, `ffn_down` only -4.3%. PPL — including multi-domain PPL
+   (`scripts/ablate_multidomain.py`) — cannot see this. Multi-domain-PPL-only is
+   INSUFFICIENT and may never substitute for this phase; it is at most the sieve in
+   step 4. No "no-ship" verdict is valid without it.
+8. Per-layer ablation of the coding-critical groups (folded into step 7's layer drill).
+   For non-coding-critical groups with interesting PPL variation, probe key layers
+   (first/last/mid) as before.
+9. Optional router curve: for MoE models, test router tensor at Q2_K, Q3_K, Q4_K,
    Q6_K, Q8_0, F16 to find safe minimum. K-quants may be broken on router tensors
    (Gemma 26B: Q6_K +15.9%, Q2_K +17.2%, Q8_0 safe — see claude_sessions.md §2A).
-9. Build override file: list tensor=quant pairs; all unlisted tensors take the base
-   quant. Run stock llama-quantize with --imatrix and --tensor-type-file.
-10. PPL sanity check on output GGUF.
-11. Benchmark gates (ARC, HellaSwag, MMLU-Redux, HumanEval+) against a same-size
+10. Build override file **protecting the coding-critical tensors/layers from step 7**
+   (promote them; crush the disposable group to make room): list tensor=quant pairs;
+   all unlisted tensors take the base quant. Run stock llama-quantize with --imatrix
+   and --tensor-type-file. (27B v4 proof: ssm_alpha@q5_K/q6_K, attn_qkv@q8_0,
+   ffn_down carrying q2_K — the coding-ablation ranking, executed.)
+11. PPL sanity check on output GGUF.
+12. Benchmark gates (ARC, HellaSwag, MMLU-Redux, HumanEval+) against a same-size
     uniform-quant baseline. PPL alone is not sufficient — see DEAD_PATHS.md hillstep
     entry for proof.
-12. Audit wrong answers (docs/benchmark_protocol.md audit gate) before recording
+13. Audit wrong answers (docs/benchmark_protocol.md audit gate) before recording
     any score.
-13. If benchmark gates pass, ship. If not, inspect which tensor group is causing
+14. If benchmark gates pass, ship. If not, inspect which tensor group is causing
     regression and selectively promote.
 
 ---

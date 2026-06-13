@@ -45,6 +45,7 @@ test_chat_pytorch.py
 # Benchmarks & Logs
 baseline_10.jsonl
 humaneval_samples_*.jsonl
+humaneval_full_conch.jsonl
 *.json
 !RESULTS.md
 *.log

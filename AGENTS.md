@@ -6,6 +6,12 @@
 - `dev` → private (`cerebellum-dev`). Exploratory pipeline work, devlogs, unfinished experiments, local automation. Default to `dev` when unsure.
 - `.gitignore` excludes `scripts/`, `tests/`, `run_*.sh` from `origin` (only `!scripts/ablation_run.sh` survives).
 
+## ALWAYS READ FIRST
+Canonical truth: `cerebellum-dev/knowledge/INDEX.md`. The OG group-first bench-gated
+formula is the method; hillstep deprecated; PPL never gates alone; evidence dirs locked;
+no AI attribution in public output. Canon wins conflicts.
+
+
 ## Project Rename — Osmosis → Cerebellum
 
 The rename is **complete** (2026-06-12). All module code lives in `cerebellum/`; `osmosis/` is a deprecation-shim package whose modules re-export from `cerebellum` (with a `DeprecationWarning`) so `import osmosis.X` / `python -m osmosis.X` keep working for in-flight runs and old scripts. Don't add code to `osmosis/`; don't write new `osmosis.*` imports. **Don't create new artifacts with `osmosis_*` names** (use `cerebellum_*`). New per-model dirs should be `cerebellum-<model>/`; old `osmosis-{model}/` artifact dirs keep their names (evidence).

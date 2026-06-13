@@ -4896,6 +4896,31 @@ def test_status_flags_summary_for_human(tmp_path: Path):
     assert "- [beta]" in out
 
 
+def test_status_reviewed_marker_clears_summary_flag(tmp_path: Path):
+    camp = _make_campaign(tmp_path, "delta", [
+        "[2026-06-12 03:50:00] verdict recorded",
+    ])
+    summary = camp / "SUMMARY_FOR_HUMAN.md"
+    summary.write_text("read me\n")
+    reviewed = camp / "SUMMARY_FOR_HUMAN.md.reviewed"
+    reviewed.write_text("reviewed 2026-06-12\n")
+    later = summary.stat().st_mtime + 10
+    os.utime(reviewed, (later, later))
+
+    out = statusboard.render_status(
+        tmp_path, now=STATUS_NOW, include_processes=False, include_modal=False
+    )
+    assert "SUMMARY_FOR_HUMAN.md is waiting for your review" not in out
+
+    # A summary regenerated AFTER the review re-flags.
+    newest = reviewed.stat().st_mtime + 10
+    os.utime(summary, (newest, newest))
+    out = statusboard.render_status(
+        tmp_path, now=STATUS_NOW, include_processes=False, include_modal=False
+    )
+    assert "SUMMARY_FOR_HUMAN.md is waiting for your review" in out
+
+
 def test_status_stale_campaign_flags_attention(tmp_path: Path):
     _make_campaign(tmp_path, "gamma", [
         "[2026-06-11 20:00:00] still chewing on tensor 12",

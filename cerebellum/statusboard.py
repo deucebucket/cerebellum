@@ -230,7 +230,11 @@ def inspect_campaign(path: Path, now: datetime | None = None) -> Campaign:
 
     summary = path / "SUMMARY_FOR_HUMAN.md"
     if summary.is_file():
-        camp.waiting.append(f"SUMMARY_FOR_HUMAN.md is waiting for your review ({summary})")
+        # A .reviewed marker at least as new as the summary clears the flag;
+        # a regenerated (newer) summary re-flags for review.
+        reviewed = path / "SUMMARY_FOR_HUMAN.md.reviewed"
+        if not (reviewed.is_file() and reviewed.stat().st_mtime >= summary.stat().st_mtime):
+            camp.waiting.append(f"SUMMARY_FOR_HUMAN.md is waiting for your review ({summary})")
 
     # Only the driver's explicit "STOP HERE" marker means it actually stopped —
     # OPS logs mention "STOP LINE" in prose while still running.
