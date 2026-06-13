@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-06-13 by METHOD_TRUTH_2026-06-13.md — triangulation showed coding ablation was POST-HOC, not the build method. The real lever is the multi-pass promotion allocator (cerebellum/budget.py), which the overnight runs bypassed. Read METHOD_TRUTH first.
+
 # CRITICAL: the reconstruction dropped the CODING ABLATION phase
 
 Found 2026-06-13 (Jerry's instinct: "the math worked, we just lost it"). Verified

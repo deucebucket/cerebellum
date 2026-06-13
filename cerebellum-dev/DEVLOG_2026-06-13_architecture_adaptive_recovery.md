@@ -1,3 +1,5 @@
+> SUPERSEDED 2026-06-13 by METHOD_TRUTH_2026-06-13.md — triangulation showed coding ablation was POST-HOC, not the build method. The real lever is the multi-pass promotion allocator (cerebellum/budget.py), which the overnight runs bypassed. Read METHOD_TRUTH first.
+
 # DEVLOG 2026-06-13 — architecture-adaptive method recovered; logging is why
 
 ## What Jerry had to re-reason from scratch (and shouldn't have had to)
