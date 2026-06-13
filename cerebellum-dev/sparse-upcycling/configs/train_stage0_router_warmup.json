@@ -1,0 +1,31 @@
+{
+  "name": "qwen35_9b_moe_stage0_router_warmup",
+  "checkpoint": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0",
+  "dataset_manifest": "cerebellum-dev/sparse-upcycling/configs/dataset_manifest_v0.json",
+  "objective": "stabilize routers and sliced experts after dense-to-MoE upcycle",
+  "trainable_default": [
+    "model.language_model.layers.*.mlp.gate.weight",
+    "model.language_model.layers.*.mlp.shared_expert_gate.weight"
+  ],
+  "trainable_optional": [
+    "model.language_model.layers.*.mlp.experts.*",
+    "model.language_model.layers.*.mlp.shared_expert.*"
+  ],
+  "frozen_by_default": [
+    "model.visual.*",
+    "model.language_model.embed_tokens.*",
+    "model.language_model.layers.*.linear_attn.*",
+    "model.language_model.layers.*.self_attn.*",
+    "model.language_model.layers.*.input_layernorm.*",
+    "model.language_model.layers.*.post_attention_layernorm.*",
+    "model.language_model.layers.*.mlp.experts.*",
+    "model.language_model.layers.*.mlp.shared_expert.*",
+    "model.language_model.norm.*",
+    "lm_head.*"
+  ],
+  "notes": [
+    "Stage 0 should use public datasets only; no local synthetic dataset creation.",
+    "Start with router/shared-expert gates before unfreezing expert weights.",
+    "Use existing Qwen3.5-9B Cerebellum sensitivity atlas to avoid touching fragile SSM/linear-attention tensors."
+  ]
+}

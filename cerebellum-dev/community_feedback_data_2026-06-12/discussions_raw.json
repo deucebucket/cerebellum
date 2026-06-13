@@ -1,0 +1,3816 @@
+{
+ "deucebucket/Qwen3.6-27B-Heretic-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [
+    {
+     "num": 2,
+     "author": {
+      "_id": "634c843f4abe8405758c27ef",
+      "avatarUrl": "/avatars/75b2433ed37de81773e390dad97eac35.svg",
+      "fullname": "tima",
+      "name": "tima2431",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF",
+      "type": "model"
+     },
+     "title": "What about uncensored/abliterated version?",
+     "status": "open",
+     "createdAt": "2026-05-09T14:24:32.000Z",
+     "isPullRequest": false,
+     "numComments": 10,
+     "topReactions": [
+      {
+       "count": 2,
+       "reaction": "\u2764\ufe0f"
+      }
+     ],
+     "numReactionUsers": 2,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    },
+    {
+     "num": 1,
+     "author": {
+      "_id": "69719bd6cfd40bab194a02b5",
+      "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+      "fullname": "John Smith",
+      "name": "dont-remember-it",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "followerCount": 1,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF",
+      "type": "model"
+     },
+     "title": "Gemma-4-E4B-it-Cerebellum-v1",
+     "status": "open",
+     "createdAt": "2026-05-02T01:06:32.000Z",
+     "isPullRequest": false,
+     "numComments": 7,
+     "topReactions": [],
+     "numReactionUsers": 0,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    }
+   ],
+   "count": 2,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {
+   "2": {
+    "_id": "69ff43a09f448579e7a2657d",
+    "author": {
+     "_id": "634c843f4abe8405758c27ef",
+     "avatarUrl": "/avatars/75b2433ed37de81773e390dad97eac35.svg",
+     "fullname": "tima",
+     "name": "tima2431",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "isUserFollowing": false
+    },
+    "num": 2,
+    "repo": {
+     "name": "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF",
+     "type": "model"
+    },
+    "title": "What about uncensored/abliterated version?",
+    "status": "open",
+    "createdAt": "2026-05-09T14:24:32.000Z",
+    "events": [
+     {
+      "id": "69ff43a09f448579e7a2657d",
+      "author": {
+       "_id": "634c843f4abe8405758c27ef",
+       "avatarUrl": "/avatars/75b2433ed37de81773e390dad97eac35.svg",
+       "fullname": "tima",
+       "name": "tima2431",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-09T14:24:32.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Hi! just wanted to say this cerebellum v6 is very cool model, works so well. i was wonderin if you plan to do an abliterated/uncensored version or something? i really liked how smart it is, just want it without all the censore and refuses. keep up the work!",
+        "html": "<p>Hi! just wanted to say this cerebellum v6 is very cool model, works so well. i was wonderin if you plan to do an abliterated/uncensored version or something? i really liked how smart it is, just want it without all the censore and refuses. keep up the work!</p>\n",
+        "updatedAt": "2026-05-09T14:24:32.794Z",
+        "author": {
+         "_id": "634c843f4abe8405758c27ef",
+         "avatarUrl": "/avatars/75b2433ed37de81773e390dad97eac35.svg",
+         "fullname": "tima",
+         "name": "tima2431",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9678558707237244
+       },
+       "editors": [
+        "tima2431"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/75b2433ed37de81773e390dad97eac35.svg"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "deucebucket",
+          "yybl"
+         ],
+         "count": 2
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "69ffa2a87184f8b7ea31e677",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-09T21:10:00.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> Hi! just wanted to say this cerebellum v6 is very cool model, works so well. i was wonderin if you plan to do an abliterated/uncensored version or something? i really liked how smart it is, just want it without all the censore and refuses. keep up the work!\n\nthank you!  I'm glad you like it! im actually working on doing this. im just not trying to follow the know ways, at least not without stumbling into them.  So it may take me longer, but i seek to avoid the abliterated/uncensored sanity drop off if possible. ",
+        "html": "<blockquote>\n<p>Hi! just wanted to say this cerebellum v6 is very cool model, works so well. i was wonderin if you plan to do an abliterated/uncensored version or something? i really liked how smart it is, just want it without all the censore and refuses. keep up the work!</p>\n</blockquote>\n<p>thank you!  I'm glad you like it! im actually working on doing this. im just not trying to follow the know ways, at least not without stumbling into them.  So it may take me longer, but i seek to avoid the abliterated/uncensored sanity drop off if possible. </p>\n",
+        "updatedAt": "2026-05-09T21:10:00.567Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9526512622833252
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83d\udd25",
+         "users": [
+          "tima2431",
+          "yybl"
+         ],
+         "count": 2
+        },
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "tima2431",
+          "yybl"
+         ],
+         "count": 2
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a06d99a21cc398075193b04",
+      "author": {
+       "_id": "66476b165fdb7108202b051c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/66476b165fdb7108202b051c/nVACb8uBoGQtb8mSgHIr2.webp",
+       "fullname": "Koitenshin",
+       "name": "Koitenshin",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 0,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-15T08:30:18.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> > Hi! just wanted to say this cerebellum v6 is very cool model, works so well. i was wonderin if you plan to do an abliterated/uncensored version or something? i really liked how smart it is, just want it without all the censore and refuses. keep up the work!\n> \n> thank you!  I'm glad you like it! im actually working on doing this. im just not trying to follow the know ways, at least not without stumbling into them.  So it may take me longer, but i seek to avoid the abliterated/uncensored sanity drop off if possible.\n\nIf you're looking for a base model with little drop off, I'd recommend taking a look at coder3101's stuff.\nhttps://huggingface.co/coder3101/gemma-4-26B-A4B-it-heretic",
+        "html": "<blockquote>\n<blockquote>\n<p>Hi! just wanted to say this cerebellum v6 is very cool model, works so well. i was wonderin if you plan to do an abliterated/uncensored version or something? i really liked how smart it is, just want it without all the censore and refuses. keep up the work!</p>\n</blockquote>\n<p>thank you!  I'm glad you like it! im actually working on doing this. im just not trying to follow the know ways, at least not without stumbling into them.  So it may take me longer, but i seek to avoid the abliterated/uncensored sanity drop off if possible.</p>\n</blockquote>\n<p>If you're looking for a base model with little drop off, I'd recommend taking a look at coder3101's stuff.<br><a href=\"https://huggingface.co/coder3101/gemma-4-26B-A4B-it-heretic\">https://huggingface.co/coder3101/gemma-4-26B-A4B-it-heretic</a></p>\n",
+        "updatedAt": "2026-05-15T08:30:18.441Z",
+        "author": {
+         "_id": "66476b165fdb7108202b051c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/66476b165fdb7108202b051c/nVACb8uBoGQtb8mSgHIr2.webp",
+         "fullname": "Koitenshin",
+         "name": "Koitenshin",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 0,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9392728209495544
+       },
+       "editors": [
+        "Koitenshin"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/66476b165fdb7108202b051c/nVACb8uBoGQtb8mSgHIr2.webp"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "deucebucket",
+          "tima2431"
+         ],
+         "count": 2
+        },
+        {
+         "reaction": "\ud83d\udd25",
+         "users": [
+          "tima2431"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0bb4931354587abb594052",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-19T00:53:39.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Uploaded a separate Heretic/Cerebellum GGUF repo here:\n\nhttps://huggingface.co/deucebucket/Gemma-4-26B-A4B-it-Heretic-Cerebellum-GGUF\n\nThis uses coder3101/gemma-4-26B-A4B-it-heretic as the source checkpoint and applies the Gemma 4 26B Cerebellum tensor recipe. I kept it separate from the regular Cerebellum repo and included the mmproj file plus current benchmark JSONs in the repo.\n\nCurrent local results are listed on the model card: ARC-Challenge 95.48%, HellaSwag 83.49%, MMLU Redux 71.42%, vision smoke 6/6, and the project refusal harness measured 1/45 refused.",
+        "html": "<p>Uploaded a separate Heretic/Cerebellum GGUF repo here:</p>\n<p><a href=\"https://huggingface.co/deucebucket/Gemma-4-26B-A4B-it-Heretic-Cerebellum-GGUF\">https://huggingface.co/deucebucket/Gemma-4-26B-A4B-it-Heretic-Cerebellum-GGUF</a></p>\n<p>This uses coder3101/gemma-4-26B-A4B-it-heretic as the source checkpoint and applies the Gemma 4 26B Cerebellum tensor recipe. I kept it separate from the regular Cerebellum repo and included the mmproj file plus current benchmark JSONs in the repo.</p>\n<p>Current local results are listed on the model card: ARC-Challenge 95.48%, HellaSwag 83.49%, MMLU Redux 71.42%, vision smoke 6/6, and the project refusal harness measured 1/45 refused.</p>\n",
+        "updatedAt": "2026-05-19T00:53:39.888Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.7739488482475281
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0f0e0cd7f75e046d82441b",
+      "author": {
+       "_id": "634c843f4abe8405758c27ef",
+       "avatarUrl": "/avatars/75b2433ed37de81773e390dad97eac35.svg",
+       "fullname": "tima",
+       "name": "tima2431",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-21T13:52:12.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "i just started testing it and so far it's just amazing, for my tasks and dialogues it works just fine! you have very cool models! <3",
+        "html": "<p>i just started testing it and so far it's just amazing, for my tasks and dialogues it works just fine! you have very cool models! &lt;3</p>\n",
+        "updatedAt": "2026-05-21T13:52:12.309Z",
+        "author": {
+         "_id": "634c843f4abe8405758c27ef",
+         "avatarUrl": "/avatars/75b2433ed37de81773e390dad97eac35.svg",
+         "fullname": "tima",
+         "name": "tima2431",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9705601334571838
+       },
+       "editors": [
+        "tima2431"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/75b2433ed37de81773e390dad97eac35.svg"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "deucebucket"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0f3c4bcbe4351cace384e2",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-21T17:09:31.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> i just started testing it and so far it's just amazing, for my tasks and dialogues it works just fine! you have very cool models! <3\n\nyeah, ive been using it since, thanks for the suggestion! its now my new daily driver! gemma 4, certainly has a lot of personality and knowledge packed in.",
+        "html": "<blockquote>\n<p>i just started testing it and so far it's just amazing, for my tasks and dialogues it works just fine! you have very cool models! &lt;3</p>\n</blockquote>\n<p>yeah, ive been using it since, thanks for the suggestion! its now my new daily driver! gemma 4, certainly has a lot of personality and knowledge packed in.</p>\n",
+        "updatedAt": "2026-05-21T17:09:31.644Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9749565124511719
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83d\udd25",
+         "users": [
+          "tima2431"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0f718b609e41543a7af8c1",
+      "author": {
+       "_id": "634c843f4abe8405758c27ef",
+       "avatarUrl": "/avatars/75b2433ed37de81773e390dad97eac35.svg",
+       "fullname": "tima",
+       "name": "tima2431",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-21T20:56:43.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "yeah,  it's my daily driver now too! Honestly, the quality is insane, for my tasks it feels almost on par with Gemini 2.5 Pro, but completely uncensored, which is exactly what I needed. Hitting 35-45 t/s on an RTX 5060 is pure gold. Keep it going!  also, one quick question since I couldn't find any info on this anywhere: when running this (and other models based on gemma4) through standard llama.cpp at  high context lengths (like 25k+ tokens), the model sometimes completely stops using its reasoning/chain-of-thought phase. It just prints 'enough;' or a similar word and skips straight to the answer, even if I force reasoning parameters at launch. have you noticed this context degradation too, or maybe do you happen to know a fix/sampler tweak for it?",
+        "html": "<p>yeah,  it's my daily driver now too! Honestly, the quality is insane, for my tasks it feels almost on par with Gemini 2.5 Pro, but completely uncensored, which is exactly what I needed. Hitting 35-45 t/s on an RTX 5060 is pure gold. Keep it going!  also, one quick question since I couldn't find any info on this anywhere: when running this (and other models based on gemma4) through standard llama.cpp at  high context lengths (like 25k+ tokens), the model sometimes completely stops using its reasoning/chain-of-thought phase. It just prints 'enough;' or a similar word and skips straight to the answer, even if I force reasoning parameters at launch. have you noticed this context degradation too, or maybe do you happen to know a fix/sampler tweak for it?</p>\n",
+        "updatedAt": "2026-05-21T20:56:43.434Z",
+        "author": {
+         "_id": "634c843f4abe8405758c27ef",
+         "avatarUrl": "/avatars/75b2433ed37de81773e390dad97eac35.svg",
+         "fullname": "tima",
+         "name": "tima2431",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9412834644317627
+       },
+       "editors": [
+        "tima2431"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/75b2433ed37de81773e390dad97eac35.svg"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83e\udde0",
+         "users": [
+          "deucebucket"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0f7668f67c857117b5b364",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-21T21:17:28.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "yeah, ive seen this, and it was kind of funny. I was using it in open code, and it got stopped working. i asked if it was complete, it worked for another 3 minutes, then said \"no\" and stopped again. Made me laugh at the long think and abrupt answer. Currently im kicking around qwen 3.5 9b to find our on a small scale if thats something i can actually improve. this might also be something to do with the chat token template, where im still working on getting all of that updated too, and theres also branch versions of llama.cpp that seemingly fix the thinking loops just hasnt made it to main yet, that ive seen.",
+        "html": "<p>yeah, ive seen this, and it was kind of funny. I was using it in open code, and it got stopped working. i asked if it was complete, it worked for another 3 minutes, then said \"no\" and stopped again. Made me laugh at the long think and abrupt answer. Currently im kicking around qwen 3.5 9b to find our on a small scale if thats something i can actually improve. this might also be something to do with the chat token template, where im still working on getting all of that updated too, and theres also branch versions of llama.cpp that seemingly fix the thinking loops just hasnt made it to main yet, that ive seen.</p>\n",
+        "updatedAt": "2026-05-21T21:17:28.888Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9759505987167358
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83d\ude0e",
+         "users": [
+          "tima2431"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a110469327d784423e94e0a",
+      "author": {
+       "_id": "66476b165fdb7108202b051c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/66476b165fdb7108202b051c/nVACb8uBoGQtb8mSgHIr2.webp",
+       "fullname": "Koitenshin",
+       "name": "Koitenshin",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 0,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-23T01:35:37.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> yeah, ive been using it since, thanks for the suggestion! its now my new daily driver! gemma 4, certainly has a lot of personality and knowledge packed in.\n\nYou're welcome for the suggestion, thanks for giving it your crunching process. \ud83d\ude04 \n\nI like Gemma 4 26B-A4B, but without your GGUFs I have to close every single open process on my PC.\n\nI've been testing this one extensively, and so far it feels far more capable than your other v6. I haven't seen a single wrong token... *yet*.",
+        "html": "<blockquote>\n<p>yeah, ive been using it since, thanks for the suggestion! its now my new daily driver! gemma 4, certainly has a lot of personality and knowledge packed in.</p>\n</blockquote>\n<p>You're welcome for the suggestion, thanks for giving it your crunching process. \ud83d\ude04 </p>\n<p>I like Gemma 4 26B-A4B, but without your GGUFs I have to close every single open process on my PC.</p>\n<p>I've been testing this one extensively, and so far it feels far more capable than your other v6. I haven't seen a single wrong token... <em>yet</em>.</p>\n",
+        "updatedAt": "2026-05-23T01:35:37.103Z",
+        "author": {
+         "_id": "66476b165fdb7108202b051c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/66476b165fdb7108202b051c/nVACb8uBoGQtb8mSgHIr2.webp",
+         "fullname": "Koitenshin",
+         "name": "Koitenshin",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 0,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9601638317108154
+       },
+       "editors": [
+        "Koitenshin"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/66476b165fdb7108202b051c/nVACb8uBoGQtb8mSgHIr2.webp"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a110f6905e64ce879296d8b",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-23T02:22:33.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> > I've been testing this one extensively, and so far it feels far more capable than your other v6. I haven't seen a single wrong token... *yet*.\n\ni did also notice heretic did perform better on all the tests i put it through, so that definitely worth noting. No clue what in the break down also improved accuracy.",
+        "html": "<blockquote>\n<blockquote>\n<p>I've been testing this one extensively, and so far it feels far more capable than your other v6. I haven't seen a single wrong token... <em>yet</em>.</p>\n</blockquote>\n</blockquote>\n<p>i did also notice heretic did perform better on all the tests i put it through, so that definitely worth noting. No clue what in the break down also improved accuracy.</p>\n",
+        "updatedAt": "2026-05-23T02:22:33.937Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9689622521400452
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83d\udc4d",
+         "users": [
+          "tima2431"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   },
+   "1": {
+    "_id": "69f54e18d5e1fe92cf9e882f",
+    "author": {
+     "_id": "69719bd6cfd40bab194a02b5",
+     "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+     "fullname": "John Smith",
+     "name": "dont-remember-it",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "followerCount": 1,
+     "isUserFollowing": false
+    },
+    "num": 1,
+    "repo": {
+     "name": "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-v6-GGUF",
+     "type": "model"
+    },
+    "title": "Gemma-4-E4B-it-Cerebellum-v1",
+    "status": "open",
+    "createdAt": "2026-05-02T01:06:32.000Z",
+    "events": [
+     {
+      "id": "69f54e18d5e1fe92cf9e882f",
+      "author": {
+       "_id": "69719bd6cfd40bab194a02b5",
+       "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+       "fullname": "John Smith",
+       "name": "dont-remember-it",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 1,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-02T01:06:32.000Z",
+      "type": "comment",
+      "data": {
+       "edited": true,
+       "hidden": false,
+       "latest": {
+        "raw": "Hello,\nI read about your Gemma-4-E4B-it-Cerebellum-v1 and v2 and was planning to try it out today. However, those models are no longer available. Are you planning to upload it again?\nThanks for your hard work on these models. I am looking forward to testing it out.",
+        "html": "<p>Hello,<br>I read about your Gemma-4-E4B-it-Cerebellum-v1 and v2 and was planning to try it out today. However, those models are no longer available. Are you planning to upload it again?<br>Thanks for your hard work on these models. I am looking forward to testing it out.</p>\n",
+        "updatedAt": "2026-05-02T01:15:19.365Z",
+        "author": {
+         "_id": "69719bd6cfd40bab194a02b5",
+         "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+         "fullname": "John Smith",
+         "name": "dont-remember-it",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 1,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 3,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9809267520904541
+       },
+       "editors": [
+        "dont-remember-it"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "69f5fd3d9d62ca5a93895ebe",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-02T13:33:49.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Hey sorry, was moving things around, and accidentally privated it. Got v2 though! Let me know how it goes. These all have worked fine for me, but I'm just one guy testing what I can. deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF",
+        "html": "<p>Hey sorry, was moving things around, and accidentally privated it. Got v2 though! Let me know how it goes. These all have worked fine for me, but I'm just one guy testing what I can. deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF</p>\n",
+        "updatedAt": "2026-05-02T13:33:49.774Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9570955038070679
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "69f66edcb004480e8ec4aec3",
+      "author": {
+       "_id": "69719bd6cfd40bab194a02b5",
+       "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+       "fullname": "John Smith",
+       "name": "dont-remember-it",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 1,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-02T21:38:36.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Thank! Will try it out and let you know if I discover something substantial. ",
+        "html": "<p>Thank! Will try it out and let you know if I discover something substantial. </p>\n",
+        "updatedAt": "2026-05-02T21:38:36.058Z",
+        "author": {
+         "_id": "69719bd6cfd40bab194a02b5",
+         "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+         "fullname": "John Smith",
+         "name": "dont-remember-it",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 1,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.8650097846984863
+       },
+       "editors": [
+        "dont-remember-it"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a06356b3037d5e831e38306",
+      "author": {
+       "_id": "69719bd6cfd40bab194a02b5",
+       "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+       "fullname": "John Smith",
+       "name": "dont-remember-it",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 1,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-14T20:49:47.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Hello, I just wanted to say Cerebellum v6 is genuinely one of the most impressive quantization efforts I've seen and tested. On my RTX 4070 Laptop (8GB VRAM) with the AtomicBot TurboQuant fork and MTP speculative decoding, Cerebellum took me from 2.4 tok/s to 30+ tok/s compared to a standard Q4_K_M, a 12x improvement! The response quality jumped noticeably too.\n\nDo you have any plans to incorporate vision support in future version as base gemma model is natively multimodal?\n\nJust flagging it as something the community would love. Thanks for putting in the work.",
+        "html": "<p>Hello, I just wanted to say Cerebellum v6 is genuinely one of the most impressive quantization efforts I've seen and tested. On my RTX 4070 Laptop (8GB VRAM) with the AtomicBot TurboQuant fork and MTP speculative decoding, Cerebellum took me from 2.4 tok/s to 30+ tok/s compared to a standard Q4_K_M, a 12x improvement! The response quality jumped noticeably too.</p>\n<p>Do you have any plans to incorporate vision support in future version as base gemma model is natively multimodal?</p>\n<p>Just flagging it as something the community would love. Thanks for putting in the work.</p>\n",
+        "updatedAt": "2026-05-14T20:49:47.977Z",
+        "author": {
+         "_id": "69719bd6cfd40bab194a02b5",
+         "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+         "fullname": "John Smith",
+         "name": "dont-remember-it",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 1,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9507617950439453
+       },
+       "editors": [
+        "dont-remember-it"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "deucebucket"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a06a2d4e361dff9e2d3904e",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-15T04:36:36.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> Hello, I just wanted to say Cerebellum v6 is genuinely one of the most impressive quantization efforts I've seen and tested. On my RTX 4070 Laptop (8GB VRAM) with the AtomicBot TurboQuant fork and MTP speculative decoding, Cerebellum took me from 2.4 tok/s to 30+ tok/s compared to a standard Q4_K_M, a 12x improvement! The response quality jumped noticeably too.\n> \n> Do you have any plans to incorporate vision support in future version as base gemma model is natively multimodal?\n> \n> Just flagging it as something the community would love. Thanks for putting in the work.\n\nyeah, its definitely on the board, my first runs targeted wikitext2 for the improvements. So I'm sure by that line of thinking, the same forward and backward ablation but geared towards getting action when given images, im sure it could be tooled to improve that, it would most likely increase the size, just not sure how much. No timeline as of yet, I'm still learning a lot about this, but definitely eventually! Thanks for trying the model!",
+        "html": "<blockquote>\n<p>Hello, I just wanted to say Cerebellum v6 is genuinely one of the most impressive quantization efforts I've seen and tested. On my RTX 4070 Laptop (8GB VRAM) with the AtomicBot TurboQuant fork and MTP speculative decoding, Cerebellum took me from 2.4 tok/s to 30+ tok/s compared to a standard Q4_K_M, a 12x improvement! The response quality jumped noticeably too.</p>\n<p>Do you have any plans to incorporate vision support in future version as base gemma model is natively multimodal?</p>\n<p>Just flagging it as something the community would love. Thanks for putting in the work.</p>\n</blockquote>\n<p>yeah, its definitely on the board, my first runs targeted wikitext2 for the improvements. So I'm sure by that line of thinking, the same forward and backward ablation but geared towards getting action when given images, im sure it could be tooled to improve that, it would most likely increase the size, just not sure how much. No timeline as of yet, I'm still learning a lot about this, but definitely eventually! Thanks for trying the model!</p>\n",
+        "updatedAt": "2026-05-15T04:36:36.894Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9636187553405762
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a06ad597306272bc0b28c54",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-15T05:21:29.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> Hello, I just wanted to say Cerebellum v6 is genuinely one of the most impressive quantization efforts I've seen and tested. On my RTX 4070 Laptop (8GB VRAM) with the AtomicBot TurboQuant fork and MTP speculative decoding, Cerebellum took me from 2.4 tok/s to 30+ tok/s compared to a standard Q4_K_M, a 12x improvement! The response quality jumped noticeably too.\n> \n> Do you have any plans to incorporate vision support in future version as base gemma model is natively multimodal?\n> \n> Just flagging it as something the community would love. Thanks for putting in the work.\n\nso it was a lot simpler, I didnt include the mmproj gguf required for vision, this was an oversite, i include the text backbone, but never shipped the vision gguf, should be up on the repo soon, or bartowkis would work also.\n\n",
+        "html": "<blockquote>\n<p>Hello, I just wanted to say Cerebellum v6 is genuinely one of the most impressive quantization efforts I've seen and tested. On my RTX 4070 Laptop (8GB VRAM) with the AtomicBot TurboQuant fork and MTP speculative decoding, Cerebellum took me from 2.4 tok/s to 30+ tok/s compared to a standard Q4_K_M, a 12x improvement! The response quality jumped noticeably too.</p>\n<p>Do you have any plans to incorporate vision support in future version as base gemma model is natively multimodal?</p>\n<p>Just flagging it as something the community would love. Thanks for putting in the work.</p>\n</blockquote>\n<p>so it was a lot simpler, I didnt include the mmproj gguf required for vision, this was an oversite, i include the text backbone, but never shipped the vision gguf, should be up on the repo soon, or bartowkis would work also.</p>\n",
+        "updatedAt": "2026-05-15T05:21:29.017Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9550057649612427
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a075d59dd8411f1d456e1ee",
+      "author": {
+       "_id": "69719bd6cfd40bab194a02b5",
+       "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+       "fullname": "John Smith",
+       "name": "dont-remember-it",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 1,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-15T17:52:25.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Just tested it and it is working seamlessly.  Thanks once again!",
+        "html": "<p>Just tested it and it is working seamlessly.  Thanks once again!</p>\n",
+        "updatedAt": "2026-05-15T17:52:25.095Z",
+        "author": {
+         "_id": "69719bd6cfd40bab194a02b5",
+         "avatarUrl": "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg",
+         "fullname": "John Smith",
+         "name": "dont-remember-it",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 1,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9768169522285461
+       },
+       "editors": [
+        "dont-remember-it"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/7882c443abef53fe1b58a2aff961f8fe.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   }
+  }
+ },
+ "deucebucket/Gemma-4-26B-A4B-it-Heretic-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [
+    {
+     "num": 1,
+     "author": {
+      "_id": "69d1ad915e7b5b08427b1494",
+      "avatarUrl": "/avatars/c537243fe12c7376e740b94b6570cb08.svg",
+      "fullname": "temp mail",
+      "name": "igottempmail",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Gemma-4-26B-A4B-it-Heretic-Cerebellum-GGUF",
+      "type": "model"
+     },
+     "title": "which version is better heretic or nomal",
+     "status": "open",
+     "createdAt": "2026-06-09T02:24:53.000Z",
+     "isPullRequest": false,
+     "numComments": 2,
+     "topReactions": [],
+     "numReactionUsers": 0,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    }
+   ],
+   "count": 1,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {
+   "1": {
+    "_id": "6a277975c4e42f5afcb8b275",
+    "author": {
+     "_id": "69d1ad915e7b5b08427b1494",
+     "avatarUrl": "/avatars/c537243fe12c7376e740b94b6570cb08.svg",
+     "fullname": "temp mail",
+     "name": "igottempmail",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "isUserFollowing": false
+    },
+    "num": 1,
+    "repo": {
+     "name": "deucebucket/Gemma-4-26B-A4B-it-Heretic-Cerebellum-GGUF",
+     "type": "model"
+    },
+    "title": "which version is better heretic or nomal",
+    "status": "open",
+    "createdAt": "2026-06-09T02:24:53.000Z",
+    "events": [
+     {
+      "id": "6a277975c4e42f5afcb8b275",
+      "author": {
+       "_id": "69d1ad915e7b5b08427b1494",
+       "avatarUrl": "/avatars/c537243fe12c7376e740b94b6570cb08.svg",
+       "fullname": "temp mail",
+       "name": "igottempmail",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-09T02:24:53.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Like in terms of code quality, reasoning and other stuff as heretic models usually go dumber ( that what I think ). Also people have said that it wa smaking up words.\r\nSo what is actually better to use \r\nor I should go with Gemma-4-12B-it or its uncencored",
+        "html": "<p>Like in terms of code quality, reasoning and other stuff as heretic models usually go dumber ( that what I think ). Also people have said that it wa smaking up words.<br>So what is actually better to use<br>or I should go with Gemma-4-12B-it or its uncencored</p>\n",
+        "updatedAt": "2026-06-09T02:24:53.397Z",
+        "author": {
+         "_id": "69d1ad915e7b5b08427b1494",
+         "avatarUrl": "/avatars/c537243fe12c7376e740b94b6570cb08.svg",
+         "fullname": "temp mail",
+         "name": "igottempmail",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9788005352020264
+       },
+       "editors": [
+        "igottempmail"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/c537243fe12c7376e740b94b6570cb08.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a27a08f4700a4a67ff361b9",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-09T05:11:43.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Oddly enough, the heretic version in this one seems better. I was skeptical at first, and was put off on regular heretic models because of this. But another user pointed me to coders heretic model, and it actually appears to be better, and quanted it's still pretty sane.",
+        "html": "<p>Oddly enough, the heretic version in this one seems better. I was skeptical at first, and was put off on regular heretic models because of this. But another user pointed me to coders heretic model, and it actually appears to be better, and quanted it's still pretty sane.</p>\n",
+        "updatedAt": "2026-06-09T05:11:43.435Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9910574555397034
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83d\udc4d",
+         "users": [
+          "igottempmail"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   }
+  }
+ },
+ "deucebucket/Qwen3.6-35B-A3B-Heretic-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Gemma-4-E4B-it-Heretic-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Qwen3.6-27B-Osmosis-Q2_K-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Qwen3.6-27B-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [
+    {
+     "num": 1,
+     "author": {
+      "_id": "6a0e0e7fd298ed9527fd192f",
+      "avatarUrl": "/avatars/11d498f10f013d5c96cc3e3e85797079.svg",
+      "fullname": "Artem Boldariev",
+      "name": "arbv",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Qwen3.6-27B-Cerebellum-GGUF",
+      "type": "model"
+     },
+     "title": "Please consider producing an MTP version of this model",
+     "status": "open",
+     "createdAt": "2026-05-20T20:25:50.000Z",
+     "isPullRequest": false,
+     "numComments": 2,
+     "topReactions": [
+      {
+       "count": 1,
+       "reaction": "\u2795"
+      }
+     ],
+     "numReactionUsers": 1,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    }
+   ],
+   "count": 1,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {
+   "1": {
+    "_id": "6a0e18ce0a117287f1010f51",
+    "author": {
+     "_id": "6a0e0e7fd298ed9527fd192f",
+     "avatarUrl": "/avatars/11d498f10f013d5c96cc3e3e85797079.svg",
+     "fullname": "Artem Boldariev",
+     "name": "arbv",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "isUserFollowing": false
+    },
+    "num": 1,
+    "repo": {
+     "name": "deucebucket/Qwen3.6-27B-Cerebellum-GGUF",
+     "type": "model"
+    },
+    "title": "Please consider producing an MTP version of this model",
+    "status": "open",
+    "createdAt": "2026-05-20T20:25:50.000Z",
+    "events": [
+     {
+      "id": "6a0e18ce0a117287f1010f51",
+      "author": {
+       "_id": "6a0e0e7fd298ed9527fd192f",
+       "avatarUrl": "/avatars/11d498f10f013d5c96cc3e3e85797079.svg",
+       "fullname": "Artem Boldariev",
+       "name": "arbv",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-20T20:25:50.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "I found this idea with mixed precision models to be pretty interesting!\r\n\r\nPlease consider creating a version with MTP weights baked in (probably in native precision) as support for this has landed in llama.cpp.\r\n\r\nOh, also it would be great if you consider making a Gemma 4 31B mixed precision quant - but that is a whole different topic, of course.",
+        "html": "<p>I found this idea with mixed precision models to be pretty interesting!</p>\n<p>Please consider creating a version with MTP weights baked in (probably in native precision) as support for this has landed in llama.cpp.</p>\n<p>Oh, also it would be great if you consider making a Gemma 4 31B mixed precision quant - but that is a whole different topic, of course.</p>\n",
+        "updatedAt": "2026-05-20T20:25:50.399Z",
+        "author": {
+         "_id": "6a0e0e7fd298ed9527fd192f",
+         "avatarUrl": "/avatars/11d498f10f013d5c96cc3e3e85797079.svg",
+         "fullname": "Artem Boldariev",
+         "name": "arbv",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9573699235916138
+       },
+       "editors": [
+        "arbv"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/11d498f10f013d5c96cc3e3e85797079.svg"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2795",
+         "users": [
+          "Koopah"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0e6473d0b94cf752b88a49",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-21T01:48:35.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> I found this idea with mixed precision models to be pretty interesting!\n> \n> Please consider creating a version with MTP weights baked in (probably in native precision) as support for this has landed in llama.cpp.\n> \n> Oh, also it would be great if you consider making a Gemma 4 31B mixed precision quant - but that is a whole different topic, of course.\n>\nAlready planned on looking into MTP the speed increase alone is amazing and I added Gemma 4 31b to the list to check out as well. Thank you for suggestions! I'm almost looking to spread out and try it on new things. The results are pretty interesting sometimes.\n",
+        "html": "<blockquote>\n<p>I found this idea with mixed precision models to be pretty interesting!</p>\n<p>Please consider creating a version with MTP weights baked in (probably in native precision) as support for this has landed in llama.cpp.</p>\n<p>Oh, also it would be great if you consider making a Gemma 4 31B mixed precision quant - but that is a whole different topic, of course.</p>\n</blockquote>\n<p>Already planned on looking into MTP the speed increase alone is amazing and I added Gemma 4 31b to the list to check out as well. Thank you for suggestions! I'm almost looking to spread out and try it on new things. The results are pretty interesting sometimes.</p>\n",
+        "updatedAt": "2026-05-21T01:48:35.931Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9605979323387146
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83d\udc4d",
+         "users": [
+          "arbv",
+          "Koopah"
+         ],
+         "count": 2
+        }
+       ],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   }
+  }
+ },
+ "deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [
+    {
+     "num": 1,
+     "author": {
+      "_id": "68fb5d5a87795d21068efdd4",
+      "avatarUrl": "/avatars/81c9901458f5d98d7543c0fa16ec14d4.svg",
+      "fullname": "chan",
+      "name": "chantidas",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF",
+      "type": "model"
+     },
+     "title": "chanti",
+     "status": "closed",
+     "createdAt": "2026-05-18T13:47:23.000Z",
+     "isPullRequest": true,
+     "numComments": 2,
+     "topReactions": [],
+     "numReactionUsers": 0,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    }
+   ],
+   "count": 1,
+   "start": 0,
+   "numClosedDiscussions": 1
+  },
+  "threads": {
+   "1": {
+    "_id": "6a0b186b4d99da750c8e38d0",
+    "author": {
+     "_id": "68fb5d5a87795d21068efdd4",
+     "avatarUrl": "/avatars/81c9901458f5d98d7543c0fa16ec14d4.svg",
+     "fullname": "chan",
+     "name": "chantidas",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "isUserFollowing": false
+    },
+    "num": 1,
+    "repo": {
+     "name": "deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF",
+     "type": "model"
+    },
+    "title": "chanti",
+    "status": "closed",
+    "createdAt": "2026-05-18T13:47:23.000Z",
+    "events": [
+     {
+      "id": "6a0b186b4d99da750c8e38d0",
+      "author": {
+       "_id": "68fb5d5a87795d21068efdd4",
+       "avatarUrl": "/avatars/81c9901458f5d98d7543c0fa16ec14d4.svg",
+       "fullname": "chan",
+       "name": "chantidas",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-18T13:47:23.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "",
+        "html": "",
+        "updatedAt": "2026-05-18T13:47:23.906Z",
+        "author": {
+         "_id": "68fb5d5a87795d21068efdd4",
+         "avatarUrl": "/avatars/81c9901458f5d98d7543c0fa16ec14d4.svg",
+         "fullname": "chan",
+         "name": "chantidas",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.11044929921627045
+       },
+       "editors": [
+        "chantidas"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/81c9901458f5d98d7543c0fa16ec14d4.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0d8bee6f19818dca0dc1e1",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-20T10:24:46.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Im assuming this was in error?",
+        "html": "<p>Im assuming this was in error?</p>\n",
+        "updatedAt": "2026-05-20T10:24:46.034Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9843441247940063
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "relatedEventId": "6a0d8bee6f19818dca0dc1e3",
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0d8bee6f19818dca0dc1e3",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-20T10:24:46.000Z",
+      "type": "status-change",
+      "data": {
+       "status": "closed"
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": true,
+    "changes": {
+     "base": "refs/heads/main",
+     "cachedStorageEstimate": {
+      "size": 0,
+      "baseSha": "f6ea8128b41e894bce155c1ed3e7254bd7b88d1d"
+     }
+    },
+    "filesWithConflicts": [],
+    "diffUrl": "https://huggingface.co/deucebucket/Gemma-4-E4B-it-Cerebellum-v2-GGUF/discussions/1/files.diff"
+   }
+  }
+ },
+ "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [
+    {
+     "num": 1,
+     "author": {
+      "_id": "6564bae961477ef2f6eae981",
+      "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6564bae961477ef2f6eae981/iIivedgczlCWvgNF5VnCy.png",
+      "fullname": "Ivan Baldo",
+      "name": "ibaldonl",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "followerCount": 8,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-GGUF",
+      "type": "model"
+     },
+     "title": "Github repo doesn't exist anymore",
+     "status": "open",
+     "createdAt": "2026-06-06T23:58:23.000Z",
+     "isPullRequest": false,
+     "numComments": 2,
+     "topReactions": [],
+     "numReactionUsers": 0,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    }
+   ],
+   "count": 1,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {
+   "1": {
+    "_id": "6a24b41f069f8aa5580647ac",
+    "author": {
+     "_id": "6564bae961477ef2f6eae981",
+     "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6564bae961477ef2f6eae981/iIivedgczlCWvgNF5VnCy.png",
+     "fullname": "Ivan Baldo",
+     "name": "ibaldonl",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "followerCount": 8,
+     "isUserFollowing": false
+    },
+    "num": 1,
+    "repo": {
+     "name": "deucebucket/Gemma-4-26B-A4B-it-Cerebellum-GGUF",
+     "type": "model"
+    },
+    "title": "Github repo doesn't exist anymore",
+    "status": "open",
+    "createdAt": "2026-06-06T23:58:23.000Z",
+    "events": [
+     {
+      "id": "6a24b41f069f8aa5580647ac",
+      "author": {
+       "_id": "6564bae961477ef2f6eae981",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6564bae961477ef2f6eae981/iIivedgczlCWvgNF5VnCy.png",
+       "fullname": "Ivan Baldo",
+       "name": "ibaldonl",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 8,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-06T23:58:23.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Hello, this is a very interesting approach.\r\nWhat happened with the Github repo though?",
+        "html": "<p>Hello, this is a very interesting approach.<br>What happened with the Github repo though?</p>\n",
+        "updatedAt": "2026-06-06T23:58:23.753Z",
+        "author": {
+         "_id": "6564bae961477ef2f6eae981",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/6564bae961477ef2f6eae981/iIivedgczlCWvgNF5VnCy.png",
+         "fullname": "Ivan Baldo",
+         "name": "ibaldonl",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 8,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.973957896232605
+       },
+       "editors": [
+        "ibaldonl"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/6564bae961477ef2f6eae981/iIivedgczlCWvgNF5VnCy.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a24eac7cce03e34041962ed",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-07T03:51:35.000Z",
+      "type": "comment",
+      "data": {
+       "edited": true,
+       "hidden": false,
+       "latest": {
+        "raw": ">Hello, this is a very interesting approach.\n\nso i've heard lol. I think it just comes from my lack of knowledge on the subject, and my weird way of looking at things.\n\n> What happened with the Github repo though?\n\ni brought it down to recreate it, with cleaner and more organized data, and trying to improve it. I got a lot of complaints about its state, so i just took it down to recreate it. I get a bit scatter brained with where my brain is going, so before i opened the original repo it was a hope for my ideas, and plans and alot of those plans were not implemented but confused people about the project (i understand, it looked like a madman's nest). So I'm just working on cleaning it up, it'll be back soon.",
+        "html": "<blockquote>\n<p>Hello, this is a very interesting approach.</p>\n</blockquote>\n<p>so i've heard lol. I think it just comes from my lack of knowledge on the subject, and my weird way of looking at things.</p>\n<blockquote>\n<p>What happened with the Github repo though?</p>\n</blockquote>\n<p>i brought it down to recreate it, with cleaner and more organized data, and trying to improve it. I got a lot of complaints about its state, so i just took it down to recreate it. I get a bit scatter brained with where my brain is going, so before i opened the original repo it was a hope for my ideas, and plans and alot of those plans were not implemented but confused people about the project (i understand, it looked like a madman's nest). So I'm just working on cleaning it up, it'll be back soon.</p>\n",
+        "updatedAt": "2026-06-07T03:52:48.659Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 1,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.985632061958313
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "ibaldonl"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   }
+  }
+ },
+ "deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [
+    {
+     "num": 3,
+     "author": {
+      "_id": "6a1c40b50bf1ccc208b9bd06",
+      "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+      "fullname": "Theo",
+      "name": "TheodoreH",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF",
+      "type": "model"
+     },
+     "title": "Amazing quality for the size!",
+     "status": "open",
+     "createdAt": "2026-05-31T14:18:46.000Z",
+     "isPullRequest": false,
+     "numComments": 13,
+     "topReactions": [],
+     "numReactionUsers": 0,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    },
+    {
+     "num": 2,
+     "author": {
+      "_id": "6519623115e21edaf7da876c",
+      "avatarUrl": "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg",
+      "fullname": "John Doe",
+      "name": "Tribbler",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF",
+      "type": "model"
+     },
+     "title": "The first adjusted model I've used that actually seems to be equal-or-better to previous alternatives",
+     "status": "open",
+     "createdAt": "2026-05-13T13:49:14.000Z",
+     "isPullRequest": false,
+     "numComments": 6,
+     "topReactions": [],
+     "numReactionUsers": 0,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    },
+    {
+     "num": 1,
+     "author": {
+      "_id": "63d2be672727d7888cb75f4c",
+      "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+      "fullname": "Jerry Mares",
+      "name": "deucebucket",
+      "type": "user",
+      "isPro": true,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "followerCount": 16,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF",
+      "type": "model"
+     },
+     "title": "Qwen 3.6 35B-A3B Cerebellum \u2014 12 GB, fits 16 GB VRAM",
+     "status": "open",
+     "createdAt": "2026-05-02T09:24:44.000Z",
+     "isPullRequest": false,
+     "numComments": 3,
+     "topReactions": [
+      {
+       "count": 1,
+       "reaction": "\u2764\ufe0f"
+      }
+     ],
+     "numReactionUsers": 1,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": true,
+      "type": "user",
+      "isDiscussionAuthor": true
+     }
+    }
+   ],
+   "count": 3,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {
+   "3": {
+    "_id": "6a1c4346209a3911eedda927",
+    "author": {
+     "_id": "6a1c40b50bf1ccc208b9bd06",
+     "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+     "fullname": "Theo",
+     "name": "TheodoreH",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "isUserFollowing": false
+    },
+    "num": 3,
+    "repo": {
+     "name": "deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF",
+     "type": "model"
+    },
+    "title": "Amazing quality for the size!",
+    "status": "open",
+    "createdAt": "2026-05-31T14:18:46.000Z",
+    "events": [
+     {
+      "id": "6a1c4346209a3911eedda927",
+      "author": {
+       "_id": "6a1c40b50bf1ccc208b9bd06",
+       "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+       "fullname": "Theo",
+       "name": "TheodoreH",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-31T14:18:46.000Z",
+      "type": "comment",
+      "data": {
+       "edited": true,
+       "hidden": false,
+       "latest": {
+        "raw": "Hi. Cerebellum quantization is the best among  not-usual ('highly specific' quantizations(like APEX, or REAP, MAgic quants, etc)). It works well on almost only CPU and it is not hallucinating(mostly) and does not make mistakes(almost). Also used Gemma-4 26b heretic version - VERY capable one, and again, size is unbelivable for the quality it outputs.(using also IQ4-XS version by HauHau - not only it weights 2 GB's more, but it also seem same quality, or Cerebellum is sometimes winning(hard to tell really, keeping both for now), but one thing is important, that Cerebellum supports Vision, while IQ4-XS does not, but if it would, there would't enough space for that). \nWondering if similar Heretic version would be for Qwen 35b too?",
+        "html": "<p>Hi. Cerebellum quantization is the best among  not-usual ('highly specific' quantizations(like APEX, or REAP, MAgic quants, etc)). It works well on almost only CPU and it is not hallucinating(mostly) and does not make mistakes(almost). Also used Gemma-4 26b heretic version - VERY capable one, and again, size is unbelivable for the quality it outputs.(using also IQ4-XS version by HauHau - not only it weights 2 GB's more, but it also seem same quality, or Cerebellum is sometimes winning(hard to tell really, keeping both for now), but one thing is important, that Cerebellum supports Vision, while IQ4-XS does not, but if it would, there would't enough space for that).<br>Wondering if similar Heretic version would be for Qwen 35b too?</p>\n",
+        "updatedAt": "2026-05-31T14:20:55.046Z",
+        "author": {
+         "_id": "6a1c40b50bf1ccc208b9bd06",
+         "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+         "fullname": "Theo",
+         "name": "TheodoreH",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 1,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9315301775932312
+       },
+       "editors": [
+        "TheodoreH"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/b200e1a4810731e7612a71b4987b14bb.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a1e821cd1fe1bede0d1216d",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-02T07:11:24.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> Hi. Cerebellum quantization is the best among  not-usual ('highly specific' quantizations(like APEX, or REAP, MAgic quants, etc)). It works well on almost only CPU and it is not hallucinating(mostly) and does not make mistakes(almost). Also used Gemma-4 26b heretic version - VERY capable one, and again, size is unbelivable for the quality it outputs.(using also IQ4-XS version by HauHau - not only it weights 2 GB's more, but it also seem same quality, or Cerebellum is sometimes winning(hard to tell really, keeping both for now), but one thing is important, that Cerebellum supports Vision, while IQ4-XS does not, but if it would, there would't enough space for that). \n\nThank you! I'm glad you're having a good time with the models, when I started doing this, I had no clue if it would be better or a waste of time. After benchmarking them in loops in opencode on random idea projects for a day or 2 each, I felt they were good enough to let others have, along with the process. So I'm really glad others experiences are reflecting mine. \n\n> Wondering if similar Heretic version would be for Qwen 35b too?\n\nYeah I'm looking into it now actually. I didn't find any other Qwen 35b heretics out there, so there's no base to start from which is the easy road as the recipe for the quants is pretty literally drag and drop, when used on the same exact model. So I'll do my best to reply back if I get a working heretic i'm happy with, or if you see one first, i can try to quant it and see if it does anything. Let me know if you have another other suggestions too, I'm definitely open to trying it.",
+        "html": "<blockquote>\n<p>Hi. Cerebellum quantization is the best among  not-usual ('highly specific' quantizations(like APEX, or REAP, MAgic quants, etc)). It works well on almost only CPU and it is not hallucinating(mostly) and does not make mistakes(almost). Also used Gemma-4 26b heretic version - VERY capable one, and again, size is unbelivable for the quality it outputs.(using also IQ4-XS version by HauHau - not only it weights 2 GB's more, but it also seem same quality, or Cerebellum is sometimes winning(hard to tell really, keeping both for now), but one thing is important, that Cerebellum supports Vision, while IQ4-XS does not, but if it would, there would't enough space for that). </p>\n</blockquote>\n<p>Thank you! I'm glad you're having a good time with the models, when I started doing this, I had no clue if it would be better or a waste of time. After benchmarking them in loops in opencode on random idea projects for a day or 2 each, I felt they were good enough to let others have, along with the process. So I'm really glad others experiences are reflecting mine. </p>\n<blockquote>\n<p>Wondering if similar Heretic version would be for Qwen 35b too?</p>\n</blockquote>\n<p>Yeah I'm looking into it now actually. I didn't find any other Qwen 35b heretics out there, so there's no base to start from which is the easy road as the recipe for the quants is pretty literally drag and drop, when used on the same exact model. So I'll do my best to reply back if I get a working heretic i'm happy with, or if you see one first, i can try to quant it and see if it does anything. Let me know if you have another other suggestions too, I'm definitely open to trying it.</p>\n",
+        "updatedAt": "2026-06-02T07:11:24.512Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9646317958831787
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a1ef3d1887d4a7686e46557",
+      "author": {
+       "_id": "6a1c40b50bf1ccc208b9bd06",
+       "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+       "fullname": "Theo",
+       "name": "TheodoreH",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-02T15:16:33.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> > Hi. Cerebellum quantization is the best among  not-usual ('highly specific' quantizations(like APEX, or REAP, MAgic quants, etc)). It works well on almost only CPU and it is not hallucinating(mostly) and does not make mistakes(almost). Also used Gemma-4 26b heretic version - VERY capable one, and again, size is unbelivable for the quality it outputs.(using also IQ4-XS version by HauHau - not only it weights 2 GB's more, but it also seem same quality, or Cerebellum is sometimes winning(hard to tell really, keeping both for now), but one thing is important, that Cerebellum supports Vision, while IQ4-XS does not, but if it would, there would't enough space for that). \n> \n> Thank you! I'm glad you're having a good time with the models, when I started doing this, I had no clue if it would be better or a waste of time. After benchmarking them in loops in opencode on random idea projects for a day or 2 each, I felt they were good enough to let others have, along with the process. So I'm really glad others experiences are reflecting mine. \n> \n> > Wondering if similar Heretic version would be for Qwen 35b too?\n> \n> Yeah I'm looking into it now actually. I didn't find any other Qwen 35b heretics out there, so there's no base to start from which is the easy road as the recipe for the quants is pretty literally drag and drop, when used on the same exact model. So I'll do my best to reply back if I get a working heretic i'm happy with, or if you see one first, i can try to quant it and see if it does anything. Let me know if you have another other suggestions too, I'm definitely open to trying it.\n\nDoes it need to be specific one? There are plenty without MTP and in 3.6 version:\nhttps://huggingface.co/TopherAU/Qwen3.6-35B-A3B-uncensored-heretic-GGUF\nhttps://huggingface.co/llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-GGUF\nhttps://huggingface.co/mradermacher/Qwen3.6-35B-A3B-Abliterated-Heretic-BF16-GGUF\nhttps://huggingface.co/Youssofal/Qwen3.6-35B-A3B-Abliterated-Heretic-GGUF\n\nOr just this, if it dont really matter if it is heretic one, but it is abliterated still:\nhttps://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive",
+        "html": "<blockquote>\n<blockquote>\n<p>Hi. Cerebellum quantization is the best among  not-usual ('highly specific' quantizations(like APEX, or REAP, MAgic quants, etc)). It works well on almost only CPU and it is not hallucinating(mostly) and does not make mistakes(almost). Also used Gemma-4 26b heretic version - VERY capable one, and again, size is unbelivable for the quality it outputs.(using also IQ4-XS version by HauHau - not only it weights 2 GB's more, but it also seem same quality, or Cerebellum is sometimes winning(hard to tell really, keeping both for now), but one thing is important, that Cerebellum supports Vision, while IQ4-XS does not, but if it would, there would't enough space for that). </p>\n</blockquote>\n<p>Thank you! I'm glad you're having a good time with the models, when I started doing this, I had no clue if it would be better or a waste of time. After benchmarking them in loops in opencode on random idea projects for a day or 2 each, I felt they were good enough to let others have, along with the process. So I'm really glad others experiences are reflecting mine. </p>\n<blockquote>\n<p>Wondering if similar Heretic version would be for Qwen 35b too?</p>\n</blockquote>\n<p>Yeah I'm looking into it now actually. I didn't find any other Qwen 35b heretics out there, so there's no base to start from which is the easy road as the recipe for the quants is pretty literally drag and drop, when used on the same exact model. So I'll do my best to reply back if I get a working heretic i'm happy with, or if you see one first, i can try to quant it and see if it does anything. Let me know if you have another other suggestions too, I'm definitely open to trying it.</p>\n</blockquote>\n<p>Does it need to be specific one? There are plenty without MTP and in 3.6 version:<br><a href=\"https://huggingface.co/TopherAU/Qwen3.6-35B-A3B-uncensored-heretic-GGUF\">https://huggingface.co/TopherAU/Qwen3.6-35B-A3B-uncensored-heretic-GGUF</a><br><a href=\"https://huggingface.co/llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-GGUF\">https://huggingface.co/llmfan46/Qwen3.6-35B-A3B-uncensored-heretic-GGUF</a><br><a href=\"https://huggingface.co/mradermacher/Qwen3.6-35B-A3B-Abliterated-Heretic-BF16-GGUF\">https://huggingface.co/mradermacher/Qwen3.6-35B-A3B-Abliterated-Heretic-BF16-GGUF</a><br><a href=\"https://huggingface.co/Youssofal/Qwen3.6-35B-A3B-Abliterated-Heretic-GGUF\">https://huggingface.co/Youssofal/Qwen3.6-35B-A3B-Abliterated-Heretic-GGUF</a></p>\n<p>Or just this, if it dont really matter if it is heretic one, but it is abliterated still:<br><a href=\"https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive\">https://huggingface.co/HauhauCS/Qwen3.6-35B-A3B-Uncensored-HauhauCS-Aggressive</a></p>\n",
+        "updatedAt": "2026-06-02T15:16:33.618Z",
+        "author": {
+         "_id": "6a1c40b50bf1ccc208b9bd06",
+         "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+         "fullname": "Theo",
+         "name": "TheodoreH",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9353314638137817
+       },
+       "editors": [
+        "TheodoreH"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/b200e1a4810731e7612a71b4987b14bb.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a1f1ee949a34bdc9b6d05d5",
+      "author": {
+       "_id": "6a1c40b50bf1ccc208b9bd06",
+       "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+       "fullname": "Theo",
+       "name": "TheodoreH",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-02T18:20:25.000Z",
+      "type": "comment",
+      "data": {
+       "edited": true,
+       "hidden": false,
+       "latest": {
+        "raw": "Also, it is greatly impressive that other languages is mostly untouched with your Quant metod! Tried a lot of Reaps and dont really know how they could be usable even on 4km. Apex quants is somewhat good, but yours is probably the best, and space required even less, really impressive. Totally waiting for unrestricted version!",
+        "html": "<p>Also, it is greatly impressive that other languages is mostly untouched with your Quant metod! Tried a lot of Reaps and dont really know how they could be usable even on 4km. Apex quants is somewhat good, but yours is probably the best, and space required even less, really impressive. Totally waiting for unrestricted version!</p>\n",
+        "updatedAt": "2026-06-02T18:20:49.131Z",
+        "author": {
+         "_id": "6a1c40b50bf1ccc208b9bd06",
+         "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+         "fullname": "Theo",
+         "name": "TheodoreH",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 1,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9772554636001587
+       },
+       "editors": [
+        "TheodoreH"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/b200e1a4810731e7612a71b4987b14bb.svg"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "deucebucket"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a1f2427d21d7528b5cad37c",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-02T18:42:47.000Z",
+      "type": "comment",
+      "data": {
+       "edited": true,
+       "hidden": false,
+       "latest": {
+        "raw": "> Does it need to be specific one? \n\nNo it definitely doesn't, i just heard heretic models tend to be a bit crazy, so i just didn't know where one to go with, the last heretic base was suggested as pretty normal, and it was. So if you know which of these is probably the least off base that'd help, but i do wonder if some how cerebellum could rip a model back from the jaws of madness, it already seems to do odd stuff at smaller sizes so who knows. im always down to experiment, i just pick and choose as i run the jobs while im at work on my gaming rig, and im gaming or using the models when im home, so there may be some lag, but i do work a full 40 so it gives me a good chunk of hours to run stuff. I do wish i had more vram, im curious what it could do to a super large model like deepseek or similar, as on my 3090 i was trying to run heretic on the q36 35b and could not get it to fit no matter what i did and was looking at a multi week endeavor lol im saving for another 3090  eventually so hopefully it'll grow the abilities.",
+        "html": "<blockquote>\n<p>Does it need to be specific one? </p>\n</blockquote>\n<p>No it definitely doesn't, i just heard heretic models tend to be a bit crazy, so i just didn't know where one to go with, the last heretic base was suggested as pretty normal, and it was. So if you know which of these is probably the least off base that'd help, but i do wonder if some how cerebellum could rip a model back from the jaws of madness, it already seems to do odd stuff at smaller sizes so who knows. im always down to experiment, i just pick and choose as i run the jobs while im at work on my gaming rig, and im gaming or using the models when im home, so there may be some lag, but i do work a full 40 so it gives me a good chunk of hours to run stuff. I do wish i had more vram, im curious what it could do to a super large model like deepseek or similar, as on my 3090 i was trying to run heretic on the q36 35b and could not get it to fit no matter what i did and was looking at a multi week endeavor lol im saving for another 3090  eventually so hopefully it'll grow the abilities.</p>\n",
+        "updatedAt": "2026-06-02T18:43:07.203Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 1,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.970770001411438
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a1f348a03535d1adbf8dce9",
+      "author": {
+       "_id": "6a1c40b50bf1ccc208b9bd06",
+       "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+       "fullname": "Theo",
+       "name": "TheodoreH",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-02T19:52:42.000Z",
+      "type": "comment",
+      "data": {
+       "edited": true,
+       "hidden": false,
+       "latest": {
+        "raw": "> How did you even end up with that quantization, and why nobody else did that?\n\nHah, I think a lot of people would hate this answer, but I honestly feel my lack of knowledge on the subject as a whole also takes away what's impossible. I had it explained to me like I was 5 how quantz work, and I explained back like I was 5 (lol) how I think it should work. In my head I guess I can conceptualize even foreign subjects as long as I can break them down to base principals. So after projects kept turning into other projects, and morphing into new projects, I landed on cerebellum.\n\nit was originally a project to try to make a MoA of Bonsai 1bit 9b models, then turned into a way to generate I matrix on cpu with osmosis. Then while thinking about quantz, I was just thinking about how much of the brain you'd need just to think and have thoughts. Well you could trim away a large amount, which is funny because in movies the brain in a jar is always a full brain, but it's probably because a jar with a small piece of a brain wouldn't be recognized. So I just wondered how deep into models we can go when quanting. So I just ran ppl tests on quanted layers to find the perfect zone. And there's actually layers that perform better at lower quants, the way I look at it is: if you know a lot about cooking, but are bad at math, what happens to your math knowledge if you were to silence the noise of cooking in a way that the numbers spoke louder, in a way where there wasn't so much useless noise surrounding the thoughts. \n\nAlso, I think I'm on the spectrum \ud83e\udd23",
+        "html": "<blockquote>\n<p>How did you even end up with that quantization, and why nobody else did that?</p>\n</blockquote>\n<p>Hah, I think a lot of people would hate this answer, but I honestly feel my lack of knowledge on the subject as a whole also takes away what's impossible. I had it explained to me like I was 5 how quantz work, and I explained back like I was 5 (lol) how I think it should work. In my head I guess I can conceptualize even foreign subjects as long as I can break them down to base principals. So after projects kept turning into other projects, and morphing into new projects, I landed on cerebellum.</p>\n<p>it was originally a project to try to make a MoA of Bonsai 1bit 9b models, then turned into a way to generate I matrix on cpu with osmosis. Then while thinking about quantz, I was just thinking about how much of the brain you'd need just to think and have thoughts. Well you could trim away a large amount, which is funny because in movies the brain in a jar is always a full brain, but it's probably because a jar with a small piece of a brain wouldn't be recognized. So I just wondered how deep into models we can go when quanting. So I just ran ppl tests on quanted layers to find the perfect zone. And there's actually layers that perform better at lower quants, the way I look at it is: if you know a lot about cooking, but are bad at math, what happens to your math knowledge if you were to silence the noise of cooking in a way that the numbers spoke louder, in a way where there wasn't so much useless noise surrounding the thoughts. </p>\n<p>Also, I think I'm on the spectrum \ud83e\udd23</p>\n",
+        "updatedAt": "2026-06-02T20:07:44.738Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 1,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9769653081893921
+       },
+       "editors": [
+        "deucebucket",
+        "TheodoreH"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+        "/avatars/b200e1a4810731e7612a71b4987b14bb.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a1f3ce5887d4a7686f54217",
+      "author": {
+       "_id": "6a1c40b50bf1ccc208b9bd06",
+       "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+       "fullname": "Theo",
+       "name": "TheodoreH",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-02T20:28:21.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "\n>which is funny because in movies the brain in a jar is always a full brain, but it's probably because a jar with a small piece of a brain wouldn't be recognized. So I just wondered how deep into models we can go when quanting.\n\nthat is interesting thought. But during deletion of the centers that rule the movement or other bodily processes - it is possible to harm those that is important for thinking alone. and so on and so on...\n\nBut, If you take away coocking, would it really be better at math? But you didnt delete anything from model like a surgeon would. But yet, you made the model weight less, and produce not that big amount of noise\n",
+        "html": "<blockquote>\n<p>which is funny because in movies the brain in a jar is always a full brain, but it's probably because a jar with a small piece of a brain wouldn't be recognized. So I just wondered how deep into models we can go when quanting.</p>\n</blockquote>\n<p>that is interesting thought. But during deletion of the centers that rule the movement or other bodily processes - it is possible to harm those that is important for thinking alone. and so on and so on...</p>\n<p>But, If you take away coocking, would it really be better at math? But you didnt delete anything from model like a surgeon would. But yet, you made the model weight less, and produce not that big amount of noise</p>\n",
+        "updatedAt": "2026-06-02T20:28:21.714Z",
+        "author": {
+         "_id": "6a1c40b50bf1ccc208b9bd06",
+         "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+         "fullname": "Theo",
+         "name": "TheodoreH",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9831598997116089
+       },
+       "editors": [
+        "TheodoreH"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/b200e1a4810731e7612a71b4987b14bb.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a218aeb4f2424fe6d3638ea",
+      "author": {
+       "_id": "6a1c40b50bf1ccc208b9bd06",
+       "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+       "fullname": "Theo",
+       "name": "TheodoreH",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-04T14:25:47.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Now, I talk about Cerebellum quants where it is possible, because this one is really capable and usable in such small size, truly impressive! But really, could it been done a bit better, so some quants are 3K, and even 4K to fit in 14 gbRAM? But anyway, this is more than enough, because everywhere and everybody says that for low VRam rigs 2b-4b is the way to go, but 8-10t/s with 35 and 26b models on 4Vram and 16 ram, is super usable, 4b dont stand a chance with it. Waiting for  unrestricted version, because again, APEX-mini, while fitting on 16gb, is quite broken(seems like calibration is not as good as Cerebellum`s!)",
+        "html": "<p>Now, I talk about Cerebellum quants where it is possible, because this one is really capable and usable in such small size, truly impressive! But really, could it been done a bit better, so some quants are 3K, and even 4K to fit in 14 gbRAM? But anyway, this is more than enough, because everywhere and everybody says that for low VRam rigs 2b-4b is the way to go, but 8-10t/s with 35 and 26b models on 4Vram and 16 ram, is super usable, 4b dont stand a chance with it. Waiting for  unrestricted version, because again, APEX-mini, while fitting on 16gb, is quite broken(seems like calibration is not as good as Cerebellum`s!)</p>\n",
+        "updatedAt": "2026-06-04T14:25:47.896Z",
+        "author": {
+         "_id": "6a1c40b50bf1ccc208b9bd06",
+         "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+         "fullname": "Theo",
+         "name": "TheodoreH",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9689806699752808
+       },
+       "editors": [
+        "TheodoreH"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/b200e1a4810731e7612a71b4987b14bb.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a22329a1637bce3f18debbd",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-05T02:21:14.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> Now, I talk about Cerebellum quants where it is possible, because this one is really capable and usable in such small size, truly impressive! But really, could it been done a bit better, so some quants are 3K, and even 4K to fit in 14 gbRAM? But anyway, this is more than enough, because everywhere and everybody says that for low VRam rigs 2b-4b is the way to go, but 8-10t/s with 35 and 26b models on 4Vram and 16 ram, is super usable, 4b dont stand a chance with it. Waiting for  unrestricted version, because again, APEX-mini, while fitting on 16gb, is quite broken(seems like calibration is not as good as Cerebellum`s!)\n\nthats awesome to hear! currently working on the heretic gguf for qwen 3.6 its just taking for ever on my system. But one day lol\n\neta       current 5.0s avg/tensor 31m34s total 168h58m                               \u2502done       Thu 2026-06-11 22:18 CDT \n\nits a slog, and then i gotta hope its good enough to let anyone see, or delete it in shame and learn from the data lol",
+        "html": "<blockquote>\n<p>Now, I talk about Cerebellum quants where it is possible, because this one is really capable and usable in such small size, truly impressive! But really, could it been done a bit better, so some quants are 3K, and even 4K to fit in 14 gbRAM? But anyway, this is more than enough, because everywhere and everybody says that for low VRam rigs 2b-4b is the way to go, but 8-10t/s with 35 and 26b models on 4Vram and 16 ram, is super usable, 4b dont stand a chance with it. Waiting for  unrestricted version, because again, APEX-mini, while fitting on 16gb, is quite broken(seems like calibration is not as good as Cerebellum`s!)</p>\n</blockquote>\n<p>thats awesome to hear! currently working on the heretic gguf for qwen 3.6 its just taking for ever on my system. But one day lol</p>\n<p>eta       current 5.0s avg/tensor 31m34s total 168h58m                               \u2502done       Thu 2026-06-11 22:18 CDT </p>\n<p>its a slog, and then i gotta hope its good enough to let anyone see, or delete it in shame and learn from the data lol</p>\n",
+        "updatedAt": "2026-06-05T02:21:14.093Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9607206583023071
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a227c58f52962ecfb3f3610",
+      "author": {
+       "_id": "6a1c40b50bf1ccc208b9bd06",
+       "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+       "fullname": "Theo",
+       "name": "TheodoreH",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-05T07:35:52.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> > Now, I talk about Cerebellum quants where it is possible, because this one is really capable and usable in such small size, truly impressive! But really, could it been done a bit better, so some quants are 3K, and even 4K to fit in 14 gbRAM? But anyway, this is more than enough, because everywhere and everybody says that for low VRam rigs 2b-4b is the way to go, but 8-10t/s with 35 and 26b models on 4Vram and 16 ram, is super usable, 4b dont stand a chance with it. Waiting for  unrestricted version, because again, APEX-mini, while fitting on 16gb, is quite broken(seems like calibration is not as good as Cerebellum`s!)\n> \n> thats awesome to hear! currently working on the heretic gguf for qwen 3.6 its just taking for ever on my system. But one day lol\n> \n> eta       current 5.0s avg/tensor 31m34s total 168h58m                               \u2502done       Thu 2026-06-11 22:18 CDT \n> \n> its a slog, and then i gotta hope its good enough to let anyone see, or delete it in shame and learn from the data lol\n\nreally waiting for it! Tried again some other Qwen 35b quants, with per weight and other, few variants and all they are really broken, broken compared to your Cerebellum Qwen 3.6.",
+        "html": "<blockquote>\n<blockquote>\n<p>Now, I talk about Cerebellum quants where it is possible, because this one is really capable and usable in such small size, truly impressive! But really, could it been done a bit better, so some quants are 3K, and even 4K to fit in 14 gbRAM? But anyway, this is more than enough, because everywhere and everybody says that for low VRam rigs 2b-4b is the way to go, but 8-10t/s with 35 and 26b models on 4Vram and 16 ram, is super usable, 4b dont stand a chance with it. Waiting for  unrestricted version, because again, APEX-mini, while fitting on 16gb, is quite broken(seems like calibration is not as good as Cerebellum`s!)</p>\n</blockquote>\n<p>thats awesome to hear! currently working on the heretic gguf for qwen 3.6 its just taking for ever on my system. But one day lol</p>\n<p>eta       current 5.0s avg/tensor 31m34s total 168h58m                               \u2502done       Thu 2026-06-11 22:18 CDT </p>\n<p>its a slog, and then i gotta hope its good enough to let anyone see, or delete it in shame and learn from the data lol</p>\n</blockquote>\n<p>really waiting for it! Tried again some other Qwen 35b quants, with per weight and other, few variants and all they are really broken, broken compared to your Cerebellum Qwen 3.6.</p>\n",
+        "updatedAt": "2026-06-05T07:35:52.726Z",
+        "author": {
+         "_id": "6a1c40b50bf1ccc208b9bd06",
+         "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+         "fullname": "Theo",
+         "name": "TheodoreH",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9596530795097351
+       },
+       "editors": [
+        "TheodoreH"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/b200e1a4810731e7612a71b4987b14bb.svg"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "deucebucket"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a2996b47826b42a8b7911ea",
+      "author": {
+       "_id": "6a1c40b50bf1ccc208b9bd06",
+       "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+       "fullname": "Theo",
+       "name": "TheodoreH",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-10T16:54:12.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Hi, seems like No Qwen Heretic coming?",
+        "html": "<p>Hi, seems like No Qwen Heretic coming?</p>\n",
+        "updatedAt": "2026-06-10T16:54:12.092Z",
+        "author": {
+         "_id": "6a1c40b50bf1ccc208b9bd06",
+         "avatarUrl": "/avatars/b200e1a4810731e7612a71b4987b14bb.svg",
+         "fullname": "Theo",
+         "name": "TheodoreH",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9873450994491577
+       },
+       "editors": [
+        "TheodoreH"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/b200e1a4810731e7612a71b4987b14bb.svg"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83d\udc40",
+         "users": [
+          "deucebucket"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a2a871ae4297100ac43e67b",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-11T09:59:54.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> Hi, seems like No Qwen Heretic coming?\n\nhaha, sorry i got off track with other projects after one pretty bad failure with a heretic, the hauhau one. My brain jumps around quite a bit, but its still in the list. Thank you for reminding me, i have a few other candidates i have been wanting to try as well. Just gotta get some free time away from work and not wanting to game lol. And i refuse to release something subpar, so if it doesn't pass i am not gonna push it out, not saying it'll be perfect by any means. \n\n\nThese are the other things i fell into, all model related if you wanna check them out, and like how my brain tends to work :)\nhttps://github.com/deucebucket/clanker\nhttps://github.com/deucebucket/cerebellum-brainloop\n\n",
+        "html": "<blockquote>\n<p>Hi, seems like No Qwen Heretic coming?</p>\n</blockquote>\n<p>haha, sorry i got off track with other projects after one pretty bad failure with a heretic, the hauhau one. My brain jumps around quite a bit, but its still in the list. Thank you for reminding me, i have a few other candidates i have been wanting to try as well. Just gotta get some free time away from work and not wanting to game lol. And i refuse to release something subpar, so if it doesn't pass i am not gonna push it out, not saying it'll be perfect by any means. </p>\n<p>These are the other things i fell into, all model related if you wanna check them out, and like how my brain tends to work :)<br><a href=\"https://github.com/deucebucket/clanker\" rel=\"nofollow\">https://github.com/deucebucket/clanker</a><br><a href=\"https://github.com/deucebucket/cerebellum-brainloop\" rel=\"nofollow\">https://github.com/deucebucket/cerebellum-brainloop</a></p>\n",
+        "updatedAt": "2026-06-11T09:59:54.119Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9573624134063721
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\ud83d\udd25",
+         "users": [
+          "TheodoreH"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a2b1ffc4c4f6167e65a3390",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-11T20:52:12.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "> Hi, seems like No Qwen Heretic coming?\n\nhttps://huggingface.co/deucebucket/Qwen3.6-35B-A3B-Heretic-Cerebellum-GGUF - keep an eye here,",
+        "html": "<blockquote>\n<p>Hi, seems like No Qwen Heretic coming?</p>\n</blockquote>\n<p><a href=\"https://huggingface.co/deucebucket/Qwen3.6-35B-A3B-Heretic-Cerebellum-GGUF\">https://huggingface.co/deucebucket/Qwen3.6-35B-A3B-Heretic-Cerebellum-GGUF</a> - keep an eye here,</p>\n",
+        "updatedAt": "2026-06-11T20:52:12.257Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.8670077323913574
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   },
+   "2": {
+    "_id": "6a04815a9273e273752f9d0b",
+    "author": {
+     "_id": "6519623115e21edaf7da876c",
+     "avatarUrl": "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg",
+     "fullname": "John Doe",
+     "name": "Tribbler",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "isUserFollowing": false
+    },
+    "num": 2,
+    "repo": {
+     "name": "deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF",
+     "type": "model"
+    },
+    "title": "The first adjusted model I've used that actually seems to be equal-or-better to previous alternatives",
+    "status": "open",
+    "createdAt": "2026-05-13T13:49:14.000Z",
+    "events": [
+     {
+      "id": "6a04815a9273e273752f9d0b",
+      "author": {
+       "_id": "6519623115e21edaf7da876c",
+       "avatarUrl": "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg",
+       "fullname": "John Doe",
+       "name": "Tribbler",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-13T13:49:14.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Just wanted to say - good stuff. From my usage it seems equal-or-better to IQ3_XXS while being notably smaller. ",
+        "html": "<p>Just wanted to say - good stuff. From my usage it seems equal-or-better to IQ3_XXS while being notably smaller. </p>\n",
+        "updatedAt": "2026-05-13T13:49:14.762Z",
+        "author": {
+         "_id": "6519623115e21edaf7da876c",
+         "avatarUrl": "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg",
+         "fullname": "John Doe",
+         "name": "Tribbler",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9786219596862793
+       },
+       "editors": [
+        "Tribbler"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a04c017524a8363d9f93fb1",
+      "author": {
+       "_id": "6519623115e21edaf7da876c",
+       "avatarUrl": "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg",
+       "fullname": "John Doe",
+       "name": "Tribbler",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-13T18:16:55.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Actually, upon further usage, there's something I *did* notice - this model seems significantly worse at vision than IQ3_XXS. It starts looping, cutting off output, etc. Might be worth checking out. Also looping propensity in general, possibly as a target for optimization.\n",
+        "html": "<p>Actually, upon further usage, there's something I <em>did</em> notice - this model seems significantly worse at vision than IQ3_XXS. It starts looping, cutting off output, etc. Might be worth checking out. Also looping propensity in general, possibly as a target for optimization.</p>\n",
+        "updatedAt": "2026-05-13T18:16:55.597Z",
+        "author": {
+         "_id": "6519623115e21edaf7da876c",
+         "avatarUrl": "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg",
+         "fullname": "John Doe",
+         "name": "Tribbler",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.94720059633255
+       },
+       "editors": [
+        "Tribbler"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a04c81bc2d7fa606932a6a7",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-13T18:51:07.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "This is something I've noticed too. It's very good at one shot tool calls, and is very good at interaction. So I need to do another ablation review targeting thinking, as that is what seems to cause the most loops. Thanks for trying it out, I hope it's of some use. ",
+        "html": "<p>This is something I've noticed too. It's very good at one shot tool calls, and is very good at interaction. So I need to do another ablation review targeting thinking, as that is what seems to cause the most loops. Thanks for trying it out, I hope it's of some use. </p>\n",
+        "updatedAt": "2026-05-13T18:51:07.414Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9942588806152344
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a06b84780af86b7c0bdb99d",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-15T06:08:07.000Z",
+      "type": "comment",
+      "data": {
+       "edited": true,
+       "hidden": false,
+       "latest": {
+        "raw": "Thanks for the report \u2014 I investigated this today.\n\n**Short version**: It is likely quantization damage from v1 being too aggressive, not a C++ bug. v1 put attention QKV and all routed expert weights at Q2_K across all 40 layers, which explains both vision degradation and reasoning looping.\n\n**v2 overrides already exist** that protect attn_qkv + routed experts at Q3_K_M. I just need to build and test V2\nWill update this thread when v2 is available.",
+        "html": "<p>Thanks for the report \u2014 I investigated this today.</p>\n<p><strong>Short version</strong>: It is likely quantization damage from v1 being too aggressive, not a C++ bug. v1 put attention QKV and all routed expert weights at Q2_K across all 40 layers, which explains both vision degradation and reasoning looping.</p>\n<p><strong>v2 overrides already exist</strong> that protect attn_qkv + routed experts at Q3_K_M. I just need to build and test V2<br>Will update this thread when v2 is available.</p>\n",
+        "updatedAt": "2026-05-15T06:09:37.437Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 1,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9174784421920776
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a070fb1d3a29408b20c7f49",
+      "author": {
+       "_id": "6519623115e21edaf7da876c",
+       "avatarUrl": "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg",
+       "fullname": "John Doe",
+       "name": "Tribbler",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-15T12:21:05.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Glad to hear that! Looking forward to it, and thank you for sharing the results of your work.",
+        "html": "<p>Glad to hear that! Looking forward to it, and thank you for sharing the results of your work.</p>\n",
+        "updatedAt": "2026-05-15T12:21:05.530Z",
+        "author": {
+         "_id": "6519623115e21edaf7da876c",
+         "avatarUrl": "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg",
+         "fullname": "John Doe",
+         "name": "Tribbler",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9660181999206543
+       },
+       "editors": [
+        "Tribbler"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/0a52632f1856c9ed58e7d5c523fb7b8e.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "6a0b95414b2d0d9b890c6b60",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-18T22:40:01.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Correction after more testing: the vision issue was not confirmed quantization damage in the main v1 GGUF. The original upload was missing the required `mmproj-F16.gguf` vision projector, so image input was not packaged correctly.\n\nI uploaded the missing `mmproj-F16.gguf` and updated the README with the proper llama.cpp command:\n\n```bash\nllama-server \\\n  --model Qwen3.6-35B-A3B-Cerebellum.gguf \\\n  --mmproj mmproj-F16.gguf \\\n  --n-gpu-layers 99 \\\n  --ctx-size 8192 \\\n  --reasoning off \\\n  --reasoning-budget 0\n```\n\nRetested with the projector attached:\n\n| Model | Size | Vision smoke | RealWorldQA 200 |\n|---|---:|---:|---:|\n| Cerebellum v1 | 12 GB | 36/36 | 156/200, 78.0% |\n| Cerebellum v2 test build | 15 GB | 36/36 | 156/200, 78.0% |\n| Stock Q3_K_M baseline | 16 GB | 36/36 | 155/200, 77.5% |\n\nSo v1 with the proper vision file performs as well as the stock Q3_K_M baseline on this vision check. The v2 test build added about 3 GB and did not give a worthwhile gain, so I am keeping the corrected v1 package as the recommended release. Thanks again for catching/reporting the vision problem.",
+        "html": "<p>Correction after more testing: the vision issue was not confirmed quantization damage in the main v1 GGUF. The original upload was missing the required <code>mmproj-F16.gguf</code> vision projector, so image input was not packaged correctly.</p>\n<p>I uploaded the missing <code>mmproj-F16.gguf</code> and updated the README with the proper llama.cpp command:</p>\n<pre><code class=\"language-bash\">llama-server \\\n  --model Qwen3.6-35B-A3B-Cerebellum.gguf \\\n  --mmproj mmproj-F16.gguf \\\n  --n-gpu-layers 99 \\\n  --ctx-size 8192 \\\n  --reasoning off \\\n  --reasoning-budget 0\n</code></pre>\n<p>Retested with the projector attached:</p>\n<div class=\"max-w-full overflow-auto\">\n\t<table>\n\t\t<thead><tr>\n<th>Model</th>\n<th align=\"right\">Size</th>\n<th align=\"right\">Vision smoke</th>\n<th align=\"right\">RealWorldQA 200</th>\n</tr>\n\n\t\t</thead><tbody><tr>\n<td>Cerebellum v1</td>\n<td align=\"right\">12 GB</td>\n<td align=\"right\">36/36</td>\n<td align=\"right\">156/200, 78.0%</td>\n</tr>\n<tr>\n<td>Cerebellum v2 test build</td>\n<td align=\"right\">15 GB</td>\n<td align=\"right\">36/36</td>\n<td align=\"right\">156/200, 78.0%</td>\n</tr>\n<tr>\n<td>Stock Q3_K_M baseline</td>\n<td align=\"right\">16 GB</td>\n<td align=\"right\">36/36</td>\n<td align=\"right\">155/200, 77.5%</td>\n</tr>\n</tbody>\n\t</table>\n</div>\n<p>So v1 with the proper vision file performs as well as the stock Q3_K_M baseline on this vision check. The v2 test build added about 3 GB and did not give a worthwhile gain, so I am keeping the corrected v1 package as the recommended release. Thanks again for catching/reporting the vision problem.</p>\n",
+        "updatedAt": "2026-05-18T22:40:01.359Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.8105422854423523
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   },
+   "1": {
+    "_id": "69f5c2dcdc0f21b75e7450af",
+    "author": {
+     "_id": "63d2be672727d7888cb75f4c",
+     "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+     "fullname": "Jerry Mares",
+     "name": "deucebucket",
+     "type": "user",
+     "isPro": true,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "followerCount": 16,
+     "isUserFollowing": false
+    },
+    "num": 1,
+    "repo": {
+     "name": "deucebucket/Qwen3.6-35B-A3B-Cerebellum-GGUF",
+     "type": "model"
+    },
+    "title": "Qwen 3.6 35B-A3B Cerebellum \u2014 12 GB, fits 16 GB VRAM",
+    "status": "open",
+    "createdAt": "2026-05-02T09:24:44.000Z",
+    "events": [
+     {
+      "id": "69f5c2dcdc0f21b75e7450af",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-02T09:24:44.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "First Cerebellum release for Qwen 3.6 35B-A3B (hybrid SSM+MoE, 256 experts per layer, 8 active per token).\n\n**12 GB single file** \u2014 fits in 16 GB VRAM with room for 8K context.\n\n## Benchmarks (measured on this file)\n\n| Benchmark | Score |\n|-----------|-------|\n| ARC-Challenge | 94.8% |\n| HellaSwag | 91.5% |\n| MMLU-Redux | 73.9% |\n| HumanEval pass@1 | 75.0% |\n| Perplexity (WikiText-2) | 7.85 |\n\n## How it works\n\nCerebellum measures which tensor groups survive extreme compression and which don't. This file has 400 tensor-level overrides from group ablation, reverse ablation, and router surgery across all 40 layers.\n\nKey finding: 10 of 11 tensor groups tolerated Q2_K with under 2% degradation. 7 of those actually performed *better* at Q2_K \u2014 imatrix-guided Q2_K acts as beneficial regularization on gate/mixing weights in this architecture.\n\nFinal BPW: 2.73\n\n## Usage\n\n```bash\nllama-server --model Qwen3.6-35B-A3B-Cerebellum.gguf --n-gpu-layers 99 --ctx-size 8192\n```\n\nFeedback welcome. More Cerebellum releases coming for other models.",
+        "html": "<p>First Cerebellum release for Qwen 3.6 35B-A3B (hybrid SSM+MoE, 256 experts per layer, 8 active per token).</p>\n<p><strong>12 GB single file</strong> \u2014 fits in 16 GB VRAM with room for 8K context.</p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"benchmarks-measured-on-this-file\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#benchmarks-measured-on-this-file\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tBenchmarks (measured on this file)\n\t</span>\n</h2>\n<div class=\"max-w-full overflow-auto\">\n\t<table>\n\t\t<thead><tr>\n<th>Benchmark</th>\n<th>Score</th>\n</tr>\n\n\t\t</thead><tbody><tr>\n<td>ARC-Challenge</td>\n<td>94.8%</td>\n</tr>\n<tr>\n<td>HellaSwag</td>\n<td>91.5%</td>\n</tr>\n<tr>\n<td>MMLU-Redux</td>\n<td>73.9%</td>\n</tr>\n<tr>\n<td>HumanEval pass@1</td>\n<td>75.0%</td>\n</tr>\n<tr>\n<td>Perplexity (WikiText-2)</td>\n<td>7.85</td>\n</tr>\n</tbody>\n\t</table>\n</div>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"how-it-works\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#how-it-works\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tHow it works\n\t</span>\n</h2>\n<p>Cerebellum measures which tensor groups survive extreme compression and which don't. This file has 400 tensor-level overrides from group ablation, reverse ablation, and router surgery across all 40 layers.</p>\n<p>Key finding: 10 of 11 tensor groups tolerated Q2_K with under 2% degradation. 7 of those actually performed <em>better</em> at Q2_K \u2014 imatrix-guided Q2_K acts as beneficial regularization on gate/mixing weights in this architecture.</p>\n<p>Final BPW: 2.73</p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"usage\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#usage\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tUsage\n\t</span>\n</h2>\n<pre><code class=\"language-bash\">llama-server --model Qwen3.6-35B-A3B-Cerebellum.gguf --n-gpu-layers 99 --ctx-size 8192\n</code></pre>\n<p>Feedback welcome. More Cerebellum releases coming for other models.</p>\n",
+        "updatedAt": "2026-05-02T09:24:44.633Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.7804918885231018
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [
+        {
+         "reaction": "\u2764\ufe0f",
+         "users": [
+          "ibaldonl"
+         ],
+         "count": 1
+        }
+       ],
+       "isReport": false
+      }
+     },
+     {
+      "id": "69faeb2d9c440b136bc4d436",
+      "author": {
+       "_id": "655979f37b098f9cb501fe91",
+       "avatarUrl": "/avatars/d9cda9e3403f4a2c12e6e1738fc0fb03.svg",
+       "fullname": "caifeng",
+       "name": "cai2023",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-06T07:18:05.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "Thank you for providing such an excellent model.",
+        "html": "<p>Thank you for providing such an excellent model.</p>\n",
+        "updatedAt": "2026-05-06T07:18:05.307Z",
+        "author": {
+         "_id": "655979f37b098f9cb501fe91",
+         "avatarUrl": "/avatars/d9cda9e3403f4a2c12e6e1738fc0fb03.svg",
+         "fullname": "caifeng",
+         "name": "cai2023",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.8421271443367004
+       },
+       "editors": [
+        "cai2023"
+       ],
+       "editorAvatarUrls": [
+        "/avatars/d9cda9e3403f4a2c12e6e1738fc0fb03.svg"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "69faf29c4a531f010ca2ee2a",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-05-06T07:49:48.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "thanks for trying it. let me know where it falls over for you, what stuff it gets wrong, anything weird you notice. if i figure out how to fix that area in a future build ill ping you back.",
+        "html": "<p>thanks for trying it. let me know where it falls over for you, what stuff it gets wrong, anything weird you notice. if i figure out how to fix that area in a future build ill ping you back.</p>\n",
+        "updatedAt": "2026-05-06T07:49:48.533Z",
+        "author": {
+         "_id": "63d2be672727d7888cb75f4c",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+         "fullname": "Jerry Mares",
+         "name": "deucebucket",
+         "type": "user",
+         "isPro": true,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 16,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.9696329832077026
+       },
+       "editors": [
+        "deucebucket"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   }
+  }
+ },
+ "deucebucket/Granite-4.0-H-Small-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Qwen3-30B-A3B-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Granite-4.1-30B-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Qwen3-32B-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Qwen3-14B-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Gemma-4-E2B-it-Cerebellum-v2-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/Qwen3.5-122B-A10B-Cerebellum-GGUF": {
+  "kind": "models",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/cerebellum-eval-logs": {
+  "kind": "datasets",
+  "list": {
+   "discussions": [],
+   "count": 0,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {}
+ },
+ "deucebucket/cerebellum-brainloop": {
+  "kind": "datasets",
+  "list": {
+   "discussions": [
+    {
+     "num": 1,
+     "author": {
+      "_id": "61f02cf649ea1fb7363729dc",
+      "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png",
+      "fullname": "Parquet-converter (BOT)",
+      "name": "parquet-converter",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "followerCount": 358,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/cerebellum-brainloop",
+      "type": "dataset"
+     },
+     "title": "[bot] Conversion to Parquet",
+     "status": "open",
+     "createdAt": "2026-06-11T00:11:53.000Z",
+     "isPullRequest": false,
+     "numComments": 1,
+     "topReactions": [],
+     "numReactionUsers": 0,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": false,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    }
+   ],
+   "count": 1,
+   "start": 0,
+   "numClosedDiscussions": 0
+  },
+  "threads": {
+   "1": {
+    "_id": "6a29fd494b03367c3810fb58",
+    "author": {
+     "_id": "61f02cf649ea1fb7363729dc",
+     "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png",
+     "fullname": "Parquet-converter (BOT)",
+     "name": "parquet-converter",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "followerCount": 358,
+     "isUserFollowing": false
+    },
+    "num": 1,
+    "repo": {
+     "name": "deucebucket/cerebellum-brainloop",
+     "type": "dataset"
+    },
+    "title": "[bot] Conversion to Parquet",
+    "status": "open",
+    "createdAt": "2026-06-11T00:11:53.000Z",
+    "events": [
+     {
+      "id": "6a29fd494b03367c3810fb58",
+      "author": {
+       "_id": "61f02cf649ea1fb7363729dc",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png",
+       "fullname": "Parquet-converter (BOT)",
+       "name": "parquet-converter",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 358,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-06-11T00:11:53.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "The parquet-converter bot has created a version of this dataset in the Parquet format in the [`refs/convert/parquet`](https://huggingface.co/datasets/deucebucket/cerebellum-brainloop/tree/refs%2Fconvert%2Fparquet) branch.\n\n## What is Parquet?\n\nApache Parquet is a popular columnar storage format known for:\n\n- reduced memory requirement,\n- fast data retrieval and filtering,\n- efficient storage.\n\n**This is what powers the dataset viewer** on each dataset page and every dataset on the Hub can be accessed with the same code (you can use HF Datasets, ClickHouse, DuckDB, Pandas, PostgreSQL, or Polars, [up to you](https://huggingface.co/docs/dataset-viewer/parquet_process)).\n\nYou can learn more about the advantages associated with Parquet in the [documentation](https://huggingface.co/docs/dataset-viewer/parquet).\n\n## How to access the Parquet version of the dataset?\n\nYou can access the Parquet version of the dataset by following this link: [`refs/convert/parquet`](https://huggingface.co/datasets/deucebucket/cerebellum-brainloop/tree/refs%2Fconvert%2Fparquet)\n\n## What if my dataset was already in Parquet?\n\nWhen the dataset is already in Parquet format, the data are not converted and the files in `refs/convert/parquet` are links to the original files.\n\n## What should I do?\n\nYou don't need to do anything. The Parquet version of the dataset is available for you to use. Refer to the [documentation](https://huggingface.co/docs/dataset-viewer/parquet_process) for examples and code snippets on how to query the Parquet files with ClickHouse, DuckDB, Pandas or Polars.\n\nIf you have any questions or concerns, feel free to ask in the discussion below. You can also close the discussion if you don't have any questions.",
+        "html": "<p>The parquet-converter bot has created a version of this dataset in the Parquet format in the <a href=\"https://huggingface.co/datasets/deucebucket/cerebellum-brainloop/tree/refs%2Fconvert%2Fparquet\"><code>refs/convert/parquet</code></a> branch.</p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"what-is-parquet\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#what-is-parquet\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tWhat is Parquet?\n\t</span>\n</h2>\n<p>Apache Parquet is a popular columnar storage format known for:</p>\n<ul>\n<li>reduced memory requirement,</li>\n<li>fast data retrieval and filtering,</li>\n<li>efficient storage.</li>\n</ul>\n<p><strong>This is what powers the dataset viewer</strong> on each dataset page and every dataset on the Hub can be accessed with the same code (you can use HF Datasets, ClickHouse, DuckDB, Pandas, PostgreSQL, or Polars, <a href=\"https://huggingface.co/docs/dataset-viewer/parquet_process\">up to you</a>).</p>\n<p>You can learn more about the advantages associated with Parquet in the <a href=\"https://huggingface.co/docs/dataset-viewer/parquet\">documentation</a>.</p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"how-to-access-the-parquet-version-of-the-dataset\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#how-to-access-the-parquet-version-of-the-dataset\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tHow to access the Parquet version of the dataset?\n\t</span>\n</h2>\n<p>You can access the Parquet version of the dataset by following this link: <a href=\"https://huggingface.co/datasets/deucebucket/cerebellum-brainloop/tree/refs%2Fconvert%2Fparquet\"><code>refs/convert/parquet</code></a></p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"what-if-my-dataset-was-already-in-parquet\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#what-if-my-dataset-was-already-in-parquet\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tWhat if my dataset was already in Parquet?\n\t</span>\n</h2>\n<p>When the dataset is already in Parquet format, the data are not converted and the files in <code>refs/convert/parquet</code> are links to the original files.</p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"what-should-i-do\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#what-should-i-do\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tWhat should I do?\n\t</span>\n</h2>\n<p>You don't need to do anything. The Parquet version of the dataset is available for you to use. Refer to the <a href=\"https://huggingface.co/docs/dataset-viewer/parquet_process\">documentation</a> for examples and code snippets on how to query the Parquet files with ClickHouse, DuckDB, Pandas or Polars.</p>\n<p>If you have any questions or concerns, feel free to ask in the discussion below. You can also close the discussion if you don't have any questions.</p>\n",
+        "updatedAt": "2026-06-11T00:11:53.151Z",
+        "author": {
+         "_id": "61f02cf649ea1fb7363729dc",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png",
+         "fullname": "Parquet-converter (BOT)",
+         "name": "parquet-converter",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 358,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.8266494870185852
+       },
+       "editors": [
+        "parquet-converter"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   }
+  }
+ },
+ "deucebucket/vadugwi-paper": {
+  "kind": "datasets",
+  "list": {
+   "discussions": [
+    {
+     "num": 1,
+     "author": {
+      "_id": "61f02cf649ea1fb7363729dc",
+      "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png",
+      "fullname": "Parquet-converter (BOT)",
+      "name": "parquet-converter",
+      "type": "user",
+      "isPro": false,
+      "isHf": false,
+      "isHfAdmin": false,
+      "isMod": false,
+      "followerCount": 358,
+      "isUserFollowing": false
+     },
+     "repo": {
+      "name": "deucebucket/vadugwi-paper",
+      "type": "dataset"
+     },
+     "title": "[bot] Conversion to Parquet",
+     "status": "closed",
+     "createdAt": "2026-04-03T00:10:20.000Z",
+     "isPullRequest": false,
+     "numComments": 1,
+     "topReactions": [],
+     "numReactionUsers": 0,
+     "pinned": false,
+     "repoOwner": {
+      "name": "deucebucket",
+      "isParticipating": false,
+      "type": "user",
+      "isDiscussionAuthor": false
+     }
+    }
+   ],
+   "count": 1,
+   "start": 0,
+   "numClosedDiscussions": 1
+  },
+  "threads": {
+   "1": {
+    "_id": "69cf056ca0cd09e410f0a6ba",
+    "author": {
+     "_id": "61f02cf649ea1fb7363729dc",
+     "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png",
+     "fullname": "Parquet-converter (BOT)",
+     "name": "parquet-converter",
+     "type": "user",
+     "isPro": false,
+     "isHf": false,
+     "isHfAdmin": false,
+     "isMod": false,
+     "followerCount": 358,
+     "isUserFollowing": false
+    },
+    "num": 1,
+    "repo": {
+     "name": "deucebucket/vadugwi-paper",
+     "type": "dataset"
+    },
+    "title": "[bot] Conversion to Parquet",
+    "status": "closed",
+    "createdAt": "2026-04-03T00:10:20.000Z",
+    "events": [
+     {
+      "id": "69cf056ca0cd09e410f0a6ba",
+      "author": {
+       "_id": "61f02cf649ea1fb7363729dc",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png",
+       "fullname": "Parquet-converter (BOT)",
+       "name": "parquet-converter",
+       "type": "user",
+       "isPro": false,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 358,
+       "isUserFollowing": false,
+       "isOwner": false,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-04-03T00:10:20.000Z",
+      "type": "comment",
+      "data": {
+       "edited": false,
+       "hidden": false,
+       "latest": {
+        "raw": "The parquet-converter bot has created a version of this dataset in the Parquet format in the [`refs/convert/parquet`](https://huggingface.co/datasets/deucebucket/vadugwi-paper/tree/refs%2Fconvert%2Fparquet) branch.\n\n## What is Parquet?\n\nApache Parquet is a popular columnar storage format known for:\n\n- reduced memory requirement,\n- fast data retrieval and filtering,\n- efficient storage.\n\n**This is what powers the dataset viewer** on each dataset page and every dataset on the Hub can be accessed with the same code (you can use HF Datasets, ClickHouse, DuckDB, Pandas, PostgreSQL, or Polars, [up to you](https://huggingface.co/docs/dataset-viewer/parquet_process)).\n\nYou can learn more about the advantages associated with Parquet in the [documentation](https://huggingface.co/docs/dataset-viewer/parquet).\n\n## How to access the Parquet version of the dataset?\n\nYou can access the Parquet version of the dataset by following this link: [`refs/convert/parquet`](https://huggingface.co/datasets/deucebucket/vadugwi-paper/tree/refs%2Fconvert%2Fparquet)\n\n## What if my dataset was already in Parquet?\n\nWhen the dataset is already in Parquet format, the data are not converted and the files in `refs/convert/parquet` are links to the original files.\n\n## What should I do?\n\nYou don't need to do anything. The Parquet version of the dataset is available for you to use. Refer to the [documentation](https://huggingface.co/docs/dataset-viewer/parquet_process) for examples and code snippets on how to query the Parquet files with ClickHouse, DuckDB, Pandas or Polars.\n\nIf you have any questions or concerns, feel free to ask in the discussion below. You can also close the discussion if you don't have any questions.",
+        "html": "<p>The parquet-converter bot has created a version of this dataset in the Parquet format in the <a href=\"https://huggingface.co/datasets/deucebucket/vadugwi-paper/tree/refs%2Fconvert%2Fparquet\"><code>refs/convert/parquet</code></a> branch.</p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"what-is-parquet\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#what-is-parquet\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tWhat is Parquet?\n\t</span>\n</h2>\n<p>Apache Parquet is a popular columnar storage format known for:</p>\n<ul>\n<li>reduced memory requirement,</li>\n<li>fast data retrieval and filtering,</li>\n<li>efficient storage.</li>\n</ul>\n<p><strong>This is what powers the dataset viewer</strong> on each dataset page and every dataset on the Hub can be accessed with the same code (you can use HF Datasets, ClickHouse, DuckDB, Pandas, PostgreSQL, or Polars, <a href=\"https://huggingface.co/docs/dataset-viewer/parquet_process\">up to you</a>).</p>\n<p>You can learn more about the advantages associated with Parquet in the <a href=\"https://huggingface.co/docs/dataset-viewer/parquet\">documentation</a>.</p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"how-to-access-the-parquet-version-of-the-dataset\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#how-to-access-the-parquet-version-of-the-dataset\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tHow to access the Parquet version of the dataset?\n\t</span>\n</h2>\n<p>You can access the Parquet version of the dataset by following this link: <a href=\"https://huggingface.co/datasets/deucebucket/vadugwi-paper/tree/refs%2Fconvert%2Fparquet\"><code>refs/convert/parquet</code></a></p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"what-if-my-dataset-was-already-in-parquet\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#what-if-my-dataset-was-already-in-parquet\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tWhat if my dataset was already in Parquet?\n\t</span>\n</h2>\n<p>When the dataset is already in Parquet format, the data are not converted and the files in <code>refs/convert/parquet</code> are links to the original files.</p>\n<h2 class=\"relative group flex items-baseline\">\n\t<a id=\"what-should-i-do\" class=\"block pr-1.5 text-lg md:absolute md:p-1.5 md:opacity-0 md:group-hover:opacity-100 md:right-full\" href=\"#what-should-i-do\" rel=\"nofollow\">\n\t\t<span class=\"header-link\"><svg class=\"text-gray-500 hover:text-black dark:hover:text-gray-200 w-4\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" aria-hidden=\"true\" role=\"img\" width=\"1em\" height=\"1em\" preserveAspectRatio=\"xMidYMid meet\" viewBox=\"0 0 256 256\"><path d=\"M167.594 88.393a8.001 8.001 0 0 1 0 11.314l-67.882 67.882a8 8 0 1 1-11.314-11.315l67.882-67.881a8.003 8.003 0 0 1 11.314 0zm-28.287 84.86l-28.284 28.284a40 40 0 0 1-56.567-56.567l28.284-28.284a8 8 0 0 0-11.315-11.315l-28.284 28.284a56 56 0 0 0 79.196 79.197l28.285-28.285a8 8 0 1 0-11.315-11.314zM212.852 43.14a56.002 56.002 0 0 0-79.196 0l-28.284 28.284a8 8 0 1 0 11.314 11.314l28.284-28.284a40 40 0 0 1 56.568 56.567l-28.285 28.285a8 8 0 0 0 11.315 11.314l28.284-28.284a56.065 56.065 0 0 0 0-79.196z\" fill=\"currentColor\"></path></svg></span>\n\t</a>\n\t<span>\n\t\tWhat should I do?\n\t</span>\n</h2>\n<p>You don't need to do anything. The Parquet version of the dataset is available for you to use. Refer to the <a href=\"https://huggingface.co/docs/dataset-viewer/parquet_process\">documentation</a> for examples and code snippets on how to query the Parquet files with ClickHouse, DuckDB, Pandas or Polars.</p>\n<p>If you have any questions or concerns, feel free to ask in the discussion below. You can also close the discussion if you don't have any questions.</p>\n",
+        "updatedAt": "2026-04-03T00:10:20.982Z",
+        "author": {
+         "_id": "61f02cf649ea1fb7363729dc",
+         "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png",
+         "fullname": "Parquet-converter (BOT)",
+         "name": "parquet-converter",
+         "type": "user",
+         "isPro": false,
+         "isHf": false,
+         "isHfAdmin": false,
+         "isMod": false,
+         "followerCount": 358,
+         "isUserFollowing": false
+        }
+       },
+       "numEdits": 0,
+       "identifiedLanguage": {
+        "language": "en",
+        "probability": 0.8306108117103577
+       },
+       "editors": [
+        "parquet-converter"
+       ],
+       "editorAvatarUrls": [
+        "https://cdn-avatars.huggingface.co/v1/production/uploads/1658495802629-61f02cf649ea1fb7363729dc.png"
+       ],
+       "reactions": [],
+       "isReport": false
+      }
+     },
+     {
+      "id": "69cf342e14c69072a9d25cb2",
+      "author": {
+       "_id": "63d2be672727d7888cb75f4c",
+       "avatarUrl": "https://cdn-avatars.huggingface.co/v1/production/uploads/no-auth/H-HzWvfzDmzOUohoHnaZc.png",
+       "fullname": "Jerry Mares",
+       "name": "deucebucket",
+       "type": "user",
+       "isPro": true,
+       "isHf": false,
+       "isHfAdmin": false,
+       "isMod": false,
+       "followerCount": 16,
+       "isUserFollowing": false,
+       "isOwner": true,
+       "isOrgMember": false
+      },
+      "createdAt": "2026-04-03T03:29:50.000Z",
+      "type": "status-change",
+      "data": {
+       "status": "closed"
+      }
+     }
+    ],
+    "pinned": false,
+    "locked": false,
+    "collection": "discussions",
+    "isPullRequest": false,
+    "isReport": false
+   }
+  }
+ }
+}

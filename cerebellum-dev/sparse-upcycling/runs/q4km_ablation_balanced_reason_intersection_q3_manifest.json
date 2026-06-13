@@ -1,0 +1,100 @@
+{
+  "name": "q4km_ablation_balanced_reason_intersection_q3",
+  "base_quant": "Q4_K_M",
+  "analysis": [
+    "cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3_analysis.json",
+    "cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3_reason_profile_analysis.json"
+  ],
+  "selection": "intersection",
+  "emit_classes": [
+    "demotable"
+  ],
+  "block_classes": [
+    "critical",
+    "sacred"
+  ],
+  "output": "cerebellum-dev/sparse-upcycling/runs/q4km_ablation_balanced_reason_intersection_q3.txt",
+  "override_count": 38,
+  "qtype_counts": {
+    "Q3_K": 38
+  },
+  "entries": {
+    "blk.1.ffn_down_exps.weight": "Q3_K",
+    "blk.10.ffn_down_exps.weight": "Q3_K",
+    "blk.11.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.12.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.15.ffn_down_exps.weight": "Q3_K",
+    "blk.16.ffn_down_exps.weight": "Q3_K",
+    "blk.16.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.17.ffn_down_exps.weight": "Q3_K",
+    "blk.18.ffn_down_exps.weight": "Q3_K",
+    "blk.18.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.19.ffn_down_exps.weight": "Q3_K",
+    "blk.20.ffn_down_exps.weight": "Q3_K",
+    "blk.20.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.21.ffn_down_exps.weight": "Q3_K",
+    "blk.21.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.22.ffn_down_exps.weight": "Q3_K",
+    "blk.22.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.23.ffn_down_exps.weight": "Q3_K",
+    "blk.23.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.24.ffn_down_exps.weight": "Q3_K",
+    "blk.24.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.25.ffn_down_exps.weight": "Q3_K",
+    "blk.25.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.26.ffn_down_exps.weight": "Q3_K",
+    "blk.26.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.27.ffn_down_exps.weight": "Q3_K",
+    "blk.27.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.28.ffn_down_exps.weight": "Q3_K",
+    "blk.28.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.29.ffn_down_exps.weight": "Q3_K",
+    "blk.29.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.30.ffn_down_exps.weight": "Q3_K",
+    "blk.30.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.31.ffn_down_exps.weight": "Q3_K",
+    "blk.31.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.4.ffn_gate_up_exps.weight": "Q3_K",
+    "blk.9.ffn_down_exps.weight": "Q3_K",
+    "blk.9.ffn_gate_up_exps.weight": "Q3_K"
+  },
+  "excluded": {
+    "blocked": [],
+    "missing_from_intersection": [
+      "blk.2.ffn_gate_up_exps.weight",
+      "blk.8.ffn_gate_up_exps.weight"
+    ]
+  },
+  "analysis_summaries": [
+    {
+      "path": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3_analysis.json",
+      "tested_count": 64,
+      "counts": {
+        "demotable": 39,
+        "tolerant": 16,
+        "sacred": 9,
+        "critical": 0
+      }
+    },
+    {
+      "path": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3_reason_profile_analysis.json",
+      "tested_count": 64,
+      "counts": {
+        "demotable": 39,
+        "tolerant": 16,
+        "sacred": 9,
+        "critical": 0
+      }
+    }
+  ],
+  "quantize_command": [
+    "/var/home/deucebucket/ai-drive/llama.cpp/build/bin/llama-quantize",
+    "--imatrix",
+    "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-imatrix.dat",
+    "--tensor-type-file",
+    "cerebellum-dev/sparse-upcycling/runs/q4km_ablation_balanced_reason_intersection_q3.txt",
+    "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-f16.gguf",
+    "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-q4km-ablation-intersection-q3.gguf",
+    "Q4_K_M"
+  ]
+}

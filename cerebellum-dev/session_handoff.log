@@ -1,0 +1,3 @@
+[2026-06-12 07:07:38] handoff armed: waiting for claude pid 1215533 to exit
+[2026-06-12 07:11:58] old session gone; waiting 15s for transcript flush
+[2026-06-12 07:12:14] resumed in tmux session 'cerebellum' (attach: tmux attach -t cerebellum; or via Remote Control on the phone)

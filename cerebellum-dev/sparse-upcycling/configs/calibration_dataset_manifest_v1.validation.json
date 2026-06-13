@@ -1,0 +1,10 @@
+{
+  "manifest": "cerebellum-dev/sparse-upcycling/configs/calibration_dataset_manifest_v1.json",
+  "name": "cerebellum_calibration_dataset_manifest_v1",
+  "text_corpora": 4,
+  "sparse_upcycling_jsonl": 3,
+  "aliases": 2,
+  "errors": [],
+  "warnings": [],
+  "ok": true
+}

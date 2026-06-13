@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "input": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3.json",
+  "baseline_ppl": {
+    "chat": 249.5304,
+    "reasoning": 171.2806,
+    "code": 97.7624
+  },
+  "weights": {
+    "chat": 0.25,
+    "reasoning": 0.5,
+    "code": 0.25
+  },
+  "thresholds": {
+    "beneficial_weighted": -0.0025,
+    "safe_max": 0.01,
+    "safe_weighted": 0.005,
+    "tolerant_max": 0.02,
+    "tolerant_weighted": 0.015,
+    "fragile_max": 0.03,
+    "fragile_weighted": 0.02,
+    "critical_max": 0.08,
+    "critical_weighted": 0.05
+  },
+  "emit_classes": [
+    "demotable"
+  ],
+  "tested_count": 3,
+  "skipped_count": 0,
+  "counts": {
+    "demotable": 0,
+    "tolerant": 1,
+    "sacred": 2,
+    "critical": 0
+  },
+  "override_count": 0,
+  "overrides": [],
+  "rows": [
+    {
+      "label": "blk_0_ffn_down_exps",
+      "tensor": "blk.0.ffn_down_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.5991,
+        "reasoning": 178.218,
+        "code": 97.6861
+      },
+      "deltas_abs": {
+        "chat": 3.068700000000007,
+        "reasoning": 6.937399999999997,
+        "code": -0.07630000000000337
+      },
+      "deltas_rel": {
+        "chat": 0.012297900376066432,
+        "reasoning": 0.0405031276163208,
+        "code": -0.0007804636547384615
+      },
+      "deltas_rel_pct": {
+        "chat": 1.2297900376066433,
+        "reasoning": 4.05031276163208,
+        "code": -0.07804636547384615
+      },
+      "weighted_rel": 0.02313092298849239,
+      "weighted_rel_pct": 2.313092298849239,
+      "max_rel": 0.0405031276163208,
+      "max_rel_pct": 4.05031276163208,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_1_ffn_gate_up_exps",
+      "tensor": "blk.1.ffn_gate_up_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 255.0843,
+        "reasoning": 175.2957,
+        "code": 97.919
+      },
+      "deltas_abs": {
+        "chat": 5.553900000000027,
+        "reasoning": 4.015100000000018,
+        "code": 0.1565999999999974
+      },
+      "deltas_rel": {
+        "chat": 0.02225740831578047,
+        "reasoning": 0.023441650718178348,
+        "code": 0.0016018428352822496
+      },
+      "deltas_rel_pct": {
+        "chat": 2.225740831578047,
+        "reasoning": 2.3441650718178346,
+        "code": 0.16018428352822497
+      },
+      "weighted_rel": 0.017685638146854855,
+      "weighted_rel_pct": 1.7685638146854854,
+      "max_rel": 0.023441650718178348,
+      "max_rel_pct": 2.3441650718178346,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_0_ffn_gate_up_exps",
+      "tensor": "blk.0.ffn_gate_up_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.6431,
+        "reasoning": 173.5779,
+        "code": 97.8768
+      },
+      "deltas_abs": {
+        "chat": 3.112700000000018,
+        "reasoning": 2.297300000000007,
+        "code": 0.11440000000000339
+      },
+      "deltas_rel": {
+        "chat": 0.012474231596631184,
+        "reasoning": 0.01341249388430451,
+        "code": 0.0011701840380351075
+      },
+      "deltas_rel_pct": {
+        "chat": 1.2474231596631185,
+        "reasoning": 1.341249388430451,
+        "code": 0.11701840380351075
+      },
+      "weighted_rel": 0.01011735085081883,
+      "weighted_rel_pct": 1.011735085081883,
+      "max_rel": 0.01341249388430451,
+      "max_rel_pct": 1.341249388430451,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    }
+  ],
+  "skipped": []
+}

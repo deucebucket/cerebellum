@@ -1,0 +1,26 @@
+{
+  "wikitext": {
+    "ppl": 700.9915,
+    "cuda_model_mib": 4676.38,
+    "cpu_mapped_mib": 545.62,
+    "log": "cerebellum-dev/sparse-upcycling/runs/q4km_ablation_intersection_wikitext_ppl_smoke.log"
+  },
+  "smol": {
+    "ppl": 256.3407,
+    "cuda_model_mib": 4676.38,
+    "cpu_mapped_mib": 545.62,
+    "log": "cerebellum-dev/sparse-upcycling/runs/q4km_ablation_intersection_smol_smoltalk_eval_ppl_diag.log"
+  },
+  "openthoughts": {
+    "ppl": 186.3926,
+    "cuda_model_mib": 4676.38,
+    "cpu_mapped_mib": 545.62,
+    "log": "cerebellum-dev/sparse-upcycling/runs/q4km_ablation_intersection_openthoughts3_eval_ppl_diag.log"
+  },
+  "opencode": {
+    "ppl": 89.8839,
+    "cuda_model_mib": 4676.38,
+    "cpu_mapped_mib": 545.62,
+    "log": "cerebellum-dev/sparse-upcycling/runs/q4km_ablation_intersection_opencode_eval_ppl_diag.log"
+  }
+}

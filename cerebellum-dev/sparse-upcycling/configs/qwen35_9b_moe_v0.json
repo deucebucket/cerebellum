@@ -1,0 +1,45 @@
+{
+  "name": "cerebellum-qwen35-9b-moe-v0",
+  "source_model": "Qwen/Qwen3.5-9B",
+  "source_architecture": "qwen3_5",
+  "layers": 32,
+  "hidden_size": 4096,
+  "dense_intermediate_size": 12288,
+  "mlp_type": "swiglu",
+  "moe": {
+    "enabled_layers": "all",
+    "num_experts": 16,
+    "top_k": 2,
+    "expert_intermediate_size": 768,
+    "shared_expert_intermediate_size": 1536,
+    "router_bias": false,
+    "router_init": "zeros_plus_noise",
+    "expert_init": "sliced_dense_ffn"
+  },
+  "checkpoint": {
+    "output_dir": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0",
+    "max_shard_size_gb": 4.0,
+    "disable_mtp_for_v0": true,
+    "copy_tokenizer_and_processor": true
+  },
+  "training": {
+    "first_pass": "router_and_expert_lora",
+    "teacher_models": [
+      "Qwen/Qwen3.5-9B",
+      "Qwen/Qwen3.5-27B"
+    ],
+    "datasets": [
+      "SL-AI/GRaPE-Base-Mix",
+      "SL-AI/GRaPE-Thinking-Mix"
+    ]
+  },
+  "runtime_goal": {
+    "primary": "active-parameter sparsity plus Cerebellum quantization",
+    "target_device_class": "Pi-class CPU/RAM-constrained inference",
+    "avoid_for_v0": [
+      "MTP",
+      "full pretraining",
+      "llama.cpp architecture patch"
+    ]
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "name": "cerebellum-qwen35-9b-moe-v1-virtual-group-bridge",
+  "source_model": "Qwen/Qwen3.5-9B",
+  "source_architecture": "qwen3_5",
+  "layers": 32,
+  "hidden_size": 4096,
+  "dense_intermediate_size": 12288,
+  "mlp_type": "swiglu",
+  "moe": {
+    "enabled_layers": "all",
+    "num_experts": 16,
+    "top_k": 8,
+    "virtual_groups": 8,
+    "replicas_per_group": 2,
+    "expert_intermediate_size": 1536,
+    "shared_expert_intermediate_size": 0,
+    "router_bias": false,
+    "router_init": "virtual_group_select_one_replica_per_dense_shard",
+    "expert_init": "replicated_dense_ffn_shards",
+    "weight_scaling": "match_dense_iteration0"
+  },
+  "checkpoint": {
+    "output_dir": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v1-virtual-group-bridge",
+    "max_shard_size_gb": 4.0,
+    "disable_mtp_for_v1": true,
+    "copy_tokenizer_and_processor": true
+  },
+  "training": {
+    "first_pass": "dense_equivalent_top8_bridge_then_staged_sparsification",
+    "generation_gate_required": true,
+    "dataset_manifest": "cerebellum-dev/sparse-upcycling/configs/dataset_manifest_v0.json",
+    "notes": [
+      "This config requires a new virtual-group upcycler and top_k=8 runtime validation.",
+      "Initial active routed width equals dense FFN width.",
+      "Target sparsification path is top8 -> top4 -> top2 after generation-safe training."
+    ]
+  },
+  "runtime_goal": {
+    "primary": "literature-aligned fine-grained sparse bridge",
+    "later_sparsity_path": [
+      "generation gate at top8",
+      "train and validate top4",
+      "train and validate top2",
+      "then Cerebellum quantize routed experts"
+    ]
+  }
+}

@@ -1,0 +1,922 @@
+{
+  "checkpoint": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v1-residual-dense-bridge",
+  "model_class": "qwen35-moe",
+  "device": "cpu",
+  "dtype": "bfloat16",
+  "prompt": "Write a Python function add_one(x) that returns x + 1.\n\n",
+  "prompt_tokens": 16,
+  "completion": "def add_one(x):\n    return x + 1\n\nWrite",
+  "first_cached_full_prefix_mismatch_step": null,
+  "steps": [
+    {
+      "step": 0,
+      "chosen_token_id": 727,
+      "chosen_token": "def",
+      "full_prefix_argmax_id": 727,
+      "full_prefix_argmax": "def",
+      "cached_argmax_id": 727,
+      "cached_argmax": "def",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 727,
+          "token": "def",
+          "logit": 19.625
+        },
+        {
+          "token_id": 71093,
+          "token": "```",
+          "logit": 19.0
+        },
+        {
+          "token_id": 8160,
+          "token": "Here",
+          "logit": 18.375
+        },
+        {
+          "token_id": 760,
+          "token": "The",
+          "logit": 18.0
+        },
+        {
+          "token_id": 1206,
+          "token": "To",
+          "logit": 17.875
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 727,
+          "token": "def",
+          "logit": 19.625
+        },
+        {
+          "token_id": 71093,
+          "token": "```",
+          "logit": 19.0
+        },
+        {
+          "token_id": 8160,
+          "token": "Here",
+          "logit": 18.375
+        },
+        {
+          "token_id": 760,
+          "token": "The",
+          "logit": 18.0
+        },
+        {
+          "token_id": 1206,
+          "token": "To",
+          "logit": 17.875
+        }
+      ]
+    },
+    {
+      "step": 1,
+      "chosen_token_id": 884,
+      "chosen_token": " add",
+      "full_prefix_argmax_id": 884,
+      "full_prefix_argmax": " add",
+      "cached_argmax_id": 884,
+      "cached_argmax": " add",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 884,
+          "token": " add",
+          "logit": 23.375
+        },
+        {
+          "token_id": 821,
+          "token": " my",
+          "logit": 14.625
+        },
+        {
+          "token_id": 198,
+          "token": "\n",
+          "logit": 14.25
+        },
+        {
+          "token_id": 1822,
+          "token": " main",
+          "logit": 14.1875
+        },
+        {
+          "token_id": 698,
+          "token": "add",
+          "logit": 13.9375
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 884,
+          "token": " add",
+          "logit": 23.375
+        },
+        {
+          "token_id": 821,
+          "token": " my",
+          "logit": 14.5625
+        },
+        {
+          "token_id": 198,
+          "token": "\n",
+          "logit": 14.3125
+        },
+        {
+          "token_id": 1822,
+          "token": " main",
+          "logit": 14.125
+        },
+        {
+          "token_id": 698,
+          "token": "add",
+          "logit": 13.875
+        }
+      ]
+    },
+    {
+      "step": 2,
+      "chosen_token_id": 11331,
+      "chosen_token": "_one",
+      "full_prefix_argmax_id": 11331,
+      "full_prefix_argmax": "_one",
+      "cached_argmax_id": 11331,
+      "cached_argmax": "_one",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 11331,
+          "token": "_one",
+          "logit": 26.0
+        },
+        {
+          "token_id": 62,
+          "token": "_",
+          "logit": 17.5
+        },
+        {
+          "token_id": 3833,
+          "token": "One",
+          "logit": 16.5
+        },
+        {
+          "token_id": 2007,
+          "token": "(x",
+          "logit": 16.125
+        },
+        {
+          "token_id": 22517,
+          "token": "_two",
+          "logit": 15.75
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 11331,
+          "token": "_one",
+          "logit": 26.0
+        },
+        {
+          "token_id": 62,
+          "token": "_",
+          "logit": 17.5
+        },
+        {
+          "token_id": 3833,
+          "token": "One",
+          "logit": 16.5
+        },
+        {
+          "token_id": 2007,
+          "token": "(x",
+          "logit": 16.125
+        },
+        {
+          "token_id": 22517,
+          "token": "_two",
+          "logit": 15.75
+        }
+      ]
+    },
+    {
+      "step": 3,
+      "chosen_token_id": 2007,
+      "chosen_token": "(x",
+      "full_prefix_argmax_id": 2007,
+      "full_prefix_argmax": "(x",
+      "cached_argmax_id": 2007,
+      "cached_argmax": "(x",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 2007,
+          "token": "(x",
+          "logit": 23.625
+        },
+        {
+          "token_id": 318,
+          "token": " (",
+          "logit": 16.25
+        },
+        {
+          "token_id": 4406,
+          "token": "():",
+          "logit": 15.0
+        },
+        {
+          "token_id": 7,
+          "token": "(",
+          "logit": 15.0
+        },
+        {
+          "token_id": 1393,
+          "token": "(n",
+          "logit": 14.9375
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 2007,
+          "token": "(x",
+          "logit": 23.625
+        },
+        {
+          "token_id": 318,
+          "token": " (",
+          "logit": 16.25
+        },
+        {
+          "token_id": 4406,
+          "token": "():",
+          "logit": 15.0
+        },
+        {
+          "token_id": 1393,
+          "token": "(n",
+          "logit": 15.0
+        },
+        {
+          "token_id": 7,
+          "token": "(",
+          "logit": 15.0
+        }
+      ]
+    },
+    {
+      "step": 4,
+      "chosen_token_id": 1590,
+      "chosen_token": "):",
+      "full_prefix_argmax_id": 1590,
+      "full_prefix_argmax": "):",
+      "cached_argmax_id": 1590,
+      "cached_argmax": "):",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 1590,
+          "token": "):",
+          "logit": 23.875
+        },
+        {
+          "token_id": 8,
+          "token": ")",
+          "logit": 17.875
+        },
+        {
+          "token_id": 25,
+          "token": ":",
+          "logit": 17.625
+        },
+        {
+          "token_id": 11,
+          "token": ",",
+          "logit": 15.5625
+        },
+        {
+          "token_id": 85983,
+          "token": "):\\",
+          "logit": 15.0
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 1590,
+          "token": "):",
+          "logit": 24.0
+        },
+        {
+          "token_id": 8,
+          "token": ")",
+          "logit": 18.0
+        },
+        {
+          "token_id": 25,
+          "token": ":",
+          "logit": 17.625
+        },
+        {
+          "token_id": 11,
+          "token": ",",
+          "logit": 15.5625
+        },
+        {
+          "token_id": 85983,
+          "token": "):\\",
+          "logit": 15.0625
+        }
+      ]
+    },
+    {
+      "step": 5,
+      "chosen_token_id": 198,
+      "chosen_token": "\n",
+      "full_prefix_argmax_id": 198,
+      "full_prefix_argmax": "\n",
+      "cached_argmax_id": 198,
+      "cached_argmax": "\n",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 198,
+          "token": "\n",
+          "logit": 23.0
+        },
+        {
+          "token_id": 460,
+          "token": " return",
+          "logit": 19.25
+        },
+        {
+          "token_id": 695,
+          "token": " \n",
+          "logit": 17.5
+        },
+        {
+          "token_id": 2228,
+          "token": "  \n",
+          "logit": 16.0
+        },
+        {
+          "token_id": 271,
+          "token": "\n\n",
+          "logit": 15.875
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 198,
+          "token": "\n",
+          "logit": 23.0
+        },
+        {
+          "token_id": 460,
+          "token": " return",
+          "logit": 19.25
+        },
+        {
+          "token_id": 695,
+          "token": " \n",
+          "logit": 17.5
+        },
+        {
+          "token_id": 2228,
+          "token": "  \n",
+          "logit": 16.0
+        },
+        {
+          "token_id": 271,
+          "token": "\n\n",
+          "logit": 15.875
+        }
+      ]
+    },
+    {
+      "step": 6,
+      "chosen_token_id": 262,
+      "chosen_token": "   ",
+      "full_prefix_argmax_id": 262,
+      "full_prefix_argmax": "   ",
+      "cached_argmax_id": 262,
+      "cached_argmax": "   ",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 262,
+          "token": "   ",
+          "logit": 21.625
+        },
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 18.125
+        },
+        {
+          "token_id": 460,
+          "token": " return",
+          "logit": 17.25
+        },
+        {
+          "token_id": 671,
+          "token": "return",
+          "logit": 17.0
+        },
+        {
+          "token_id": 827,
+          "token": "\treturn",
+          "logit": 16.625
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 262,
+          "token": "   ",
+          "logit": 21.5
+        },
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 18.125
+        },
+        {
+          "token_id": 460,
+          "token": " return",
+          "logit": 17.25
+        },
+        {
+          "token_id": 671,
+          "token": "return",
+          "logit": 17.0
+        },
+        {
+          "token_id": 827,
+          "token": "\treturn",
+          "logit": 16.625
+        }
+      ]
+    },
+    {
+      "step": 7,
+      "chosen_token_id": 460,
+      "chosen_token": " return",
+      "full_prefix_argmax_id": 460,
+      "full_prefix_argmax": " return",
+      "cached_argmax_id": 460,
+      "cached_argmax": " return",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 460,
+          "token": " return",
+          "logit": 23.375
+        },
+        {
+          "token_id": 4071,
+          "token": " \"\"\"",
+          "logit": 20.75
+        },
+        {
+          "token_id": 830,
+          "token": " x",
+          "logit": 18.25
+        },
+        {
+          "token_id": 11127,
+          "token": " '''",
+          "logit": 17.875
+        },
+        {
+          "token_id": 1067,
+          "token": " result",
+          "logit": 17.75
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 460,
+          "token": " return",
+          "logit": 23.375
+        },
+        {
+          "token_id": 4071,
+          "token": " \"\"\"",
+          "logit": 20.75
+        },
+        {
+          "token_id": 830,
+          "token": " x",
+          "logit": 18.25
+        },
+        {
+          "token_id": 11127,
+          "token": " '''",
+          "logit": 17.875
+        },
+        {
+          "token_id": 1067,
+          "token": " result",
+          "logit": 17.75
+        }
+      ]
+    },
+    {
+      "step": 8,
+      "chosen_token_id": 830,
+      "chosen_token": " x",
+      "full_prefix_argmax_id": 830,
+      "full_prefix_argmax": " x",
+      "cached_argmax_id": 830,
+      "cached_argmax": " x",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 830,
+          "token": " x",
+          "logit": 24.375
+        },
+        {
+          "token_id": 2007,
+          "token": "(x",
+          "logit": 17.875
+        },
+        {
+          "token_id": 318,
+          "token": " (",
+          "logit": 16.875
+        },
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 16.5
+        },
+        {
+          "token_id": 514,
+          "token": " int",
+          "logit": 16.125
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 830,
+          "token": " x",
+          "logit": 24.25
+        },
+        {
+          "token_id": 2007,
+          "token": "(x",
+          "logit": 17.875
+        },
+        {
+          "token_id": 318,
+          "token": " (",
+          "logit": 16.875
+        },
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 16.5
+        },
+        {
+          "token_id": 514,
+          "token": " int",
+          "logit": 16.125
+        }
+      ]
+    },
+    {
+      "step": 9,
+      "chosen_token_id": 478,
+      "chosen_token": " +",
+      "full_prefix_argmax_id": 478,
+      "full_prefix_argmax": " +",
+      "cached_argmax_id": 478,
+      "cached_argmax": " +",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 478,
+          "token": " +",
+          "logit": 24.625
+        },
+        {
+          "token_id": 10,
+          "token": "+",
+          "logit": 20.125
+        },
+        {
+          "token_id": 271,
+          "token": "\n\n",
+          "logit": 17.125
+        },
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 15.5
+        },
+        {
+          "token_id": 2972,
+          "token": " **",
+          "logit": 14.9375
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 478,
+          "token": " +",
+          "logit": 24.625
+        },
+        {
+          "token_id": 10,
+          "token": "+",
+          "logit": 20.125
+        },
+        {
+          "token_id": 271,
+          "token": "\n\n",
+          "logit": 17.125
+        },
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 15.5
+        },
+        {
+          "token_id": 2972,
+          "token": " **",
+          "logit": 14.9375
+        }
+      ]
+    },
+    {
+      "step": 10,
+      "chosen_token_id": 220,
+      "chosen_token": " ",
+      "full_prefix_argmax_id": 220,
+      "full_prefix_argmax": " ",
+      "cached_argmax_id": 220,
+      "cached_argmax": " ",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 22.5
+        },
+        {
+          "token_id": 16,
+          "token": "1",
+          "logit": 14.125
+        },
+        {
+          "token_id": 271,
+          "token": "\n\n",
+          "logit": 13.375
+        },
+        {
+          "token_id": 248044,
+          "token": "<|endoftext|>",
+          "logit": 12.125
+        },
+        {
+          "token_id": 4558,
+          "token": " \n\n",
+          "logit": 12.0
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 22.5
+        },
+        {
+          "token_id": 16,
+          "token": "1",
+          "logit": 14.125
+        },
+        {
+          "token_id": 271,
+          "token": "\n\n",
+          "logit": 13.3125
+        },
+        {
+          "token_id": 248044,
+          "token": "<|endoftext|>",
+          "logit": 12.0625
+        },
+        {
+          "token_id": 4558,
+          "token": " \n\n",
+          "logit": 11.9375
+        }
+      ]
+    },
+    {
+      "step": 11,
+      "chosen_token_id": 16,
+      "chosen_token": "1",
+      "full_prefix_argmax_id": 16,
+      "full_prefix_argmax": "1",
+      "cached_argmax_id": 16,
+      "cached_argmax": "1",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 16,
+          "token": "1",
+          "logit": 26.0
+        },
+        {
+          "token_id": 17,
+          "token": "2",
+          "logit": 16.75
+        },
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 16.375
+        },
+        {
+          "token_id": 15,
+          "token": "0",
+          "logit": 16.25
+        },
+        {
+          "token_id": 18,
+          "token": "3",
+          "logit": 14.75
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 16,
+          "token": "1",
+          "logit": 26.125
+        },
+        {
+          "token_id": 17,
+          "token": "2",
+          "logit": 16.75
+        },
+        {
+          "token_id": 15,
+          "token": "0",
+          "logit": 16.375
+        },
+        {
+          "token_id": 220,
+          "token": " ",
+          "logit": 16.375
+        },
+        {
+          "token_id": 18,
+          "token": "3",
+          "logit": 14.8125
+        }
+      ]
+    },
+    {
+      "step": 12,
+      "chosen_token_id": 271,
+      "chosen_token": "\n\n",
+      "full_prefix_argmax_id": 271,
+      "full_prefix_argmax": "\n\n",
+      "cached_argmax_id": 271,
+      "cached_argmax": "\n\n",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 271,
+          "token": "\n\n",
+          "logit": 20.875
+        },
+        {
+          "token_id": 1358,
+          "token": "\n\n\n",
+          "logit": 18.0
+        },
+        {
+          "token_id": 198,
+          "token": "\n",
+          "logit": 17.625
+        },
+        {
+          "token_id": 248044,
+          "token": "<|endoftext|>",
+          "logit": 17.5
+        },
+        {
+          "token_id": 6987,
+          "token": "\n    \n",
+          "logit": 14.875
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 271,
+          "token": "\n\n",
+          "logit": 20.875
+        },
+        {
+          "token_id": 1358,
+          "token": "\n\n\n",
+          "logit": 18.0
+        },
+        {
+          "token_id": 198,
+          "token": "\n",
+          "logit": 17.75
+        },
+        {
+          "token_id": 248044,
+          "token": "<|endoftext|>",
+          "logit": 17.5
+        },
+        {
+          "token_id": 6987,
+          "token": "\n    \n",
+          "logit": 14.875
+        }
+      ]
+    },
+    {
+      "step": 13,
+      "chosen_token_id": 7734,
+      "chosen_token": "Write",
+      "full_prefix_argmax_id": 7734,
+      "full_prefix_argmax": "Write",
+      "cached_argmax_id": 7734,
+      "cached_argmax": "Write",
+      "chosen_matches_full_prefix": true,
+      "cached_matches_full_prefix": true,
+      "full_prefix_top": [
+        {
+          "token_id": 7734,
+          "token": "Write",
+          "logit": 19.0
+        },
+        {
+          "token_id": 332,
+          "token": "**",
+          "logit": 17.375
+        },
+        {
+          "token_id": 727,
+          "token": "def",
+          "logit": 17.0
+        },
+        {
+          "token_id": 3710,
+          "token": "What",
+          "logit": 16.625
+        },
+        {
+          "token_id": 6503,
+          "token": "Can",
+          "logit": 16.625
+        }
+      ],
+      "cached_top": [
+        {
+          "token_id": 7734,
+          "token": "Write",
+          "logit": 19.0
+        },
+        {
+          "token_id": 332,
+          "token": "**",
+          "logit": 17.375
+        },
+        {
+          "token_id": 727,
+          "token": "def",
+          "logit": 17.0
+        },
+        {
+          "token_id": 6503,
+          "token": "Can",
+          "logit": 16.625
+        },
+        {
+          "token_id": 3710,
+          "token": "What",
+          "logit": 16.625
+        }
+      ]
+    }
+  ]
+}

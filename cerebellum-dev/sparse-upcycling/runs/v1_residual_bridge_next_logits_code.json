@@ -1,0 +1,109 @@
+{
+  "checkpoint": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v1-residual-dense-bridge",
+  "model_class": "qwen35-moe",
+  "device": "auto",
+  "prompt": "Write a Python function add_one(x) that returns x + 1.\n\n",
+  "input_tokens": 16,
+  "top": [
+    {
+      "token_id": 727,
+      "token": "def",
+      "logit": 19.625
+    },
+    {
+      "token_id": 71093,
+      "token": "```",
+      "logit": 19.0
+    },
+    {
+      "token_id": 8160,
+      "token": "Here",
+      "logit": 18.375
+    },
+    {
+      "token_id": 760,
+      "token": "The",
+      "logit": 18.0
+    },
+    {
+      "token_id": 1206,
+      "token": "To",
+      "logit": 17.875
+    },
+    {
+      "token_id": 698,
+      "token": "add",
+      "logit": 16.875
+    },
+    {
+      "token_id": 2523,
+      "token": "You",
+      "logit": 16.75
+    },
+    {
+      "token_id": 63,
+      "token": "`",
+      "logit": 16.0
+    },
+    {
+      "token_id": 7734,
+      "token": "Write",
+      "logit": 15.9375
+    },
+    {
+      "token_id": 14162,
+      "token": "Question",
+      "logit": 15.875
+    },
+    {
+      "token_id": 1919,
+      "token": "This",
+      "logit": 15.75
+    },
+    {
+      "token_id": 16,
+      "token": "1",
+      "logit": 15.6875
+    },
+    {
+      "token_id": 29292,
+      "token": "Python",
+      "logit": 15.625
+    },
+    {
+      "token_id": 248068,
+      "token": "<think>",
+      "logit": 15.25
+    },
+    {
+      "token_id": 1302,
+      "token": "print",
+      "logit": 15.1875
+    },
+    {
+      "token_id": 87,
+      "token": "x",
+      "logit": 15.0625
+    },
+    {
+      "token_id": 1596,
+      "token": "We",
+      "logit": 14.875
+    },
+    {
+      "token_id": 35621,
+      "token": "Solution",
+      "logit": 14.875
+    },
+    {
+      "token_id": 38493,
+      "token": "Sure",
+      "logit": 14.8125
+    },
+    {
+      "token_id": 40,
+      "token": "I",
+      "logit": 14.8125
+    }
+  ]
+}

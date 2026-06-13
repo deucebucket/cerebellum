@@ -1,0 +1,9 @@
+{
+  "benchmark": "evalplus_humaneval_plus",
+  "model": "qwen35_9b_moe_q4km_ablation_intersection",
+  "pass_at_1_plus": null,
+  "pass_at_1_base": null,
+  "total_problems": 164,
+  "elapsed_seconds": 31.9,
+  "timestamp": "2026-05-29 05:21"
+}

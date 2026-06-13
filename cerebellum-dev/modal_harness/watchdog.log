@@ -1,0 +1,318 @@
+[2026-06-12 02:58:59] watchdog up: kill at $20.0 total, $4.0/hr velocity, 4.0h app age
+[2026-06-12 02:59:01] spend $0.0568, 0 app(s) running
+[2026-06-12 03:04:04] spend $0.0857, 0 app(s) running, velocity $0.34/hr
+[2026-06-12 03:04:39] watchdog up: kill at $20.0 total, $4.0/hr velocity, 9.0h app age
+[2026-06-12 03:04:41] spend $0.0904, 0 app(s) running
+[2026-06-12 03:05:23] watchdog up: kill at $20.0 total, $4.0/hr velocity, 9.0h app age
+[2026-06-12 03:05:25] spend $0.1063, 1 app(s) running
+[2026-06-12 03:10:28] spend $0.2036, 1 app(s) running, velocity $1.16/hr
+[2026-06-12 03:15:31] spend $0.3639, 1 app(s) running, velocity $1.91/hr
+[2026-06-12 03:20:33] spend $0.6480, 1 app(s) running, velocity $3.38/hr
+[2026-06-12 03:25:35] spend $0.8651, 1 app(s) running, velocity $2.58/hr
+[2026-06-12 03:30:37] spend $0.9688, 1 app(s) running, velocity $1.24/hr
+[2026-06-12 03:35:41] spend $1.0721, 1 app(s) running, velocity $1.23/hr
+[2026-06-12 03:40:43] spend $1.1890, 1 app(s) running, velocity $1.39/hr
+[2026-06-12 03:45:46] spend $1.3421, 1 app(s) running, velocity $1.82/hr
+[2026-06-12 03:50:50] spend $1.3421, 1 app(s) running
+[2026-06-12 03:55:52] KILL TRIGGERED: spend velocity $7.18/hr > $4.0/hr
+[2026-06-12 03:55:53]   stopped ap-W2l8XeQujcFG4HPuCQaCVs: rc=1
+[2026-06-12 03:55:53] all running apps stopped; watchdog continues monitoring
+[2026-06-12 03:55:53] spend $1.9448, 1 app(s) running, velocity $7.18/hr
+[2026-06-12 04:00:55] spend $2.2591, 1 app(s) running, velocity $3.75/hr
+[2026-06-12 04:05:57] KILL TRIGGERED: spend velocity $4.01/hr > $4.0/hr
+[2026-06-12 04:05:59]   stopped ap-W2l8XeQujcFG4HPuCQaCVs: rc=1
+[2026-06-12 04:05:59] all running apps stopped; watchdog continues monitoring
+[2026-06-12 04:05:59] spend $2.5957, 1 app(s) running, velocity $4.01/hr
+[2026-06-12 04:06:30] watchdog up: kill at $20.0 total, $4.0/hr velocity, 9.0h app age
+[2026-06-12 04:06:32] spend $2.6027, 1 app(s) running
+[2026-06-12 04:11:36] spend $2.6930, 1 app(s) running, velocity $1.07/hr
+[2026-06-12 04:16:38] spend $3.1814, 1 app(s) running, velocity $5.82/hr
+[2026-06-12 04:21:40] spend $3.3695, 1 app(s) running, velocity $2.24/hr
+[2026-06-12 04:26:43] spend $3.6096, 1 app(s) running, velocity $2.86/hr
+[2026-06-12 04:31:46] spend $3.6905, 0 app(s) running, velocity $0.96/hr
+[2026-06-12 04:36:49] spend $3.6905, 0 app(s) running
+[2026-06-12 04:41:52] spend $3.6905, 0 app(s) running
+[2026-06-12 04:46:55] spend $3.6905, 0 app(s) running
+[2026-06-12 04:51:58] spend $3.6905, 0 app(s) running
+[2026-06-12 04:57:00] spend $3.6905, 0 app(s) running
+[2026-06-12 05:02:03] billing read failed; skipping this poll
+[2026-06-12 05:07:05] spend $4.0689, 1 app(s) running, velocity $2.25/hr
+[2026-06-12 05:12:08] spend $4.3855, 1 app(s) running, velocity $3.77/hr
+[2026-06-12 05:17:10] spend $4.5465, 1 app(s) running, velocity $1.92/hr
+[2026-06-12 05:22:13] spend $4.7012, 1 app(s) running, velocity $1.84/hr
+[2026-06-12 05:27:15] spend $4.8665, 1 app(s) running, velocity $1.97/hr
+[2026-06-12 05:32:18] spend $4.9613, 1 app(s) running, velocity $1.13/hr
+[2026-06-12 05:37:20] spend $5.0742, 1 app(s) running, velocity $1.34/hr
+[2026-06-12 05:42:22] spend $5.0906, 0 app(s) running, velocity $0.20/hr
+[2026-06-12 05:47:24] spend $5.0906, 0 app(s) running
+[2026-06-12 05:52:27] spend $5.0906, 0 app(s) running
+[2026-06-12 05:57:29] spend $5.0906, 0 app(s) running
+[2026-06-12 06:02:39] spend $5.0906, 0 app(s) running
+[2026-06-12 06:07:41] spend $5.0906, 0 app(s) running
+[2026-06-12 06:12:43] spend $5.0906, 0 app(s) running
+[2026-06-12 06:17:45] spend $5.0906, 0 app(s) running
+[2026-06-12 06:22:47] spend $5.0906, 0 app(s) running
+[2026-06-12 06:27:50] spend $5.0906, 0 app(s) running
+[2026-06-12 06:32:53] spend $5.0906, 0 app(s) running
+[2026-06-12 06:37:55] spend $5.0906, 0 app(s) running
+[2026-06-12 06:42:58] spend $5.0906, 0 app(s) running
+[2026-06-12 06:48:01] spend $5.0906, 0 app(s) running
+[2026-06-12 06:52:20] watchdog up: kill at $28.5 total, $4.0/hr velocity, 9.0h app age
+[2026-06-12 06:52:23] spend $5.0906, 0 app(s) running
+[2026-06-12 06:57:25] spend $5.0906, 0 app(s) running
+[2026-06-12 07:02:27] spend $5.0906, 1 app(s) running
+[2026-06-12 07:07:30] spend $5.0945, 2 app(s) running, velocity $0.05/hr
+[2026-06-12 07:12:32] spend $5.1745, 2 app(s) running, velocity $0.95/hr
+[2026-06-12 07:17:34] spend $5.2937, 1 app(s) running, velocity $1.42/hr
+[2026-06-12 07:22:36] spend $5.2980, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 07:27:39] spend $5.2988, 1 app(s) running, velocity $0.01/hr
+[2026-06-12 07:32:41] spend $5.3065, 1 app(s) running, velocity $0.09/hr
+[2026-06-12 07:37:44] spend $5.3107, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 07:42:46] spend $5.3150, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 07:47:49] spend $5.3192, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 07:52:51] spend $5.3234, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 07:57:54] spend $5.3282, 1 app(s) running, velocity $0.06/hr
+[2026-06-12 08:02:57] spend $5.3311, 1 app(s) running, velocity $0.03/hr
+[2026-06-12 08:07:59] spend $5.3368, 1 app(s) running, velocity $0.07/hr
+[2026-06-12 08:13:01] spend $5.3411, 0 app(s) running, velocity $0.05/hr
+[2026-06-12 08:18:03] spend $5.3425, 1 app(s) running, velocity $0.02/hr
+[2026-06-12 08:23:05] spend $5.3464, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 08:28:07] spend $5.3515, 1 app(s) running, velocity $0.06/hr
+[2026-06-12 08:33:10] spend $5.3560, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 08:38:12] spend $5.3605, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 08:43:14] spend $5.3647, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 08:48:17] spend $5.3693, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 08:53:19] spend $5.3710, 1 app(s) running, velocity $0.02/hr
+[2026-06-12 08:58:21] spend $5.3752, 1 app(s) running, velocity $0.05/hr
+[2026-06-12 09:03:23] spend $5.4125, 1 app(s) running, velocity $0.44/hr
+[2026-06-12 09:08:26] spend $5.4146, 0 app(s) running, velocity $0.02/hr
+[2026-06-12 09:13:28] spend $5.4146, 0 app(s) running
+[2026-06-12 09:18:31] spend $5.4146, 0 app(s) running
+[2026-06-12 09:23:33] spend $5.4146, 0 app(s) running
+[2026-06-12 09:28:36] spend $5.4146, 0 app(s) running
+[2026-06-12 09:33:39] spend $5.4213, 1 app(s) running, velocity $0.08/hr
+[2026-06-12 09:38:41] spend $5.4459, 1 app(s) running, velocity $0.29/hr
+[2026-06-12 09:43:44] spend $5.4618, 1 app(s) running, velocity $0.19/hr
+[2026-06-12 09:48:46] spend $5.5625, 1 app(s) running, velocity $1.20/hr
+[2026-06-12 09:53:49] spend $5.6404, 1 app(s) running, velocity $0.93/hr
+[2026-06-12 09:58:54] spend $5.7147, 1 app(s) running, velocity $0.88/hr
+[2026-06-12 10:03:56] spend $5.9064, 1 app(s) running, velocity $2.28/hr
+[2026-06-12 10:08:59] spend $6.0498, 1 app(s) running, velocity $1.70/hr
+[2026-06-12 10:14:02] spend $6.1654, 1 app(s) running, velocity $1.37/hr
+[2026-06-12 10:19:05] spend $6.1689, 1 app(s) running, velocity $0.04/hr
+[2026-06-12 10:24:08] spend $6.2252, 1 app(s) running, velocity $0.67/hr
+[2026-06-12 10:29:11] spend $6.2742, 0 app(s) running, velocity $0.58/hr
+[2026-06-12 10:34:14] spend $6.2742, 0 app(s) running
+[2026-06-12 10:39:17] spend $6.2742, 0 app(s) running
+[2026-06-12 10:44:20] spend $6.2742, 0 app(s) running
+[2026-06-12 10:49:23] spend $6.2742, 0 app(s) running
+[2026-06-12 10:54:26] spend $6.2742, 0 app(s) running
+[2026-06-12 10:59:29] spend $6.2742, 0 app(s) running
+[2026-06-12 11:04:32] spend $6.2742, 0 app(s) running
+[2026-06-12 11:09:34] spend $6.2742, 0 app(s) running
+[2026-06-12 11:14:37] spend $6.2742, 0 app(s) running
+[2026-06-12 11:19:39] spend $6.2742, 0 app(s) running
+[2026-06-12 11:24:43] spend $6.2742, 0 app(s) running
+[2026-06-12 11:29:45] spend $6.2742, 0 app(s) running
+[2026-06-12 11:34:49] spend $6.2742, 1 app(s) running
+[2026-06-12 11:39:51] spend $6.3111, 1 app(s) running, velocity $0.44/hr
+[2026-06-12 11:44:54] spend $6.3473, 1 app(s) running, velocity $0.43/hr
+[2026-06-12 11:49:57] spend $6.3604, 1 app(s) running, velocity $0.16/hr
+[2026-06-12 11:54:59] spend $6.4064, 1 app(s) running, velocity $0.55/hr
+[2026-06-12 12:00:01] spend $6.4419, 1 app(s) running, velocity $0.42/hr
+[2026-06-12 12:05:04] spend $6.6158, 2 app(s) running, velocity $2.07/hr
+[2026-06-12 12:10:07] spend $6.6304, 2 app(s) running, velocity $0.17/hr
+[2026-06-12 12:15:10] spend $6.9875, 2 app(s) running, velocity $4.24/hr
+[2026-06-12 12:20:13] spend $7.1212, 1 app(s) running, velocity $1.59/hr
+[2026-06-12 12:25:17] spend $7.2263, 1 app(s) running, velocity $1.25/hr
+[2026-06-12 12:30:19] spend $7.3564, 1 app(s) running, velocity $1.55/hr
+[2026-06-12 12:35:22] spend $7.3901, 1 app(s) running, velocity $0.40/hr
+[2026-06-12 12:40:25] spend $7.5525, 1 app(s) running, velocity $1.93/hr
+[2026-06-12 12:45:27] spend $8.0926, 1 app(s) running, velocity $6.43/hr
+[2026-06-12 12:50:30] KILL TRIGGERED: sustained velocity $4.06/hr > $4.0/hr x2
+[2026-06-12 12:50:32]   final sync cerebellum-flash: rc=0
+[2026-06-12 12:50:34]   final sync cerebellum-north: rc=0
+[2026-06-12 12:50:35]   stopped ap-zgnjGyrbz0iwSadbGlET45: rc=0 
+[2026-06-12 12:50:35] all running apps stopped; watchdog continues monitoring
+[2026-06-12 12:50:35] spend $8.4339, 1 app(s) running, velocity $4.06/hr
+[2026-06-12 12:55:38] spend $8.4719, 0 app(s) running, velocity $0.45/hr
+[2026-06-12 13:00:41] spend $8.4719, 0 app(s) running
+[2026-06-12 13:05:43] spend $8.4719, 0 app(s) running
+[2026-06-12 13:10:45] spend $8.4719, 0 app(s) running
+[2026-06-12 13:15:48] spend $8.4719, 0 app(s) running
+[2026-06-12 13:20:51] spend $8.4719, 0 app(s) running
+[2026-06-12 13:25:53] spend $8.4719, 0 app(s) running
+[2026-06-12 13:30:56] spend $8.4719, 0 app(s) running
+[2026-06-12 13:35:59] spend $8.4719, 0 app(s) running
+[2026-06-12 13:41:01] spend $8.4719, 0 app(s) running
+[2026-06-12 13:46:04] spend $8.4719, 0 app(s) running
+[2026-06-12 13:51:07] spend $8.4719, 0 app(s) running
+[2026-06-12 13:56:09] spend $8.4719, 0 app(s) running
+[2026-06-12 14:01:13] spend $8.4719, 0 app(s) running
+[2026-06-12 14:06:15] spend $8.4719, 0 app(s) running
+[2026-06-12 14:11:18] spend $8.4719, 0 app(s) running
+[2026-06-12 14:16:21] spend $8.4719, 0 app(s) running
+[2026-06-12 14:21:25] spend $8.4719, 0 app(s) running
+[2026-06-12 14:26:27] spend $8.4719, 0 app(s) running
+[2026-06-12 14:31:29] spend $8.4719, 0 app(s) running
+[2026-06-12 14:36:32] spend $8.4719, 0 app(s) running
+[2026-06-12 14:41:35] spend $8.4719, 0 app(s) running
+[2026-06-12 14:46:37] spend $8.4719, 0 app(s) running
+[2026-06-12 14:51:40] spend $8.4719, 0 app(s) running
+[2026-06-12 14:56:43] spend $8.4719, 0 app(s) running
+[2026-06-12 15:01:47] spend $8.4719, 0 app(s) running
+[2026-06-12 15:06:49] spend $8.4719, 0 app(s) running
+[2026-06-12 15:11:53] spend $8.4719, 0 app(s) running
+[2026-06-12 15:16:55] spend $8.4719, 0 app(s) running
+[2026-06-12 15:21:58] spend $8.4719, 0 app(s) running
+[2026-06-12 15:27:01] spend $8.4719, 0 app(s) running
+[2026-06-12 15:32:04] spend $8.4719, 0 app(s) running
+[2026-06-12 15:37:07] spend $8.4719, 0 app(s) running
+[2026-06-12 15:42:10] spend $8.4719, 0 app(s) running
+[2026-06-12 15:47:13] spend $8.4719, 0 app(s) running
+[2026-06-12 15:52:16] spend $8.4719, 0 app(s) running
+[2026-06-12 15:57:19] spend $8.4719, 0 app(s) running
+[2026-06-12 16:02:22] spend $8.4719, 0 app(s) running
+[2026-06-12 16:07:25] spend $8.4719, 0 app(s) running
+[2026-06-12 16:12:28] spend $8.4719, 0 app(s) running
+[2026-06-12 16:17:31] spend $8.4719, 0 app(s) running
+[2026-06-12 16:22:33] spend $8.4719, 0 app(s) running
+[2026-06-12 16:27:36] spend $8.7289, 1 app(s) running, velocity $3.05/hr
+[2026-06-12 16:32:39] spend $9.0088, 1 app(s) running, velocity $3.33/hr
+[2026-06-12 16:37:42] spend $9.1734, 0 app(s) running, velocity $1.96/hr
+[2026-06-12 16:42:45] spend $9.2477, 1 app(s) running, velocity $0.88/hr
+[2026-06-12 16:47:49] spend $9.4218, 1 app(s) running, velocity $2.07/hr
+[2026-06-12 16:52:51] spend $9.5728, 1 app(s) running, velocity $1.80/hr
+[2026-06-12 16:57:54] spend $9.6666, 1 app(s) running, velocity $1.11/hr
+[2026-06-12 17:02:57] spend $9.7500, 1 app(s) running, velocity $0.99/hr
+[2026-06-12 17:08:00] spend $9.8287, 1 app(s) running, velocity $0.93/hr
+[2026-06-12 17:13:03] spend $9.9080, 1 app(s) running, velocity $0.94/hr
+[2026-06-12 17:18:07] spend $9.9932, 1 app(s) running, velocity $1.01/hr
+[2026-06-12 17:23:10] spend $10.0628, 1 app(s) running, velocity $0.83/hr
+[2026-06-12 17:28:13] spend $10.1540, 1 app(s) running, velocity $1.08/hr
+[2026-06-12 17:33:15] spend $10.2386, 1 app(s) running, velocity $1.01/hr
+[2026-06-12 17:38:18] spend $10.3216, 1 app(s) running, velocity $0.99/hr
+[2026-06-12 17:43:21] spend $10.3368, 0 app(s) running, velocity $0.18/hr
+[2026-06-12 17:48:24] spend $10.3368, 0 app(s) running
+[2026-06-12 17:53:27] spend $10.3368, 0 app(s) running
+[2026-06-12 17:58:30] spend $10.3368, 0 app(s) running
+[2026-06-12 18:03:32] spend $10.3368, 0 app(s) running
+[2026-06-12 18:08:35] spend $10.3368, 0 app(s) running
+[2026-06-12 18:13:37] spend $10.3368, 0 app(s) running
+[2026-06-12 18:18:39] spend $10.3368, 0 app(s) running
+[2026-06-12 18:23:42] spend $10.3368, 0 app(s) running
+[2026-06-12 18:28:45] spend $10.3368, 0 app(s) running
+[2026-06-12 18:33:48] spend $10.3368, 0 app(s) running
+[2026-06-12 18:38:51] spend $10.3368, 0 app(s) running
+[2026-06-12 18:43:54] spend $10.3368, 0 app(s) running
+[2026-06-12 18:48:57] spend $10.3368, 0 app(s) running
+[2026-06-12 18:54:01] spend $10.3368, 0 app(s) running
+[2026-06-12 18:59:03] spend $10.3368, 0 app(s) running
+[2026-06-12 19:04:06] spend $10.3368, 0 app(s) running
+[2026-06-12 19:09:09] spend $10.3368, 0 app(s) running
+[2026-06-12 19:14:12] spend $10.3368, 0 app(s) running
+[2026-06-12 19:19:15] spend $10.3368, 0 app(s) running
+[2026-06-12 19:24:18] spend $10.3368, 0 app(s) running
+[2026-06-12 19:29:21] spend $10.3368, 0 app(s) running
+[2026-06-12 19:34:24] spend $10.3368, 0 app(s) running
+[2026-06-12 19:39:27] spend $10.3368, 0 app(s) running
+[2026-06-12 19:44:31] spend $10.3368, 0 app(s) running
+[2026-06-12 19:49:33] spend $10.3368, 0 app(s) running
+[2026-06-12 19:54:37] spend $10.3368, 0 app(s) running
+[2026-06-12 19:59:39] spend $10.3368, 0 app(s) running
+[2026-06-12 20:04:42] spend $10.3368, 0 app(s) running
+[2026-06-12 20:09:45] spend $10.3368, 0 app(s) running
+[2026-06-12 20:14:47] spend $10.3833, 1 app(s) running, velocity $0.55/hr
+[2026-06-12 20:19:50] spend $10.5583, 1 app(s) running, velocity $2.08/hr
+[2026-06-12 20:21:55] watchdog up: kill at $28.5 total, $4.0/hr velocity, 9.0h app age
+[2026-06-12 20:21:57] spend $10.6609, 2 app(s) running
+[2026-06-12 20:27:00] spend $10.8924, 2 app(s) running, velocity $2.75/hr
+[2026-06-12 20:32:03] spend $11.1026, 2 app(s) running, velocity $2.50/hr
+[2026-06-12 20:37:05] spend $11.2520, 2 app(s) running, velocity $1.78/hr
+[2026-06-12 20:42:08] spend $11.3711, 1 app(s) running, velocity $1.41/hr
+[2026-06-12 20:47:11] spend $11.4642, 1 app(s) running, velocity $1.11/hr
+[2026-06-12 20:52:16] spend $11.5161, 0 app(s) running, velocity $0.61/hr
+[2026-06-12 20:57:19] spend $11.5161, 0 app(s) running
+[2026-06-12 21:02:22] spend $11.5161, 0 app(s) running
+[2026-06-12 21:07:25] spend $11.5161, 0 app(s) running
+[2026-06-12 21:12:28] spend $11.5161, 0 app(s) running
+[2026-06-12 21:17:32] spend $11.5161, 0 app(s) running
+[2026-06-12 21:22:35] spend $11.5161, 0 app(s) running
+[2026-06-12 21:27:37] spend $11.5161, 0 app(s) running
+[2026-06-12 21:32:40] spend $11.5161, 0 app(s) running
+[2026-06-12 21:37:42] spend $11.5161, 0 app(s) running
+[2026-06-12 21:42:45] spend $11.5161, 0 app(s) running
+[2026-06-12 21:47:47] spend $11.5161, 0 app(s) running
+[2026-06-12 21:52:50] spend $11.5161, 0 app(s) running
+[2026-06-12 21:57:53] spend $11.5161, 0 app(s) running
+[2026-06-12 22:02:55] spend $11.5161, 0 app(s) running
+[2026-06-12 22:07:58] spend $11.5161, 0 app(s) running
+[2026-06-12 22:13:01] spend $11.5161, 0 app(s) running
+[2026-06-12 22:18:05] spend $11.5161, 0 app(s) running
+[2026-06-12 22:23:07] spend $11.5161, 0 app(s) running
+[2026-06-12 22:28:11] spend $11.5161, 0 app(s) running
+[2026-06-12 22:33:13] spend $11.5161, 0 app(s) running
+[2026-06-12 22:38:16] spend $11.5161, 0 app(s) running
+[2026-06-12 22:43:19] spend $11.5161, 0 app(s) running
+[2026-06-12 22:48:21] spend $11.5161, 0 app(s) running
+[2026-06-12 22:53:25] spend $11.5161, 0 app(s) running
+[2026-06-12 22:58:27] spend $11.5161, 0 app(s) running
+[2026-06-12 23:03:29] spend $11.5161, 0 app(s) running
+[2026-06-12 23:08:33] spend $11.5161, 0 app(s) running
+[2026-06-12 23:13:35] spend $11.5161, 0 app(s) running
+[2026-06-12 23:18:39] spend $11.5161, 0 app(s) running
+[2026-06-12 23:23:43] spend $11.5161, 0 app(s) running
+[2026-06-12 23:28:46] spend $11.5161, 0 app(s) running
+[2026-06-12 23:33:48] spend $11.5161, 0 app(s) running
+[2026-06-12 23:38:51] spend $11.5161, 0 app(s) running
+[2026-06-12 23:43:55] spend $11.5161, 0 app(s) running
+[2026-06-12 23:48:57] spend $11.5161, 0 app(s) running
+[2026-06-12 23:54:01] spend $11.5161, 0 app(s) running
+[2026-06-12 23:59:03] spend $11.5161, 0 app(s) running
+[2026-06-13 00:04:07] spend $11.5161, 0 app(s) running
+[2026-06-13 00:09:09] spend $11.5161, 0 app(s) running
+[2026-06-13 00:14:12] spend $11.5161, 0 app(s) running
+[2026-06-13 00:19:15] spend $11.5161, 0 app(s) running
+[2026-06-13 00:24:18] spend $11.5161, 0 app(s) running
+[2026-06-13 00:29:21] spend $11.5161, 0 app(s) running
+[2026-06-13 00:34:23] spend $11.5161, 0 app(s) running
+[2026-06-13 00:39:25] spend $11.5161, 0 app(s) running
+[2026-06-13 00:44:29] spend $11.5161, 0 app(s) running
+[2026-06-13 00:49:32] spend $11.5161, 0 app(s) running
+[2026-06-13 00:54:35] spend $11.5161, 0 app(s) running
+[2026-06-13 00:59:37] spend $11.5161, 0 app(s) running
+[2026-06-13 01:04:41] spend $11.5161, 0 app(s) running
+[2026-06-13 01:09:43] spend $11.5161, 0 app(s) running
+[2026-06-13 01:14:47] spend $11.5161, 0 app(s) running
+[2026-06-13 01:19:49] spend $11.5161, 0 app(s) running
+[2026-06-13 01:24:52] spend $11.5161, 0 app(s) running
+[2026-06-13 01:29:54] spend $11.5161, 0 app(s) running
+[2026-06-13 01:34:58] spend $11.5161, 0 app(s) running
+[2026-06-13 01:40:00] spend $11.5161, 0 app(s) running
+[2026-06-13 01:45:03] spend $11.5161, 0 app(s) running
+[2026-06-13 01:50:06] spend $11.5211, 1 app(s) running, velocity $0.06/hr
+[2026-06-13 01:55:09] spend $11.7112, 1 app(s) running, velocity $2.26/hr
+[2026-06-13 02:00:11] spend $11.9416, 1 app(s) running, velocity $2.74/hr
+[2026-06-13 02:05:14] spend $12.0406, 0 app(s) running, velocity $1.18/hr
+[2026-06-13 02:10:17] spend $12.0406, 0 app(s) running
+[2026-06-13 02:15:19] spend $12.0406, 0 app(s) running
+[2026-06-13 02:20:22] spend $12.2498, 1 app(s) running, velocity $2.49/hr
+[2026-06-13 02:25:24] spend $12.4239, 1 app(s) running, velocity $2.07/hr
+[2026-06-13 02:30:27] spend $12.6731, 1 app(s) running, velocity $2.97/hr
+[2026-06-13 02:35:29] spend $12.9647, 1 app(s) running, velocity $3.47/hr
+[2026-06-13 02:40:32] spend $13.3777, 1 app(s) running, velocity $4.90/hr
+[2026-06-13 02:45:35] KILL TRIGGERED: sustained velocity $4.76/hr > $4.0/hr x2
+[2026-06-13 02:45:37]   final sync cerebellum-flash: rc=0
+[2026-06-13 02:45:38]   final sync cerebellum-north: rc=0
+[2026-06-13 02:45:40]   final sync cerebellum-35b-v4: rc=0
+[2026-06-13 02:45:41]   stopped ap-O02SHrgqpkBN6xugVIs2dZ: rc=0 
+[2026-06-13 02:45:41] all running apps stopped; watchdog continues monitoring
+[2026-06-13 02:45:41] spend $13.7784, 1 app(s) running, velocity $4.76/hr
+[2026-06-13 02:50:44] spend $13.8212, 0 app(s) running, velocity $0.51/hr
+[2026-06-13 02:55:47] spend $13.8212, 1 app(s) running
+[2026-06-13 03:00:50] spend $14.0300, 1 app(s) running, velocity $2.48/hr
+[2026-06-13 03:05:54] spend $14.2200, 1 app(s) running, velocity $2.25/hr
+[2026-06-13 03:10:56] spend $14.3516, 1 app(s) running, velocity $1.56/hr
+[2026-06-13 03:15:59] spend $14.5553, 1 app(s) running, velocity $2.42/hr
+[2026-06-13 03:21:03] spend $14.7642, 1 app(s) running, velocity $2.48/hr
+[2026-06-13 03:26:07] spend $14.9722, 1 app(s) running, velocity $2.47/hr

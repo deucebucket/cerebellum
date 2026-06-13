@@ -1,0 +1,8 @@
+{
+  "benchmark": "arc_challenge",
+  "model": "qwen35_9b_moe_q4km_ablation_intersection",
+  "accuracy": 0.0,
+  "total": 1172,
+  "elapsed_seconds": 164.1,
+  "timestamp": "2026-05-29 05:24"
+}

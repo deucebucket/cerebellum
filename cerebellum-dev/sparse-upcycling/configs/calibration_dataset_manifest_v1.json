@@ -1,0 +1,121 @@
+{
+  "manifest_version": "1.0",
+  "name": "cerebellum_calibration_dataset_manifest_v1",
+  "policy": "reuse_public_datasets_only",
+  "seed": 20260529,
+  "system_python_note": "Use pyarrow.parquet plus hf_hub_download on system Python; avoid datasets here.",
+  "purpose": "Single provenance map for calibration text corpora, sparse-upcycling JSONL samples, and future contrastive prompt pairs.",
+  "text_corpora": [
+    {
+      "id": "wiki_v1",
+      "domain": "wiki",
+      "hf_repo": "Salesforce/wikitext",
+      "subset": "wikitext-103-v1",
+      "split": "validation",
+      "filename": "wikitext-103-v1/validation-00000-of-00001.parquet",
+      "columns": ["text"],
+      "filter": "len(text.strip()) > 200",
+      "format_adapter": "identity",
+      "builder": "cerebellum-dev/build_calibration_corpus.py",
+      "output": "/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_wiki.txt",
+      "target_bytes": 400000
+    },
+    {
+      "id": "code_v1",
+      "domain": "code",
+      "hf_repo": "code_search_net",
+      "split": "train",
+      "filename_template": "{language}/train-00000-of-00001.parquet",
+      "languages": [{"name": "python", "weight": 0.7}, {"name": "javascript", "weight": 0.3}],
+      "columns": ["whole_func_string", "func_code_string"],
+      "filter": "500 < len(content) < 6000",
+      "format_adapter": "code_function",
+      "builder": "cerebellum-dev/build_calibration_corpus.py",
+      "output": "/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_code.txt",
+      "target_bytes": 400000
+    },
+    {
+      "id": "math_v1",
+      "domain": "math",
+      "hf_repo": "openai/gsm8k",
+      "subset": "main",
+      "split": "train",
+      "filename": "main/train-00000-of-00001.parquet",
+      "columns": ["question", "answer"],
+      "format_adapter": "qa_reasoning",
+      "builder": "cerebellum-dev/build_calibration_corpus.py",
+      "output": "/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_math.txt",
+      "target_bytes": 400000
+    },
+    {
+      "id": "dialogue_v1",
+      "domain": "dialogue",
+      "hf_repo": "HuggingFaceH4/ultrachat_200k",
+      "split": "train_sft",
+      "filename": "data/train_sft-00000-of-00003-a3ecf92756993583.parquet",
+      "columns": ["messages"],
+      "format_adapter": "chat_messages",
+      "builder": "cerebellum-dev/build_calibration_corpus.py",
+      "output": "/var/home/deucebucket/games/cerebellum-calibration/cerebellum_calibration_dialogue.txt",
+      "target_bytes": 400000
+    }
+  ],
+  "sparse_upcycling_jsonl": [
+    {
+      "id": "smol_smoltalk_train_512",
+      "hf_repo": "HuggingFaceTB/smol-smoltalk",
+      "filename": "data/train-00000-of-00004.parquet",
+      "format_adapter": "public_data.row_to_text",
+      "builder": "cerebellum-dev/sparse-upcycling/scripts/materialize_public_smoke_sample.py",
+      "output": "/var/home/deucebucket/games/cerebellum-pipeline-tmp/qwen35_9b_moe/smol_smoltalk_train_512.jsonl",
+      "rows": 512
+    },
+    {
+      "id": "openthoughts3_train_256",
+      "hf_repo": "open-thoughts/OpenThoughts3-1.2M",
+      "filename": "data/train-00000-of-00120.parquet",
+      "format_adapter": "public_data.row_to_text",
+      "builder": "cerebellum-dev/sparse-upcycling/scripts/materialize_public_smoke_sample.py",
+      "output": "/var/home/deucebucket/games/cerebellum-pipeline-tmp/qwen35_9b_moe/openthoughts3_train_256.jsonl",
+      "rows": 256
+    },
+    {
+      "id": "opencode_train_256",
+      "hf_repo": "nvidia/OpenCodeReasoning",
+      "filename": "split_0/train-00000-of-00030.parquet",
+      "format_adapter": "public_data.row_to_text",
+      "builder": "cerebellum-dev/sparse-upcycling/scripts/materialize_public_smoke_sample.py",
+      "output": "/var/home/deucebucket/games/cerebellum-pipeline-tmp/qwen35_9b_moe/opencode_train_256.jsonl",
+      "rows": 256
+    }
+  ],
+  "aliases": {
+    "multidomain_ppl_v1": ["wiki_v1", "code_v1", "math_v1", "dialogue_v1"],
+    "qwen35_moe_warmup_v0": ["smol_smoltalk_train_512", "openthoughts3_train_256", "opencode_train_256"]
+  },
+  "contrastive_pairs_planned": [
+    {
+      "id": "refusal_pairs_v1",
+      "status": "planned",
+      "target_pairs": 100,
+      "requirement": "minimally different public or attributed prompts; no unattributed synthetic dataset dump"
+    },
+    {
+      "id": "thinking_mode_pairs_v1",
+      "status": "planned",
+      "target_pairs": 50,
+      "requirement": "paired prompts isolating thinking/no-thinking trigger"
+    },
+    {
+      "id": "hedging_pairs_v1",
+      "status": "planned",
+      "target_pairs": 50,
+      "requirement": "paired prompts isolating hedging/refusal boilerplate"
+    }
+  ],
+  "local_outputs_disallowed": [
+    "new synthetic dataset from scratch",
+    "unattributed prompt collection",
+    "benchmark-contaminated training set"
+  ]
+}

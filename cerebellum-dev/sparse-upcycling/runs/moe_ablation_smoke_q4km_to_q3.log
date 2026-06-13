@@ -1,0 +1,67 @@
+Loaded 8 tensors to test
+Existing results: 0 tensors already done
+
+=== Measuring baseline PPL per domain ===
+    chat: 249.5304
+    reasoning: 171.2806
+    code: 97.7624
+Baseline saved: {'chat': 249.5304, 'reasoning': 171.2806, 'code': 97.7624}
+
+Pending tensors: 8 (skipping 0 already done)
+
+=== Pipeline armed: 1 PPL workers, queue_depth=1 ===
+  [producer] quantized blk.0.ffn_gate_up_exps.weight in 192s -> slot 0
+
+[1/8] worker 0 PPL blk.0.ffn_gate_up_exps.weight  (elapsed 192s, rate 0.005/s, eta 22m, q=0)
+    chat: 252.6431
+    reasoning: 173.5779
+    code: 97.8768
+  [producer] quantized blk.0.ffn_down_exps.weight in 191s -> slot 1
+
+[2/8] worker 0 PPL blk.0.ffn_down_exps.weight  (elapsed 383s, rate 0.005/s, eta 19m, q=0)
+    chat: 252.5991
+    reasoning: 178.2180
+    code: 97.6861
+  [producer] quantized blk.11.ffn_gate_up_exps.weight in 189s -> slot 2
+
+[3/8] worker 0 PPL blk.11.ffn_gate_up_exps.weight  (elapsed 572s, rate 0.005/s, eta 16m, q=0)
+    chat: 251.2406
+    reasoning: 171.3230
+    code: 96.8944
+  [producer] quantized blk.11.ffn_down_exps.weight in 191s -> slot 3
+
+[4/8] worker 0 PPL blk.11.ffn_down_exps.weight  (elapsed 763s, rate 0.005/s, eta 13m, q=0)
+    chat: 250.2579
+    reasoning: 173.1087
+    code: 97.0086
+  [producer] quantized blk.31.ffn_gate_up_exps.weight in 189s -> slot 4
+
+[5/8] worker 0 PPL blk.31.ffn_gate_up_exps.weight  (elapsed 952s, rate 0.005/s, eta 10m, q=0)
+    chat: 250.0174
+    reasoning: 171.2502
+    code: 97.4036
+  [producer] quantized blk.31.ffn_down_exps.weight in 190s -> slot 5
+
+[6/8] worker 0 PPL blk.31.ffn_down_exps.weight  (elapsed 1142s, rate 0.005/s, eta 6m, q=0)
+    chat: 248.1993
+    reasoning: 171.4145
+    code: 98.2202
+  [producer] quantized blk.11.ffn_gate_shexp.weight in 190s -> slot 6
+
+[7/8] worker 0 PPL blk.11.ffn_gate_shexp.weight  (elapsed 1332s, rate 0.005/s, eta 3m, q=0)
+    chat: 249.9837
+    reasoning: 171.2346
+    code: 98.0100
+  [producer] quantized blk.11.ffn_down_shexp.weight in 190s -> slot 7
+
+[8/8] worker 0 PPL blk.11.ffn_down_shexp.weight  (elapsed 1522s, rate 0.005/s, eta 0m, q=0)
+    chat: 252.0851
+    reasoning: 171.4356
+    code: 97.5600
+  [worker 0] received POISON, exiting
+
+=== Ablation complete ===
+Tensors processed this run: 8
+Total measured: 8/8
+Total time: 1533s
+Output: cerebellum-dev/sparse-upcycling/runs/moe_ablation_smoke_q4km_to_q3.json

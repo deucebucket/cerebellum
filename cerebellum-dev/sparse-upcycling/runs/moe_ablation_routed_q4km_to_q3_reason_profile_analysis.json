@@ -1,0 +1,2324 @@
+{
+  "schema_version": 1,
+  "input": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3.json",
+  "baseline_ppl": {
+    "chat": 249.5304,
+    "reasoning": 171.2806,
+    "code": 97.7624
+  },
+  "weights": {
+    "chat": 0.17647058823529413,
+    "reasoning": 0.7058823529411765,
+    "code": 0.11764705882352942
+  },
+  "thresholds": {
+    "beneficial_weighted": -0.0025,
+    "safe_max": 0.01,
+    "safe_weighted": 0.005,
+    "tolerant_max": 0.02,
+    "tolerant_weighted": 0.015,
+    "fragile_max": 0.03,
+    "fragile_weighted": 0.02,
+    "critical_max": 0.08,
+    "critical_weighted": 0.05
+  },
+  "emit_classes": [
+    "demotable"
+  ],
+  "tested_count": 64,
+  "skipped_count": 0,
+  "counts": {
+    "demotable": 39,
+    "tolerant": 16,
+    "sacred": 9,
+    "critical": 0
+  },
+  "override_count": 39,
+  "overrides": [
+    {
+      "tensor": "blk.16.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.16\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.19.ffn_down_exps.weight",
+      "pattern": "^blk\\.19\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.28.ffn_down_exps.weight",
+      "pattern": "^blk\\.28\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.27.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.27\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.23.ffn_down_exps.weight",
+      "pattern": "^blk\\.23\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.12.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.12\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.2.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.2\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.15.ffn_down_exps.weight",
+      "pattern": "^blk\\.15\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.21.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.21\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.1.ffn_down_exps.weight",
+      "pattern": "^blk\\.1\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.18.ffn_down_exps.weight",
+      "pattern": "^blk\\.18\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.11.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.11\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.30.ffn_down_exps.weight",
+      "pattern": "^blk\\.30\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.25.ffn_down_exps.weight",
+      "pattern": "^blk\\.25\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.4.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.4\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.16.ffn_down_exps.weight",
+      "pattern": "^blk\\.16\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.31.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.31\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.20.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.20\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.21.ffn_down_exps.weight",
+      "pattern": "^blk\\.21\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.29.ffn_down_exps.weight",
+      "pattern": "^blk\\.29\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.31.ffn_down_exps.weight",
+      "pattern": "^blk\\.31\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.25.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.25\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.26.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.26\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.26.ffn_down_exps.weight",
+      "pattern": "^blk\\.26\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.20.ffn_down_exps.weight",
+      "pattern": "^blk\\.20\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.22.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.22\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.18.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.18\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.9.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.9\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.23.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.23\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.27.ffn_down_exps.weight",
+      "pattern": "^blk\\.27\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.29.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.29\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.10.ffn_down_exps.weight",
+      "pattern": "^blk\\.10\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.24.ffn_down_exps.weight",
+      "pattern": "^blk\\.24\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.24.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.24\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.30.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.30\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.22.ffn_down_exps.weight",
+      "pattern": "^blk\\.22\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.9.ffn_down_exps.weight",
+      "pattern": "^blk\\.9\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.28.ffn_gate_up_exps.weight",
+      "pattern": "^blk\\.28\\.ffn_gate_up_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    },
+    {
+      "tensor": "blk.17.ffn_down_exps.weight",
+      "pattern": "^blk\\.17\\.ffn_down_exps\\.weight$",
+      "qtype": "Q3_K",
+      "class": "demotable"
+    }
+  ],
+  "rows": [
+    {
+      "label": "blk_14_ffn_gate_up_exps",
+      "tensor": "blk.14.ffn_gate_up_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 257.2931,
+        "reasoning": 180.1522,
+        "code": 100.1121
+      },
+      "deltas_abs": {
+        "chat": 7.762699999999995,
+        "reasoning": 8.8716,
+        "code": 2.3496999999999986
+      },
+      "deltas_rel": {
+        "chat": 0.031109235588128725,
+        "reasoning": 0.051795708328905905,
+        "code": 0.024034802746250077
+      },
+      "deltas_rel_pct": {
+        "chat": 3.1109235588128725,
+        "reasoning": 5.17957083289059,
+        "code": 2.4034802746250077
+      },
+      "weighted_rel": 0.04487916542375042,
+      "weighted_rel_pct": 4.487916542375042,
+      "max_rel": 0.051795708328905905,
+      "max_rel_pct": 5.17957083289059,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_0_ffn_down_exps",
+      "tensor": "blk.0.ffn_down_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.5991,
+        "reasoning": 178.218,
+        "code": 97.6861
+      },
+      "deltas_abs": {
+        "chat": 3.068700000000007,
+        "reasoning": 6.937399999999997,
+        "code": -0.07630000000000337
+      },
+      "deltas_rel": {
+        "chat": 0.012297900376066432,
+        "reasoning": 0.0405031276163208,
+        "code": -0.0007804636547384615
+      },
+      "deltas_rel_pct": {
+        "chat": 1.2297900376066433,
+        "reasoning": 4.05031276163208,
+        "code": -0.07804636547384615
+      },
+      "weighted_rel": 0.03066884148321012,
+      "weighted_rel_pct": 3.066884148321012,
+      "max_rel": 0.0405031276163208,
+      "max_rel_pct": 4.05031276163208,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_10_ffn_gate_up_exps",
+      "tensor": "blk.10.ffn_gate_up_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 254.5199,
+        "reasoning": 177.3539,
+        "code": 98.1371
+      },
+      "deltas_abs": {
+        "chat": 4.989500000000021,
+        "reasoning": 6.0733000000000175,
+        "code": 0.37470000000000425
+      },
+      "deltas_rel": {
+        "chat": 0.019995559659264046,
+        "reasoning": 0.035458189660708905,
+        "code": 0.003832761879822961
+      },
+      "deltas_rel_pct": {
+        "chat": 1.9995559659264046,
+        "reasoning": 3.5458189660708905,
+        "code": 0.3832761879822961
+      },
+      "weighted_rel": 0.029008851686232056,
+      "weighted_rel_pct": 2.900885168623206,
+      "max_rel": 0.035458189660708905,
+      "max_rel_pct": 3.5458189660708905,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_5_ffn_gate_up_exps",
+      "tensor": "blk.5.ffn_gate_up_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 247.8379,
+        "reasoning": 177.2559,
+        "code": 97.8497
+      },
+      "deltas_abs": {
+        "chat": -1.6924999999999955,
+        "reasoning": 5.975300000000004,
+        "code": 0.08729999999999905
+      },
+      "deltas_rel": {
+        "chat": -0.006782740700131108,
+        "reasoning": 0.03488602912413901,
+        "code": 0.0008929813507033281
+      },
+      "deltas_rel_pct": {
+        "chat": -0.6782740700131108,
+        "reasoning": 3.488602912413901,
+        "code": 0.08929813507033281
+      },
+      "weighted_rel": 0.023533534711216556,
+      "weighted_rel_pct": 2.3533534711216557,
+      "max_rel": 0.03488602912413901,
+      "max_rel_pct": 3.488602912413901,
+      "worst_domain": "reasoning",
+      "best_domain": "chat"
+    },
+    {
+      "label": "blk_6_ffn_gate_up_exps",
+      "tensor": "blk.6.ffn_gate_up_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 253.6916,
+        "reasoning": 176.6695,
+        "code": 99.1405
+      },
+      "deltas_abs": {
+        "chat": 4.161200000000008,
+        "reasoning": 5.388900000000007,
+        "code": 1.3781000000000034
+      },
+      "deltas_rel": {
+        "chat": 0.016676124432133354,
+        "reasoning": 0.031462407301235555,
+        "code": 0.014096421528113093
+      },
+      "deltas_rel_pct": {
+        "chat": 1.6676124432133355,
+        "reasoning": 3.1462407301235555,
+        "code": 1.4096421528113092
+      },
+      "weighted_rel": 0.02681000611573253,
+      "weighted_rel_pct": 2.681000611573253,
+      "max_rel": 0.031462407301235555,
+      "max_rel_pct": 3.1462407301235555,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_7_ffn_gate_up_exps",
+      "tensor": "blk.7.ffn_gate_up_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 250.1157,
+        "reasoning": 175.7115,
+        "code": 97.8909
+      },
+      "deltas_abs": {
+        "chat": 0.5853000000000179,
+        "reasoning": 4.430900000000008,
+        "code": 0.1285000000000025
+      },
+      "deltas_rel": {
+        "chat": 0.002345605986284709,
+        "reasoning": 0.025869246137624508,
+        "code": 0.0013144112664992113
+      },
+      "deltas_rel_pct": {
+        "chat": 0.2345605986284709,
+        "reasoning": 2.586924613762451,
+        "code": 0.13144112664992114
+      },
+      "weighted_rel": 0.018829211420196862,
+      "weighted_rel_pct": 1.8829211420196863,
+      "max_rel": 0.025869246137624508,
+      "max_rel_pct": 2.586924613762451,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_5_ffn_down_exps",
+      "tensor": "blk.5.ffn_down_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 255.4827,
+        "reasoning": 173.0058,
+        "code": 97.4253
+      },
+      "deltas_abs": {
+        "chat": 5.952300000000008,
+        "reasoning": 1.725200000000001,
+        "code": -0.3371000000000066
+      },
+      "deltas_rel": {
+        "chat": 0.02385400736743903,
+        "reasoning": 0.01007236079275762,
+        "code": -0.0034481559372520174
+      },
+      "deltas_rel_pct": {
+        "chat": 2.385400736743903,
+        "reasoning": 1.007236079275762,
+        "code": -0.34481559372520176
+      },
+      "weighted_rel": 0.010913767043582618,
+      "weighted_rel_pct": 1.0913767043582618,
+      "max_rel": 0.02385400736743903,
+      "max_rel_pct": 2.385400736743903,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_1_ffn_gate_up_exps",
+      "tensor": "blk.1.ffn_gate_up_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 255.0843,
+        "reasoning": 175.2957,
+        "code": 97.919
+      },
+      "deltas_abs": {
+        "chat": 5.553900000000027,
+        "reasoning": 4.015100000000018,
+        "code": 0.1565999999999974
+      },
+      "deltas_rel": {
+        "chat": 0.02225740831578047,
+        "reasoning": 0.023441650718178348,
+        "code": 0.0016018428352822496
+      },
+      "deltas_rel_pct": {
+        "chat": 2.225740831578047,
+        "reasoning": 2.3441650718178346,
+        "code": 0.16018428352822497
+      },
+      "weighted_rel": 0.020663277602120358,
+      "weighted_rel_pct": 2.066327760212036,
+      "max_rel": 0.023441650718178348,
+      "max_rel_pct": 2.3441650718178346,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_6_ffn_down_exps",
+      "tensor": "blk.6.ffn_down_exps.weight",
+      "class": "sacred",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 253.5827,
+        "reasoning": 174.2567,
+        "code": 99.5515
+      },
+      "deltas_abs": {
+        "chat": 4.0523000000000025,
+        "reasoning": 2.9761000000000024,
+        "code": 1.7891000000000048
+      },
+      "deltas_rel": {
+        "chat": 0.016239704661235674,
+        "reasoning": 0.01737558135597378,
+        "code": 0.01830049180462023
+      },
+      "deltas_rel_pct": {
+        "chat": 1.6239704661235674,
+        "reasoning": 1.737558135597378,
+        "code": 1.830049180462023
+      },
+      "weighted_rel": 0.01728394552144899,
+      "weighted_rel_pct": 1.728394552144899,
+      "max_rel": 0.01830049180462023,
+      "max_rel_pct": 1.830049180462023,
+      "worst_domain": "code",
+      "best_domain": "chat"
+    },
+    {
+      "label": "blk_3_ffn_gate_up_exps",
+      "tensor": "blk.3.ffn_gate_up_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.3176,
+        "reasoning": 174.551,
+        "code": 96.7308
+      },
+      "deltas_abs": {
+        "chat": 2.787200000000013,
+        "reasoning": 3.270399999999995,
+        "code": -1.0315999999999974
+      },
+      "deltas_rel": {
+        "chat": 0.01116978131722633,
+        "reasoning": 0.019093814477529825,
+        "code": -0.010552114105218339
+      },
+      "deltas_rel_pct": {
+        "chat": 1.116978131722633,
+        "reasoning": 1.9093814477529825,
+        "code": -1.055211410521834
+      },
+      "weighted_rel": 0.014207699380682367,
+      "weighted_rel_pct": 1.4207699380682366,
+      "max_rel": 0.019093814477529825,
+      "max_rel_pct": 1.9093814477529825,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_8_ffn_down_exps",
+      "tensor": "blk.8.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 251.8068,
+        "reasoning": 174.4195,
+        "code": 96.7407
+      },
+      "deltas_abs": {
+        "chat": 2.2764000000000237,
+        "reasoning": 3.1389000000000067,
+        "code": -1.0216999999999956
+      },
+      "deltas_rel": {
+        "chat": 0.00912273614757971,
+        "reasoning": 0.018326068451418355,
+        "code": -0.010450848178849902
+      },
+      "deltas_rel_pct": {
+        "chat": 0.912273614757971,
+        "reasoning": 1.8326068451418356,
+        "code": -1.0450848178849903
+      },
+      "weighted_rel": 0.013316431382474094,
+      "weighted_rel_pct": 1.3316431382474094,
+      "max_rel": 0.018326068451418355,
+      "max_rel_pct": 1.8326068451418356,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_3_ffn_down_exps",
+      "tensor": "blk.3.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.9157,
+        "reasoning": 174.2571,
+        "code": 96.5772
+      },
+      "deltas_abs": {
+        "chat": 3.385300000000001,
+        "reasoning": 2.9765000000000157,
+        "code": -1.1851999999999947
+      },
+      "deltas_rel": {
+        "chat": 0.013566683658584289,
+        "reasoning": 0.017377916705102713,
+        "code": -0.012123270296146522
+      },
+      "deltas_rel_pct": {
+        "chat": 1.3566683658584289,
+        "reasoning": 1.7377916705102712,
+        "code": -1.2123270296146522
+      },
+      "weighted_rel": 0.013234618284981906,
+      "weighted_rel_pct": 1.3234618284981907,
+      "max_rel": 0.017377916705102713,
+      "max_rel_pct": 1.7377916705102712,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_12_ffn_down_exps",
+      "tensor": "blk.12.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 249.916,
+        "reasoning": 171.8941,
+        "code": 99.3504
+      },
+      "deltas_abs": {
+        "chat": 0.3856000000000108,
+        "reasoning": 0.6135000000000161,
+        "code": 1.5879999999999939
+      },
+      "deltas_rel": {
+        "chat": 0.0015453026965853093,
+        "reasoning": 0.0035818417263835845,
+        "code": 0.01624346374475252
+      },
+      "deltas_rel_pct": {
+        "chat": 0.15453026965853092,
+        "reasoning": 0.35818417263835844,
+        "code": 1.624346374475252
+      },
+      "weighted_rel": 0.004712055076227293,
+      "weighted_rel_pct": 0.47120550762272934,
+      "max_rel": 0.01624346374475252,
+      "max_rel_pct": 1.624346374475252,
+      "worst_domain": "code",
+      "best_domain": "chat"
+    },
+    {
+      "label": "blk_19_ffn_gate_up_exps",
+      "tensor": "blk.19.ffn_gate_up_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 250.9049,
+        "reasoning": 173.9359,
+        "code": 96.7861
+      },
+      "deltas_abs": {
+        "chat": 1.3745000000000118,
+        "reasoning": 2.655300000000011,
+        "code": -0.9762999999999948
+      },
+      "deltas_rel": {
+        "chat": 0.005508346878777143,
+        "reasoning": 0.015502631354631004,
+        "code": -0.009986456960958352
+      },
+      "deltas_rel_pct": {
+        "chat": 0.5508346878777143,
+        "reasoning": 1.5502631354631005,
+        "code": -0.9986456960958352
+      },
+      "weighted_rel": 0.01074021782176393,
+      "weighted_rel_pct": 1.0740217821763929,
+      "max_rel": 0.015502631354631004,
+      "max_rel_pct": 1.5502631354631005,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_13_ffn_gate_up_exps",
+      "tensor": "blk.13.ffn_gate_up_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 253.3491,
+        "reasoning": 172.9587,
+        "code": 97.5991
+      },
+      "deltas_abs": {
+        "chat": 3.818700000000007,
+        "reasoning": 1.6781000000000006,
+        "code": -0.16329999999999245
+      },
+      "deltas_rel": {
+        "chat": 0.015303546181146694,
+        "reasoning": 0.009797373432834778,
+        "code": -0.001670376341006281
+      },
+      "deltas_rel_pct": {
+        "chat": 1.5303546181146694,
+        "reasoning": 0.9797373432834778,
+        "code": -0.1670376341006281
+      },
+      "weighted_rel": 0.009419903944437934,
+      "weighted_rel_pct": 0.9419903944437934,
+      "max_rel": 0.015303546181146694,
+      "max_rel_pct": 1.5303546181146694,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_0_ffn_gate_up_exps",
+      "tensor": "blk.0.ffn_gate_up_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.6431,
+        "reasoning": 173.5779,
+        "code": 97.8768
+      },
+      "deltas_abs": {
+        "chat": 3.112700000000018,
+        "reasoning": 2.297300000000007,
+        "code": 0.11440000000000339
+      },
+      "deltas_rel": {
+        "chat": 0.012474231596631184,
+        "reasoning": 0.01341249388430451,
+        "code": 0.0011701840380351075
+      },
+      "deltas_rel_pct": {
+        "chat": 1.2474231596631185,
+        "reasoning": 1.341249388430451,
+        "code": 0.11701840380351075
+      },
+      "weighted_rel": 0.011806646439859878,
+      "weighted_rel_pct": 1.1806646439859878,
+      "max_rel": 0.01341249388430451,
+      "max_rel_pct": 1.341249388430451,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_2_ffn_down_exps",
+      "tensor": "blk.2.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 251.2932,
+        "reasoning": 173.4766,
+        "code": 98.4612
+      },
+      "deltas_abs": {
+        "chat": 1.762800000000027,
+        "reasoning": 2.195999999999998,
+        "code": 0.6988000000000056
+      },
+      "deltas_rel": {
+        "chat": 0.007064469900260759,
+        "reasoning": 0.012821066717421576,
+        "code": 0.007147942358207303
+      },
+      "deltas_rel_pct": {
+        "chat": 0.7064469900260759,
+        "reasoning": 1.2821066717421576,
+        "code": 0.7147942358207303
+      },
+      "weighted_rel": 0.011137770295662106,
+      "weighted_rel_pct": 1.1137770295662106,
+      "max_rel": 0.012821066717421576,
+      "max_rel_pct": 1.2821066717421576,
+      "worst_domain": "reasoning",
+      "best_domain": "chat"
+    },
+    {
+      "label": "blk_13_ffn_down_exps",
+      "tensor": "blk.13.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.5774,
+        "reasoning": 172.774,
+        "code": 97.2767
+      },
+      "deltas_abs": {
+        "chat": 3.0470000000000255,
+        "reasoning": 1.4934000000000083,
+        "code": -0.48569999999999425
+      },
+      "deltas_rel": {
+        "chat": 0.012210937024106184,
+        "reasoning": 0.008719025972585386,
+        "code": -0.004968167720923323
+      },
+      "deltas_rel_pct": {
+        "chat": 1.2210937024106183,
+        "reasoning": 0.8719025972585386,
+        "code": -0.49681677209233227
+      },
+      "weighted_rel": 0.007724987488323326,
+      "weighted_rel_pct": 0.7724987488323326,
+      "max_rel": 0.012210937024106184,
+      "max_rel_pct": 1.2210937024106183,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_11_ffn_down_exps",
+      "tensor": "blk.11.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 250.2579,
+        "reasoning": 173.1087,
+        "code": 97.0086
+      },
+      "deltas_abs": {
+        "chat": 0.7275000000000205,
+        "reasoning": 1.8281000000000063,
+        "code": -0.7537999999999982
+      },
+      "deltas_rel": {
+        "chat": 0.002915476430927937,
+        "reasoning": 0.010673129356155959,
+        "code": -0.007710530838031781
+      },
+      "deltas_rel_pct": {
+        "chat": 0.29154764309279374,
+        "reasoning": 1.067312935615596,
+        "code": -0.7710530838031782
+      },
+      "weighted_rel": 0.007141348228858338,
+      "weighted_rel_pct": 0.7141348228858339,
+      "max_rel": 0.010673129356155959,
+      "max_rel_pct": 1.067312935615596,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_7_ffn_down_exps",
+      "tensor": "blk.7.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.1605,
+        "reasoning": 171.5721,
+        "code": 98.365
+      },
+      "deltas_abs": {
+        "chat": 2.630100000000027,
+        "reasoning": 0.2915000000000134,
+        "code": 0.6025999999999954
+      },
+      "deltas_rel": {
+        "chat": 0.010540198709255575,
+        "reasoning": 0.0017018856776541734,
+        "code": 0.006163923962586796
+      },
+      "deltas_rel_pct": {
+        "chat": 1.0540198709255575,
+        "reasoning": 0.17018856776541735,
+        "code": 0.6163923962586796
+      },
+      "weighted_rel": 0.0037865336579288467,
+      "weighted_rel_pct": 0.37865336579288467,
+      "max_rel": 0.010540198709255575,
+      "max_rel_pct": 1.0540198709255575,
+      "worst_domain": "chat",
+      "best_domain": "reasoning"
+    },
+    {
+      "label": "blk_14_ffn_down_exps",
+      "tensor": "blk.14.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 249.0418,
+        "reasoning": 173.0849,
+        "code": 96.2793
+      },
+      "deltas_abs": {
+        "chat": -0.48859999999999104,
+        "reasoning": 1.804300000000012,
+        "code": -1.4830999999999932
+      },
+      "deltas_rel": {
+        "chat": -0.001958078053816253,
+        "reasoning": 0.010534176082989037,
+        "code": -0.01517045408050532
+      },
+      "deltas_rel_pct": {
+        "chat": -0.1958078053816253,
+        "reasoning": 1.0534176082989037,
+        "code": -1.517045408050532
+      },
+      "weighted_rel": 0.005305586510200532,
+      "weighted_rel_pct": 0.5305586510200532,
+      "max_rel": 0.010534176082989037,
+      "max_rel_pct": 1.0534176082989037,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_15_ffn_gate_up_exps",
+      "tensor": "blk.15.ffn_gate_up_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 252.1226,
+        "reasoning": 171.8416,
+        "code": 96.6552
+      },
+      "deltas_abs": {
+        "chat": 2.5922000000000196,
+        "reasoning": 0.561000000000007,
+        "code": -1.107200000000006
+      },
+      "deltas_rel": {
+        "chat": 0.010388313407905489,
+        "reasoning": 0.00327532715322113,
+        "code": -0.011325417542940905
+      },
+      "deltas_rel_pct": {
+        "chat": 1.038831340790549,
+        "reasoning": 0.327532715322113,
+        "code": -1.1325417542940905
+      },
+      "weighted_rel": 0.0028128253515581304,
+      "weighted_rel_pct": 0.28128253515581303,
+      "max_rel": 0.010388313407905489,
+      "max_rel_pct": 1.038831340790549,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_4_ffn_down_exps",
+      "tensor": "blk.4.ffn_down_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 250.9699,
+        "reasoning": 172.8685,
+        "code": 97.6699
+      },
+      "deltas_abs": {
+        "chat": 1.4395000000000095,
+        "reasoning": 1.587900000000019,
+        "code": -0.09250000000000114
+      },
+      "deltas_rel": {
+        "chat": 0.00576883618188409,
+        "reasoning": 0.00927075220427777,
+        "code": -0.0009461715342503983
+      },
+      "deltas_rel_pct": {
+        "chat": 0.5768836181884089,
+        "reasoning": 0.927075220427777,
+        "code": -0.09461715342503982
+      },
+      "weighted_rel": 0.007450775995793219,
+      "weighted_rel_pct": 0.745077599579322,
+      "max_rel": 0.00927075220427777,
+      "max_rel_pct": 0.927075220427777,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_17_ffn_gate_up_exps",
+      "tensor": "blk.17.ffn_gate_up_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 250.4036,
+        "reasoning": 172.742,
+        "code": 97.8307
+      },
+      "deltas_abs": {
+        "chat": 0.8732000000000255,
+        "reasoning": 1.4613999999999976,
+        "code": 0.06829999999999359
+      },
+      "deltas_rel": {
+        "chat": 0.00349937322266155,
+        "reasoning": 0.008532198042276812,
+        "code": 0.0006986326031275173
+      },
+      "deltas_rel_pct": {
+        "chat": 0.349937322266155,
+        "reasoning": 0.8532198042276812,
+        "code": 0.06986326031275172
+      },
+      "weighted_rel": 0.006722456551856554,
+      "weighted_rel_pct": 0.6722456551856554,
+      "max_rel": 0.008532198042276812,
+      "max_rel_pct": 0.8532198042276812,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_8_ffn_gate_up_exps",
+      "tensor": "blk.8.ffn_gate_up_exps.weight",
+      "class": "tolerant",
+      "subclass": "sensitivity",
+      "ppl": {
+        "chat": 250.7867,
+        "reasoning": 172.6244,
+        "code": 97.0784
+      },
+      "deltas_abs": {
+        "chat": 1.2563000000000102,
+        "reasoning": 1.3438000000000159,
+        "code": -0.6839999999999975
+      },
+      "deltas_rel": {
+        "chat": 0.005034657099896487,
+        "reasoning": 0.00784560539839314,
+        "code": -0.006996554912727158
+      },
+      "deltas_rel_pct": {
+        "chat": 0.5034657099896487,
+        "reasoning": 0.784560539839314,
+        "code": -0.6996554912727158
+      },
+      "weighted_rel": 0.005603419191467814,
+      "weighted_rel_pct": 0.5603419191467814,
+      "max_rel": 0.00784560539839314,
+      "max_rel_pct": 0.784560539839314,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_2_ffn_gate_up_exps",
+      "tensor": "blk.2.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "beneficial",
+      "ppl": {
+        "chat": 253.0219,
+        "reasoning": 169.9775,
+        "code": 97.9266
+      },
+      "deltas_abs": {
+        "chat": 3.491500000000002,
+        "reasoning": -1.3031000000000006,
+        "code": 0.1641999999999939
+      },
+      "deltas_rel": {
+        "chat": 0.013992283104583659,
+        "reasoning": -0.007607983624531912,
+        "code": 0.001679582334312516
+      },
+      "deltas_rel_pct": {
+        "chat": 1.3992283104583658,
+        "reasoning": -0.7607983624531912,
+        "code": 0.1679582334312516
+      },
+      "weighted_rel": -0.002703517030118055,
+      "weighted_rel_pct": -0.2703517030118055,
+      "max_rel": 0.013992283104583659,
+      "max_rel_pct": 1.3992283104583658,
+      "worst_domain": "chat",
+      "best_domain": "reasoning"
+    },
+    {
+      "label": "blk_4_ffn_gate_up_exps",
+      "tensor": "blk.4.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 251.8453,
+        "reasoning": 170.9304,
+        "code": 97.2139
+      },
+      "deltas_abs": {
+        "chat": 2.314900000000023,
+        "reasoning": -0.35020000000000095,
+        "code": -0.5485000000000042
+      },
+      "deltas_rel": {
+        "chat": 0.009277025965573825,
+        "reasoning": -0.002044598162313776,
+        "code": -0.005610541476068552
+      },
+      "deltas_rel_pct": {
+        "chat": 0.9277025965573825,
+        "reasoning": -0.2044598162313776,
+        "code": -0.5610541476068552
+      },
+      "weighted_rel": -0.0004661872354812318,
+      "weighted_rel_pct": -0.04661872354812318,
+      "max_rel": 0.009277025965573825,
+      "max_rel_pct": 0.9277025965573825,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_16_ffn_down_exps",
+      "tensor": "blk.16.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 251.7733,
+        "reasoning": 171.014,
+        "code": 97.1164
+      },
+      "deltas_abs": {
+        "chat": 2.24290000000002,
+        "reasoning": -0.26659999999998263,
+        "code": -0.6460000000000008
+      },
+      "deltas_rel": {
+        "chat": 0.00898848396828611,
+        "reasoning": -0.0015565101943826834,
+        "code": -0.0066078574175756815
+      },
+      "deltas_rel_pct": {
+        "chat": 0.898848396828611,
+        "reasoning": -0.15565101943826834,
+        "code": -0.6607857417575681
+      },
+      "weighted_rel": -0.0002899050154638374,
+      "weighted_rel_pct": -0.02899050154638374,
+      "max_rel": 0.00898848396828611,
+      "max_rel_pct": 0.898848396828611,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_17_ffn_down_exps",
+      "tensor": "blk.17.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 251.6107,
+        "reasoning": 172.0445,
+        "code": 97.8994
+      },
+      "deltas_abs": {
+        "chat": 2.0803000000000225,
+        "reasoning": 0.7639000000000067,
+        "code": 0.13700000000000045
+      },
+      "deltas_rel": {
+        "chat": 0.008336859957744717,
+        "reasoning": 0.004459932998833532,
+        "code": 0.0014013567588357125
+      },
+      "deltas_rel_pct": {
+        "chat": 0.8336859957744717,
+        "reasoning": 0.44599329988335323,
+        "code": 0.14013567588357123
+      },
+      "weighted_rel": 0.004784264080994586,
+      "weighted_rel_pct": 0.4784264080994586,
+      "max_rel": 0.008336859957744717,
+      "max_rel_pct": 0.8336859957744717,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_10_ffn_down_exps",
+      "tensor": "blk.10.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 251.5691,
+        "reasoning": 172.0998,
+        "code": 95.8934
+      },
+      "deltas_abs": {
+        "chat": 2.0387000000000057,
+        "reasoning": 0.819199999999995,
+        "code": -1.8689999999999998
+      },
+      "deltas_rel": {
+        "chat": 0.008170146803756198,
+        "reasoning": 0.0047827950158978606,
+        "code": -0.019117779432583484
+      },
+      "deltas_rel_pct": {
+        "chat": 0.8170146803756199,
+        "reasoning": 0.47827950158978605,
+        "code": -1.9117779432583484
+      },
+      "weighted_rel": 0.002568730690404468,
+      "weighted_rel_pct": 0.2568730690404468,
+      "max_rel": 0.008170146803756198,
+      "max_rel_pct": 0.8170146803756199,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_16_ffn_gate_up_exps",
+      "tensor": "blk.16.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "beneficial",
+      "ppl": {
+        "chat": 251.4965,
+        "reasoning": 167.53,
+        "code": 96.5203
+      },
+      "deltas_abs": {
+        "chat": 1.9661000000000115,
+        "reasoning": -3.7505999999999915,
+        "code": -1.2420999999999935
+      },
+      "deltas_rel": {
+        "chat": 0.007879200289824452,
+        "reasoning": -0.021897401106721903,
+        "code": -0.012705293650728639
+      },
+      "deltas_rel_pct": {
+        "chat": 0.7879200289824452,
+        "reasoning": -2.18974011067219,
+        "code": -1.270529365072864
+      },
+      "weighted_rel": -0.015561282336038046,
+      "weighted_rel_pct": -1.5561282336038045,
+      "max_rel": 0.007879200289824452,
+      "max_rel_pct": 0.7879200289824452,
+      "worst_domain": "chat",
+      "best_domain": "reasoning"
+    },
+    {
+      "label": "blk_11_ffn_gate_up_exps",
+      "tensor": "blk.11.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 251.4083,
+        "reasoning": 170.9228,
+        "code": 96.9949
+      },
+      "deltas_abs": {
+        "chat": 1.877900000000011,
+        "reasoning": -0.35779999999999745,
+        "code": -0.7674999999999983
+      },
+      "deltas_rel": {
+        "chat": 0.0075257363431470116,
+        "reasoning": -0.002088969795762027,
+        "code": -0.007850666513915352
+      },
+      "deltas_rel_pct": {
+        "chat": 0.7525736343147011,
+        "reasoning": -0.2088969795762027,
+        "code": -0.7850666513915352
+      },
+      "weighted_rel": -0.0010701036204431762,
+      "weighted_rel_pct": -0.10701036204431762,
+      "max_rel": 0.0075257363431470116,
+      "max_rel_pct": 0.7525736343147011,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_1_ffn_down_exps",
+      "tensor": "blk.1.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 251.1496,
+        "reasoning": 170.7076,
+        "code": 97.541
+      },
+      "deltas_abs": {
+        "chat": 1.6192000000000064,
+        "reasoning": -0.5729999999999791,
+        "code": -0.2214000000000027
+      },
+      "deltas_rel": {
+        "chat": 0.006488988916781308,
+        "reasoning": -0.0033453876270866582,
+        "code": -0.0022646743533301424
+      },
+      "deltas_rel_pct": {
+        "chat": 0.6488988916781309,
+        "reasoning": -0.33453876270866584,
+        "code": -0.22646743533301425
+      },
+      "weighted_rel": -0.0014827666753738974,
+      "weighted_rel_pct": -0.14827666753738974,
+      "max_rel": 0.006488988916781308,
+      "max_rel_pct": 0.6488988916781309,
+      "worst_domain": "chat",
+      "best_domain": "reasoning"
+    },
+    {
+      "label": "blk_24_ffn_gate_up_exps",
+      "tensor": "blk.24.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.5597,
+        "reasoning": 172.2574,
+        "code": 97.268
+      },
+      "deltas_abs": {
+        "chat": 0.02930000000000632,
+        "reasoning": 0.9767999999999972,
+        "code": -0.49439999999999884
+      },
+      "deltas_rel": {
+        "chat": 0.00011742056278516093,
+        "reasoning": 0.005702922572667291,
+        "code": -0.005057158989550163
+      },
+      "deltas_rel_pct": {
+        "chat": 0.011742056278516093,
+        "reasoning": 0.5702922572667292,
+        "code": -0.5057158989550163
+      },
+      "weighted_rel": 0.0034513537988978033,
+      "weighted_rel_pct": 0.3451353798897803,
+      "max_rel": 0.005702922572667291,
+      "max_rel_pct": 0.5702922572667292,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_23_ffn_gate_up_exps",
+      "tensor": "blk.23.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.8467,
+        "reasoning": 171.502,
+        "code": 97.8895
+      },
+      "deltas_abs": {
+        "chat": 1.3163000000000125,
+        "reasoning": 0.22140000000001692,
+        "code": 0.12709999999999866
+      },
+      "deltas_rel": {
+        "chat": 0.005275108764302917,
+        "reasoning": 0.0012926157428221113,
+        "code": 0.0013000908324672744
+      },
+      "deltas_rel_pct": {
+        "chat": 0.5275108764302917,
+        "reasoning": 0.12926157428221113,
+        "code": 0.13000908324672744
+      },
+      "weighted_rel": 0.001996288051276979,
+      "weighted_rel_pct": 0.1996288051276979,
+      "max_rel": 0.005275108764302917,
+      "max_rel_pct": 0.5275108764302917,
+      "worst_domain": "chat",
+      "best_domain": "reasoning"
+    },
+    {
+      "label": "blk_9_ffn_down_exps",
+      "tensor": "blk.9.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.1279,
+        "reasoning": 172.1724,
+        "code": 98.1154
+      },
+      "deltas_abs": {
+        "chat": -0.402499999999975,
+        "reasoning": 0.8918000000000177,
+        "code": 0.35299999999999443
+      },
+      "deltas_rel": {
+        "chat": -0.0016130299153929743,
+        "reasoning": 0.005206660882785427,
+        "code": 0.0036107951523284454
+      },
+      "deltas_rel_pct": {
+        "chat": -0.16130299153929742,
+        "reasoning": 0.5206660882785428,
+        "code": 0.36107951523284454
+      },
+      "weighted_rel": 0.0038154371265825353,
+      "weighted_rel_pct": 0.38154371265825354,
+      "max_rel": 0.005206660882785427,
+      "max_rel_pct": 0.5206660882785428,
+      "worst_domain": "reasoning",
+      "best_domain": "chat"
+    },
+    {
+      "label": "blk_28_ffn_gate_up_exps",
+      "tensor": "blk.28.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.7008,
+        "reasoning": 172.0319,
+        "code": 98.1704
+      },
+      "deltas_abs": {
+        "chat": 1.1704000000000008,
+        "reasoning": 0.7513000000000147,
+        "code": 0.40800000000000125
+      },
+      "deltas_rel": {
+        "chat": 0.004690410467021256,
+        "reasoning": 0.004386369501274603,
+        "code": 0.00417338363215307
+      },
+      "deltas_rel_pct": {
+        "chat": 0.4690410467021256,
+        "reasoning": 0.4386369501274603,
+        "code": 0.417338363215307
+      },
+      "weighted_rel": 0.00441496662827442,
+      "weighted_rel_pct": 0.441496662827442,
+      "max_rel": 0.004690410467021256,
+      "max_rel_pct": 0.4690410467021256,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_31_ffn_down_exps",
+      "tensor": "blk.31.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 248.1993,
+        "reasoning": 171.4145,
+        "code": 98.2202
+      },
+      "deltas_abs": {
+        "chat": -1.3310999999999922,
+        "reasoning": 0.13390000000001123,
+        "code": 0.457800000000006
+      },
+      "deltas_rel": {
+        "chat": -0.00533442017485642,
+        "reasoning": 0.0007817581208847426,
+        "code": 0.004682781928430624
+      },
+      "deltas_rel_pct": {
+        "chat": -0.5334420174856419,
+        "reasoning": 0.07817581208847425,
+        "code": 0.4682781928430624
+      },
+      "weighted_rel": 0.00016137651664169998,
+      "weighted_rel_pct": 0.01613765166417,
+      "max_rel": 0.004682781928430624,
+      "max_rel_pct": 0.4682781928430624,
+      "worst_domain": "code",
+      "best_domain": "chat"
+    },
+    {
+      "label": "blk_29_ffn_gate_up_exps",
+      "tensor": "blk.29.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.6985,
+        "reasoning": 171.8168,
+        "code": 97.3096
+      },
+      "deltas_abs": {
+        "chat": 1.1681000000000097,
+        "reasoning": 0.536200000000008,
+        "code": -0.4527999999999963
+      },
+      "deltas_rel": {
+        "chat": 0.004681193153219045,
+        "reasoning": 0.003130535507232039,
+        "code": -0.004631637521173747
+      },
+      "deltas_rel_pct": {
+        "chat": 0.46811931532190454,
+        "reasoning": 0.3130535507232039,
+        "code": -0.46316375211737465
+      },
+      "weighted_rel": 0.002490984147299654,
+      "weighted_rel_pct": 0.2490984147299654,
+      "max_rel": 0.004681193153219045,
+      "max_rel_pct": 0.46811931532190454,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_18_ffn_down_exps",
+      "tensor": "blk.18.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.6839,
+        "reasoning": 170.8653,
+        "code": 97.5627
+      },
+      "deltas_abs": {
+        "chat": 1.1535000000000082,
+        "reasoning": -0.415300000000002,
+        "code": -0.19969999999999288
+      },
+      "deltas_rel": {
+        "chat": 0.004622683248213477,
+        "reasoning": -0.00242467623303516,
+        "code": -0.0020427076258356268
+      },
+      "deltas_rel_pct": {
+        "chat": 0.4622683248213477,
+        "reasoning": -0.24246762330351598,
+        "code": -0.20427076258356267
+      },
+      "weighted_rel": -0.0011360870766736907,
+      "weighted_rel_pct": -0.11360870766736907,
+      "max_rel": 0.004622683248213477,
+      "max_rel_pct": 0.4622683248213477,
+      "worst_domain": "chat",
+      "best_domain": "reasoning"
+    },
+    {
+      "label": "blk_24_ffn_down_exps",
+      "tensor": "blk.24.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.1255,
+        "reasoning": 172.0641,
+        "code": 97.5899
+      },
+      "deltas_abs": {
+        "chat": 0.5951000000000022,
+        "reasoning": 0.7835000000000036,
+        "code": -0.17249999999999943
+      },
+      "deltas_rel": {
+        "chat": 0.002384879758137695,
+        "reasoning": 0.0045743651061474775,
+        "code": -0.0017644820503588234
+      },
+      "deltas_rel_pct": {
+        "chat": 0.2384879758137695,
+        "reasoning": 0.45743651061474777,
+        "code": -0.17644820503588235
+      },
+      "weighted_rel": 0.0034422386145567746,
+      "weighted_rel_pct": 0.34422386145567746,
+      "max_rel": 0.0045743651061474775,
+      "max_rel_pct": 0.45743651061474777,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_21_ffn_down_exps",
+      "tensor": "blk.21.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.6574,
+        "reasoning": 171.1382,
+        "code": 97.512
+      },
+      "deltas_abs": {
+        "chat": 1.1270000000000095,
+        "reasoning": -0.14239999999998076,
+        "code": -0.25039999999999907
+      },
+      "deltas_rel": {
+        "chat": 0.004516483763100647,
+        "reasoning": -0.000831384289872763,
+        "code": -0.0025613119154194153
+      },
+      "deltas_rel_pct": {
+        "chat": 0.4516483763100647,
+        "reasoning": -0.08313842898727629,
+        "code": -0.2561311915419415
+      },
+      "weighted_rel": -9.116376588294388e-05,
+      "weighted_rel_pct": -0.009116376588294388,
+      "max_rel": 0.004516483763100647,
+      "max_rel_pct": 0.4516483763100647,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_30_ffn_gate_up_exps",
+      "tensor": "blk.30.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.3228,
+        "reasoning": 172.0476,
+        "code": 97.5811
+      },
+      "deltas_abs": {
+        "chat": 0.7924000000000149,
+        "reasoning": 0.7669999999999959,
+        "code": -0.18129999999999313
+      },
+      "deltas_rel": {
+        "chat": 0.00317556498126086,
+        "reasoning": 0.0044780319545821064,
+        "code": -0.0018544962071306876
+      },
+      "deltas_rel_pct": {
+        "chat": 0.317556498126086,
+        "reasoning": 0.4478031954582106,
+        "code": -0.18544962071306875
+      },
+      "weighted_rel": 0.0035031815285003817,
+      "weighted_rel_pct": 0.35031815285003814,
+      "max_rel": 0.0044780319545821064,
+      "max_rel_pct": 0.4478031954582106,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_27_ffn_down_exps",
+      "tensor": "blk.27.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.1405,
+        "reasoning": 172.0441,
+        "code": 97.108
+      },
+      "deltas_abs": {
+        "chat": -0.38989999999998304,
+        "reasoning": 0.7634999999999934,
+        "code": -0.6543999999999954
+      },
+      "deltas_rel": {
+        "chat": -0.001562535065867658,
+        "reasoning": 0.004457597649704598,
+        "code": -0.006693780021767013
+      },
+      "deltas_rel_pct": {
+        "chat": -0.1562535065867658,
+        "reasoning": 0.4457597649704598,
+        "code": -0.6693780021767013
+      },
+      "weighted_rel": 0.002083294503254011,
+      "weighted_rel_pct": 0.20832945032540107,
+      "max_rel": 0.004457597649704598,
+      "max_rel_pct": 0.4457597649704598,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_22_ffn_down_exps",
+      "tensor": "blk.22.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.1511,
+        "reasoning": 172.0336,
+        "code": 97.7494
+      },
+      "deltas_abs": {
+        "chat": 0.6207000000000278,
+        "reasoning": 0.7530000000000143,
+        "code": -0.01300000000000523
+      },
+      "deltas_rel": {
+        "chat": 0.002487472468284537,
+        "reasoning": 0.00439629473507224,
+        "code": -0.0001329754588676754
+      },
+      "deltas_rel_pct": {
+        "chat": 0.24874724682845373,
+        "reasoning": 0.43962947350722403,
+        "code": -0.01329754588676754
+      },
+      "weighted_rel": 0.0035265884298814796,
+      "weighted_rel_pct": 0.352658842988148,
+      "max_rel": 0.00439629473507224,
+      "max_rel_pct": 0.43962947350722403,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_18_ffn_gate_up_exps",
+      "tensor": "blk.18.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 248.3572,
+        "reasoning": 171.9803,
+        "code": 97.5453
+      },
+      "deltas_abs": {
+        "chat": -1.17319999999998,
+        "reasoning": 0.6997000000000071,
+        "code": -0.21710000000000207
+      },
+      "deltas_rel": {
+        "chat": -0.004701631544693473,
+        "reasoning": 0.004085109463652084,
+        "code": -0.0022206901630893072
+      },
+      "deltas_rel_pct": {
+        "chat": -0.4701631544693473,
+        "reasoning": 0.40851094636520835,
+        "code": -0.22206901630893072
+      },
+      "weighted_rel": 0.0017926493296215277,
+      "weighted_rel_pct": 0.17926493296215276,
+      "max_rel": 0.004085109463652084,
+      "max_rel_pct": 0.40851094636520835,
+      "worst_domain": "reasoning",
+      "best_domain": "chat"
+    },
+    {
+      "label": "blk_15_ffn_down_exps",
+      "tensor": "blk.15.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "beneficial",
+      "ppl": {
+        "chat": 250.5161,
+        "reasoning": 170.6665,
+        "code": 97.066
+      },
+      "deltas_abs": {
+        "chat": 0.9857000000000085,
+        "reasoning": -0.6140999999999792,
+        "code": -0.696399999999997
+      },
+      "deltas_rel": {
+        "chat": 0.003950220093423521,
+        "reasoning": -0.0035853447500766534,
+        "code": -0.007123393042723962
+      },
+      "deltas_rel_pct": {
+        "chat": 0.39502200934235204,
+        "reasoning": -0.35853447500766533,
+        "code": -0.7123393042723962
+      },
+      "weighted_rel": -0.002671780165064542,
+      "weighted_rel_pct": -0.2671780165064542,
+      "max_rel": 0.003950220093423521,
+      "max_rel_pct": 0.39502200934235204,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_20_ffn_down_exps",
+      "tensor": "blk.20.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.5754,
+        "reasoning": 171.9248,
+        "code": 97.0053
+      },
+      "deltas_abs": {
+        "chat": 0.045000000000015916,
+        "reasoning": 0.6442000000000121,
+        "code": -0.7570999999999941
+      },
+      "deltas_rel": {
+        "chat": 0.00018033874830487956,
+        "reasoning": 0.0037610797720232887,
+        "code": -0.007744286146821213
+      },
+      "deltas_rel_pct": {
+        "chat": 0.018033874830487955,
+        "reasoning": 0.37610797720232886,
+        "code": -0.7744286146821213
+      },
+      "weighted_rel": 0.0017756118362089223,
+      "weighted_rel_pct": 0.17756118362089224,
+      "max_rel": 0.0037610797720232887,
+      "max_rel_pct": 0.37610797720232886,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_30_ffn_down_exps",
+      "tensor": "blk.30.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.455,
+        "reasoning": 171.1274,
+        "code": 96.9152
+      },
+      "deltas_abs": {
+        "chat": 0.9246000000000265,
+        "reasoning": -0.15319999999999823,
+        "code": -0.8472000000000008
+      },
+      "deltas_rel": {
+        "chat": 0.0037053601485030545,
+        "reasoning": -0.0008944387163519875,
+        "code": -0.008665908365588415
+      },
+      "deltas_rel_pct": {
+        "chat": 0.37053601485030546,
+        "reasoning": -0.08944387163519875,
+        "code": -0.8665908365588415
+      },
+      "weighted_rel": -0.0009970000518759715,
+      "weighted_rel_pct": -0.09970000518759714,
+      "max_rel": 0.0037053601485030545,
+      "max_rel_pct": 0.37053601485030546,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_12_ffn_gate_up_exps",
+      "tensor": "blk.12.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "beneficial",
+      "ppl": {
+        "chat": 250.4141,
+        "reasoning": 170.8172,
+        "code": 96.0947
+      },
+      "deltas_abs": {
+        "chat": 0.8837000000000046,
+        "reasoning": -0.4633999999999787,
+        "code": -1.6676999999999964
+      },
+      "deltas_rel": {
+        "chat": 0.0035414522639325894,
+        "reasoning": -0.002705501965780005,
+        "code": -0.017058705596425583
+      },
+      "deltas_rel_pct": {
+        "chat": 0.35414522639325896,
+        "reasoning": -0.2705501965780005,
+        "code": -1.7058705596425583
+      },
+      "weighted_rel": -0.0032917104700243213,
+      "weighted_rel_pct": -0.32917104700243216,
+      "max_rel": 0.0035414522639325894,
+      "max_rel_pct": 0.35414522639325896,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_26_ffn_gate_up_exps",
+      "tensor": "blk.26.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.3679,
+        "reasoning": 171.4861,
+        "code": 97.3447
+      },
+      "deltas_abs": {
+        "chat": 0.8375000000000057,
+        "reasoning": 0.20550000000000068,
+        "code": -0.4176999999999964
+      },
+      "deltas_rel": {
+        "chat": 0.0033563044823396496,
+        "reasoning": 0.001199785614949975,
+        "code": -0.0042726037822311685
+      },
+      "deltas_rel_pct": {
+        "chat": 0.335630448233965,
+        "reasoning": 0.1199785614949975,
+        "code": -0.42726037822311685
+      },
+      "weighted_rel": 0.0009365372507033125,
+      "weighted_rel_pct": 0.09365372507033125,
+      "max_rel": 0.0033563044823396496,
+      "max_rel_pct": 0.335630448233965,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_23_ffn_down_exps",
+      "tensor": "blk.23.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "beneficial",
+      "ppl": {
+        "chat": 250.2507,
+        "reasoning": 170.4254,
+        "code": 97.3345
+      },
+      "deltas_abs": {
+        "chat": 0.7203000000000088,
+        "reasoning": -0.8551999999999964,
+        "code": -0.42789999999999395
+      },
+      "deltas_rel": {
+        "chat": 0.00288662223119912,
+        "reasoning": -0.004992976437494944,
+        "code": -0.0043769383730349705
+      },
+      "deltas_rel_pct": {
+        "chat": 0.28866222311991196,
+        "reasoning": -0.49929764374949437,
+        "code": -0.43769383730349704
+      },
+      "weighted_rel": -0.0035299839589654066,
+      "weighted_rel_pct": -0.35299839589654064,
+      "max_rel": 0.00288662223119912,
+      "max_rel_pct": 0.28866222311991196,
+      "worst_domain": "chat",
+      "best_domain": "reasoning"
+    },
+    {
+      "label": "blk_26_ffn_down_exps",
+      "tensor": "blk.26.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.19,
+        "reasoning": 171.7739,
+        "code": 97.4509
+      },
+      "deltas_abs": {
+        "chat": -0.34039999999998827,
+        "reasoning": 0.49330000000000496,
+        "code": -0.3114999999999952
+      },
+      "deltas_rel": {
+        "chat": -0.0013641624427323817,
+        "reasoning": 0.0028800693131621736,
+        "code": -0.0031862965720971994
+      },
+      "deltas_rel_pct": {
+        "chat": -0.13641624427323817,
+        "reasoning": 0.28800693131621735,
+        "code": -0.3186296572097199
+      },
+      "weighted_rel": 0.0014173971344443846,
+      "weighted_rel_pct": 0.14173971344443845,
+      "max_rel": 0.0028800693131621736,
+      "max_rel_pct": 0.28800693131621735,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_22_ffn_gate_up_exps",
+      "tensor": "blk.22.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.2375,
+        "reasoning": 171.6601,
+        "code": 97.5293
+      },
+      "deltas_abs": {
+        "chat": 0.7071000000000254,
+        "reasoning": 0.3795000000000073,
+        "code": -0.2330999999999932
+      },
+      "deltas_rel": {
+        "chat": 0.0028337228650297734,
+        "reasoning": 0.0022156624860025435,
+        "code": -0.002384352266310905
+      },
+      "deltas_rel_pct": {
+        "chat": 0.28337228650297736,
+        "reasoning": 0.22156624860025434,
+        "code": -0.23843522663109049
+      },
+      "weighted_rel": 0.0017835537584998842,
+      "weighted_rel_pct": 0.17835537584998842,
+      "max_rel": 0.0028337228650297734,
+      "max_rel_pct": 0.28337228650297736,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_9_ffn_gate_up_exps",
+      "tensor": "blk.9.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.0407,
+        "reasoning": 171.739,
+        "code": 97.484
+      },
+      "deltas_abs": {
+        "chat": 0.5103000000000009,
+        "reasoning": 0.4584000000000117,
+        "code": -0.27840000000000487
+      },
+      "deltas_rel": {
+        "chat": 0.002045041405776614,
+        "reasoning": 0.0026763101016694926,
+        "code": -0.0028477205960574297
+      },
+      "deltas_rel_pct": {
+        "chat": 0.20450414057766142,
+        "reasoning": 0.26763101016694923,
+        "code": -0.284772059605743
+      },
+      "weighted_rel": 0.001915023779132288,
+      "weighted_rel_pct": 0.1915023779132288,
+      "max_rel": 0.0026763101016694926,
+      "max_rel_pct": 0.26763101016694923,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_28_ffn_down_exps",
+      "tensor": "blk.28.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "beneficial",
+      "ppl": {
+        "chat": 250.1182,
+        "reasoning": 170.3779,
+        "code": 97.1313
+      },
+      "deltas_abs": {
+        "chat": 0.5878000000000156,
+        "reasoning": -0.9026999999999816,
+        "code": -0.6311000000000035
+      },
+      "deltas_rel": {
+        "chat": 0.0023556248056349673,
+        "reasoning": -0.0052702991465465535,
+        "code": -0.006455447083950512
+      },
+      "deltas_rel_pct": {
+        "chat": 0.23556248056349674,
+        "reasoning": -0.5270299146546553,
+        "code": -0.6455447083950512
+      },
+      "weighted_rel": -0.00406397702997381,
+      "weighted_rel_pct": -0.406397702997381,
+      "max_rel": 0.0023556248056349673,
+      "max_rel_pct": 0.23556248056349674,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_31_ffn_gate_up_exps",
+      "tensor": "blk.31.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 250.0174,
+        "reasoning": 171.2502,
+        "code": 97.4036
+      },
+      "deltas_abs": {
+        "chat": 0.4870000000000232,
+        "reasoning": -0.030399999999985994,
+        "code": -0.35880000000000223
+      },
+      "deltas_rel": {
+        "chat": 0.0019516660094322103,
+        "reasoning": -0.00017748653379300397,
+        "code": -0.0036701226647463873
+      },
+      "deltas_rel_pct": {
+        "chat": 0.19516660094322102,
+        "reasoning": -0.017748653379300396,
+        "code": -0.36701226647463875
+      },
+      "weighted_rel": -0.00021265210039483478,
+      "weighted_rel_pct": -0.02126521003948348,
+      "max_rel": 0.0019516660094322103,
+      "max_rel_pct": 0.19516660094322102,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_25_ffn_down_exps",
+      "tensor": "blk.25.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.9502,
+        "reasoning": 171.2553,
+        "code": 97.1035
+      },
+      "deltas_abs": {
+        "chat": 0.4198000000000093,
+        "reasoning": -0.02529999999998722,
+        "code": -0.6589000000000027
+      },
+      "deltas_rel": {
+        "chat": 0.001682360145296963,
+        "reasoning": -0.00014771083240009214,
+        "code": -0.0067398099882981875
+      },
+      "deltas_rel_pct": {
+        "chat": 0.1682360145296963,
+        "reasoning": -0.014771083240009215,
+        "code": -0.6739809988298188
+      },
+      "weighted_rel": -0.0006002982076180349,
+      "weighted_rel_pct": -0.06002982076180349,
+      "max_rel": 0.001682360145296963,
+      "max_rel_pct": 0.1682360145296963,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_25_ffn_gate_up_exps",
+      "tensor": "blk.25.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.3913,
+        "reasoning": 171.4896,
+        "code": 97.4034
+      },
+      "deltas_abs": {
+        "chat": -0.1390999999999849,
+        "reasoning": 0.20900000000000318,
+        "code": -0.35899999999999466
+      },
+      "deltas_rel": {
+        "chat": -0.0005574471086488256,
+        "reasoning": 0.001220219919827483,
+        "code": -0.003672168441036581
+      },
+      "deltas_rel_pct": {
+        "chat": -0.05574471086488256,
+        "reasoning": 0.12202199198274831,
+        "code": -0.36721684410365807
+      },
+      "weighted_rel": 0.00033093887234765637,
+      "weighted_rel_pct": 0.03309388723476564,
+      "max_rel": 0.001220219919827483,
+      "max_rel_pct": 0.12202199198274831,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_29_ffn_down_exps",
+      "tensor": "blk.29.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.4679,
+        "reasoning": 171.4866,
+        "code": 97.1555
+      },
+      "deltas_abs": {
+        "chat": -0.0625,
+        "reasoning": 0.20600000000001728,
+        "code": -0.606899999999996
+      },
+      "deltas_rel": {
+        "chat": -0.0002504704837566886,
+        "reasoning": 0.0012027048013611423,
+        "code": -0.0062079081528276315
+      },
+      "deltas_rel_pct": {
+        "chat": -0.02504704837566886,
+        "reasoning": 0.12027048013611423,
+        "code": -0.6207908152827631
+      },
+      "weighted_rel": 7.442528584755172e-05,
+      "weighted_rel_pct": 0.007442528584755172,
+      "max_rel": 0.0012027048013611423,
+      "max_rel_pct": 0.12027048013611423,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_20_ffn_gate_up_exps",
+      "tensor": "blk.20.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.4908,
+        "reasoning": 171.3241,
+        "code": 97.5594
+      },
+      "deltas_abs": {
+        "chat": -0.03959999999997876,
+        "reasoning": 0.04349999999999454,
+        "code": -0.20300000000000296
+      },
+      "deltas_rel": {
+        "chat": -0.00015869809850815278,
+        "reasoning": 0.0002539692177631007,
+        "code": -0.002076462934625203
+      },
+      "deltas_rel_pct": {
+        "chat": -0.015869809850815278,
+        "reasoning": 0.025396921776310068,
+        "code": -0.2076462934625203
+      },
+      "weighted_rel": -9.302291480103861e-05,
+      "weighted_rel_pct": -0.00930229148010386,
+      "max_rel": 0.0002539692177631007,
+      "max_rel_pct": 0.025396921776310068,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_21_ffn_gate_up_exps",
+      "tensor": "blk.21.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "safe",
+      "ppl": {
+        "chat": 249.0304,
+        "reasoning": 171.0861,
+        "code": 97.4036
+      },
+      "deltas_abs": {
+        "chat": -0.5,
+        "reasoning": -0.194500000000005,
+        "code": -0.35880000000000223
+      },
+      "deltas_rel": {
+        "chat": -0.002003763870053509,
+        "reasoning": -0.0011355635139064495,
+        "code": -0.0036701226647463873
+      },
+      "deltas_rel_pct": {
+        "chat": -0.20037638700535088,
+        "reasoning": -0.11355635139064496,
+        "code": -0.36701226647463875
+      },
+      "weighted_rel": -0.0015869587709723939,
+      "weighted_rel_pct": -0.1586958770972394,
+      "max_rel": -0.0011355635139064495,
+      "max_rel_pct": -0.11355635139064496,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_19_ffn_down_exps",
+      "tensor": "blk.19.ffn_down_exps.weight",
+      "class": "demotable",
+      "subclass": "beneficial",
+      "ppl": {
+        "chat": 249.115,
+        "reasoning": 170.5468,
+        "code": 96.889
+      },
+      "deltas_abs": {
+        "chat": -0.4153999999999769,
+        "reasoning": -0.7338000000000022,
+        "code": -0.8734000000000037
+      },
+      "deltas_rel": {
+        "chat": -0.0016647270232403623,
+        "reasoning": -0.004284197976887063,
+        "code": -0.008933905059613959
+      },
+      "deltas_rel_pct": {
+        "chat": -0.16647270232403621,
+        "reasoning": -0.42841979768870625,
+        "code": -0.8933905059613958
+      },
+      "weighted_rel": -0.0043689627595055154,
+      "weighted_rel_pct": -0.4368962759505515,
+      "max_rel": -0.0016647270232403623,
+      "max_rel_pct": -0.16647270232403621,
+      "worst_domain": "chat",
+      "best_domain": "code"
+    },
+    {
+      "label": "blk_27_ffn_gate_up_exps",
+      "tensor": "blk.27.ffn_gate_up_exps.weight",
+      "class": "demotable",
+      "subclass": "beneficial",
+      "ppl": {
+        "chat": 248.6327,
+        "reasoning": 170.8287,
+        "code": 96.8999
+      },
+      "deltas_abs": {
+        "chat": -0.8976999999999862,
+        "reasoning": -0.45189999999999486,
+        "code": -0.8624999999999972
+      },
+      "deltas_rel": {
+        "chat": -0.003597557652294014,
+        "reasoning": -0.002638360678325478,
+        "code": -0.008822410251794116
+      },
+      "deltas_rel_pct": {
+        "chat": -0.3597557652294014,
+        "reasoning": -0.2638360678325478,
+        "code": -0.8822410251794116
+      },
+      "weighted_rel": -0.003535165976492707,
+      "weighted_rel_pct": -0.3535165976492707,
+      "max_rel": -0.002638360678325478,
+      "max_rel_pct": -0.2638360678325478,
+      "worst_domain": "reasoning",
+      "best_domain": "code"
+    }
+  ],
+  "skipped": []
+}

@@ -1,0 +1,33 @@
+=== BENCHMARK SUITE ===
+Server: localhost:8097
+Model: qwen35_9b_moe_q4km_ablation_intersection
+Output: cerebellum-dev/sparse-upcycling/benchmark_results/q4km_ablation_intersection
+Running: evalplus arc hellaswag mmlu
+Started: Fri May 29 05:20:28 CDT 2026
+
+Waiting for server...
+Server ready.
+Model size: unknown
+
+--- Running evalplus ---
+  HumanEval (base):  0.0%
+  HumanEval+ (hard): 0.0%
+
+Saved to cerebellum-dev/sparse-upcycling/benchmark_results/q4km_ablation_intersection/qwen35_9b_moe_q4km_ablation_intersection_evalplus_results.json
+======================================================================
+  evalplus done (58s)
+
+--- Running arc ---
+Overall Accuracy: 0.0%
+
+Results saved to cerebellum-dev/sparse-upcycling/benchmark_results/q4km_ablation_intersection/qwen35_9b_moe_q4km_ablation_intersection_arc_results.json
+Per-question detail log: cerebellum-dev/sparse-upcycling/benchmark_results/q4km_ablation_intersection/qwen35_9b_moe_q4km_ablation_intersection_arc_detailed.jsonl (1172 entries)
+======================================================================
+  arc done (166s)
+
+--- Running hellaswag ---
+  [ 1710/10042] 0.0% accuracy, 6.1 q/s, ETA 1359s
+  [ 1711/10042] 0.0% accuracy, 6.1 q/s, ETA 1358s
+  [ 1712/10042] 0.0% accuracy, 6.1 q/s, ETA 1357s
+  [ 1713/10042] 0.0% accuracy, 6.1 q/s, ETA 1356s
+  [ 1714/10042] 0.0% accuracy, 6.1 q/s, ETA 1355s

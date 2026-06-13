@@ -1,0 +1,275 @@
+{
+  "models": [
+    "cerebellum_v2",
+    "cerebellum_v2b",
+    "cerebellum_v4_fixed"
+  ],
+  "benchmarks": [
+    "arc_challenge",
+    "hellaswag",
+    "humaneval",
+    "mmlu_redux"
+  ],
+  "rows": [
+    {
+      "model": "cerebellum_v2",
+      "benchmark": "arc_challenge",
+      "score": 84.81228668941979,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_arc_results.json",
+      "correct": 994,
+      "total": 1172,
+      "timestamp": "2026-04-30 12:15",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_arc_detailed.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v2",
+      "benchmark": "hellaswag",
+      "score": 75.02489543915554,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_hellaswag_results.json",
+      "correct": 7534,
+      "total": 10042,
+      "timestamp": "2026-04-30 12:25",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_hellaswag_detailed.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v2",
+      "benchmark": "humaneval",
+      "score": 63.4,
+      "score_field": "pass_at_1_pct",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_humaneval_results.json",
+      "correct": null,
+      "total": 164,
+      "timestamp": "2026-04-30 12:14",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_humaneval_samples.jsonl",
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_humaneval_samples.jsonl_results.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v2",
+      "benchmark": "mmlu_redux",
+      "score": 57.291666666666664,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_mmlu_redux_results.json",
+      "correct": 1375,
+      "total": 2400,
+      "timestamp": "2026-04-30 12:26",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2_mmlu_redux_detailed.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v2b",
+      "benchmark": "arc_challenge",
+      "score": 85.66552901023891,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_arc_results.json",
+      "correct": 1004,
+      "total": 1172,
+      "timestamp": "2026-04-30 12:34",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_arc_detailed.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v2b",
+      "benchmark": "hellaswag",
+      "score": 75.34355706034654,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_hellaswag_results.json",
+      "correct": 7566,
+      "total": 10042,
+      "timestamp": "2026-04-30 12:45",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_hellaswag_detailed.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v2b",
+      "benchmark": "humaneval",
+      "score": 68.3,
+      "score_field": "pass_at_1_pct",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_humaneval_results.json",
+      "correct": null,
+      "total": 164,
+      "timestamp": "2026-04-30 12:33",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_humaneval_samples.jsonl",
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_humaneval_samples.jsonl_results.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v2b",
+      "benchmark": "mmlu_redux",
+      "score": 58.416666666666664,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_mmlu_redux_results.json",
+      "correct": 1402,
+      "total": 2400,
+      "timestamp": "2026-04-30 12:47",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v2b_mmlu_redux_detailed.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v4_fixed",
+      "benchmark": "arc_challenge",
+      "score": 94.7098976109215,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_arc_results.json",
+      "correct": 1110,
+      "total": 1172,
+      "timestamp": "2026-05-03 03:05",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_arc_detailed.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v4_fixed",
+      "benchmark": "hellaswag",
+      "score": 92.21270663214499,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_hellaswag_results.json",
+      "correct": 9260,
+      "total": 10042,
+      "timestamp": "2026-05-03 04:32",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_hellaswag_detailed.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v4_fixed",
+      "benchmark": "humaneval",
+      "score": 81.1,
+      "score_field": "pass_at_1_pct",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_humaneval_results.json",
+      "correct": null,
+      "total": 164,
+      "timestamp": "2026-05-03 02:53",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_humaneval_samples.jsonl",
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_humaneval_samples.jsonl_results.jsonl"
+      ]
+    },
+    {
+      "model": "cerebellum_v4_fixed",
+      "benchmark": "mmlu_redux",
+      "score": 76.875,
+      "score_field": "accuracy",
+      "path": "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_mmlu_redux_results.json",
+      "correct": 1845,
+      "total": 2400,
+      "timestamp": "2026-05-03 05:06",
+      "audit_status": "ok",
+      "missing_artifacts": [],
+      "audit_artifacts": [
+        "osmosis-qwen36-27b/benchmark_results/cerebellum_v4_fixed_mmlu_redux_detailed.jsonl"
+      ]
+    }
+  ],
+  "scores": {
+    "cerebellum_v2": {
+      "arc_challenge": 84.81228668941979,
+      "hellaswag": 75.02489543915554,
+      "humaneval": 63.4,
+      "mmlu_redux": 57.291666666666664
+    },
+    "cerebellum_v2b": {
+      "arc_challenge": 85.66552901023891,
+      "hellaswag": 75.34355706034654,
+      "humaneval": 68.3,
+      "mmlu_redux": 58.416666666666664
+    },
+    "cerebellum_v4_fixed": {
+      "arc_challenge": 94.7098976109215,
+      "hellaswag": 92.21270663214499,
+      "humaneval": 81.1,
+      "mmlu_redux": 76.875
+    }
+  },
+  "baseline_model": "cerebellum_v2",
+  "deltas": {
+    "cerebellum_v2": {
+      "arc_challenge": {
+        "absolute": 0.0,
+        "relative_pct": 0.0
+      },
+      "hellaswag": {
+        "absolute": 0.0,
+        "relative_pct": 0.0
+      },
+      "humaneval": {
+        "absolute": 0.0,
+        "relative_pct": 0.0
+      },
+      "mmlu_redux": {
+        "absolute": 0.0,
+        "relative_pct": 0.0
+      }
+    },
+    "cerebellum_v2b": {
+      "arc_challenge": {
+        "absolute": 0.8532423208191204,
+        "relative_pct": 1.0060362173038322
+      },
+      "hellaswag": {
+        "absolute": 0.31866162119099783,
+        "relative_pct": 0.4247411733474914
+      },
+      "humaneval": {
+        "absolute": 4.899999999999999,
+        "relative_pct": 7.728706624605676
+      },
+      "mmlu_redux": {
+        "absolute": 1.125,
+        "relative_pct": 1.9636363636363636
+      }
+    },
+    "cerebellum_v4_fixed": {
+      "arc_challenge": {
+        "absolute": 9.897610921501709,
+        "relative_pct": 11.670020120724349
+      },
+      "hellaswag": {
+        "absolute": 17.187811192989443,
+        "relative_pct": 22.909477037430314
+      },
+      "humaneval": {
+        "absolute": 17.699999999999996,
+        "relative_pct": 27.917981072555197
+      },
+      "mmlu_redux": {
+        "absolute": 19.583333333333336,
+        "relative_pct": 34.18181818181819
+      }
+    }
+  }
+}

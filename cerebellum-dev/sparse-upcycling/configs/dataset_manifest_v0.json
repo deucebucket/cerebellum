@@ -1,0 +1,60 @@
+{
+  "name": "qwen35_9b_moe_dataset_manifest_v0",
+  "policy": "reuse_public_datasets_only",
+  "system_python_note": "Use pyarrow.parquet or streaming readers; avoid datasets on system Python.",
+  "seed": 20260529,
+  "warmup_mix": [
+    {
+      "repo": "HuggingFaceFW/fineweb-edu",
+      "subset": "sample-10BT",
+      "split": "train",
+      "weight": 0.5,
+      "purpose": "language modeling continuity"
+    },
+    {
+      "repo": "HuggingFaceTB/smol-smoltalk",
+      "split": "train",
+      "weight": 0.1,
+      "purpose": "small-model instruction/chat behavior"
+    },
+    {
+      "repo": "SL-AI/GRaPE-Base-Mix",
+      "split": "train",
+      "weight": 0.1,
+      "purpose": "tool use, long context, broad SFT"
+    },
+    {
+      "repo": "open-thoughts/OpenThoughts3-1.2M",
+      "split": "train",
+      "weight": 0.15,
+      "purpose": "math/code/science reasoning"
+    },
+    {
+      "repo": "nvidia/OpenCodeReasoning",
+      "split": "split_0",
+      "weight": 0.1,
+      "purpose": "competitive programming reasoning"
+    },
+    {
+      "repo": "nvidia/OpenMathReasoning",
+      "split": "train",
+      "weight": 0.05,
+      "purpose": "math CoT/TIR"
+    }
+  ],
+  "distill_teachers": [
+    "Qwen/Qwen3.5-9B",
+    "Qwen/Qwen3.5-27B"
+  ],
+  "local_outputs_allowed": [
+    "sample manifests",
+    "format adapters",
+    "small smoke-test caches",
+    "teacher-output run artifacts with source prompt IDs"
+  ],
+  "local_outputs_disallowed": [
+    "new synthetic dataset from scratch",
+    "unattributed prompt collection",
+    "benchmark-contaminated training set"
+  ]
+}

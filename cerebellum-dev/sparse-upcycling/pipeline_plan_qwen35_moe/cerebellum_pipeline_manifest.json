@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "model_name": "qwen35-9b-moe-v0",
+  "source_gguf": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-f16.gguf",
+  "imatrix": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-imatrix.dat",
+  "output_dir": "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe",
+  "base_type": "Q4_K_M",
+  "ablate_type": "Q3_K",
+  "domains": "chat,reasoning,code",
+  "weights": "chat:0.25,reasoning:0.5,code:0.25",
+  "steps": [
+    {
+      "name": "ablate",
+      "kind": "measurement",
+      "gpu": true,
+      "command": [
+        "python",
+        "scripts/ablate_multidomain.py",
+        "--source-gguf",
+        "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-f16.gguf",
+        "--imatrix",
+        "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-imatrix.dat",
+        "--base-type",
+        "Q4_K_M",
+        "--ablate-type",
+        "Q3_K",
+        "--tensors-file",
+        "cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3_tensors.txt",
+        "--corpus-dir",
+        "cerebellum-dev/sparse-upcycling/runs/moe_ablation_corpus_v0",
+        "--domains",
+        "chat,reasoning,code",
+        "--output",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_results.json",
+        "--queue-depth",
+        "1",
+        "--ppl-workers",
+        "1",
+        "--ctx-size",
+        "512",
+        "--chunks",
+        "2"
+      ],
+      "shell": "python scripts/ablate_multidomain.py --source-gguf /var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-f16.gguf --imatrix /var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-imatrix.dat --base-type Q4_K_M --ablate-type Q3_K --tensors-file cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3_tensors.txt --corpus-dir cerebellum-dev/sparse-upcycling/runs/moe_ablation_corpus_v0 --domains chat,reasoning,code --output cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_results.json --queue-depth 1 --ppl-workers 1 --ctx-size 512 --chunks 2",
+      "outputs": [
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_results.json"
+      ],
+      "note": "Measures per-tensor PPL deltas. Resume-safe if the JSON already exists."
+    },
+    {
+      "name": "analyze-ablation",
+      "kind": "analysis",
+      "gpu": false,
+      "command": [
+        "python",
+        "cerebellum-dev/tools/analyze_ablation_results.py",
+        "--ablation",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_results.json",
+        "--weights",
+        "chat:0.25,reasoning:0.5,code:0.25",
+        "--output-json",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_analysis.json",
+        "--summary-md",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_analysis.md",
+        "--tensor-type-file",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/variants/tensor_types_demotable.txt",
+        "--override-type",
+        "Q3_K"
+      ],
+      "shell": "python cerebellum-dev/tools/analyze_ablation_results.py --ablation cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_results.json --weights chat:0.25,reasoning:0.5,code:0.25 --output-json cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_analysis.json --summary-md cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_analysis.md --tensor-type-file cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/variants/tensor_types_demotable.txt --override-type Q3_K",
+      "outputs": [
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_analysis.json",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/runs/ablation_analysis.md",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/variants/tensor_types_demotable.txt"
+      ],
+      "note": "Classifies tensors and emits exact anchored tensor-type overrides."
+    },
+    {
+      "name": "final-quantize",
+      "kind": "build",
+      "gpu": false,
+      "command": [
+        "/var/home/deucebucket/ai-drive/llama.cpp/build/bin/llama-quantize",
+        "--imatrix",
+        "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-imatrix.dat",
+        "--tensor-type-file",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/variants/tensor_types_demotable.txt",
+        "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-f16.gguf",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/variants/qwen35-9b-moe-v0-q4_k_m-cerebellum.gguf",
+        "Q4_K_M"
+      ],
+      "shell": "/var/home/deucebucket/ai-drive/llama.cpp/build/bin/llama-quantize --imatrix /var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-imatrix.dat --tensor-type-file cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/variants/tensor_types_demotable.txt /var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage1-expert-lora-256step-f16.gguf cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/variants/qwen35-9b-moe-v0-q4_k_m-cerebellum.gguf Q4_K_M",
+      "outputs": [
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/variants/qwen35-9b-moe-v0-q4_k_m-cerebellum.gguf"
+      ],
+      "note": "Builds the candidate GGUF using stock llama-quantize."
+    },
+    {
+      "name": "benchmark-report",
+      "kind": "report",
+      "gpu": false,
+      "command": [
+        "python",
+        "cerebellum-dev/tools/compare_benchmark_results.py",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/benchmark_results",
+        "--recursive",
+        "--baseline-model",
+        "q4km-control",
+        "--output-md",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/benchmark_results/benchmark_comparison.md",
+        "--output-json",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/benchmark_results/benchmark_comparison.json"
+      ],
+      "shell": "python cerebellum-dev/tools/compare_benchmark_results.py cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/benchmark_results --recursive --baseline-model q4km-control --output-md cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/benchmark_results/benchmark_comparison.md --output-json cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/benchmark_results/benchmark_comparison.json",
+      "outputs": [
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/benchmark_results/benchmark_comparison.md",
+        "cerebellum-dev/sparse-upcycling/pipeline_plan_qwen35_moe/benchmark_results/benchmark_comparison.json"
+      ],
+      "note": "Summarizes benchmark JSON artifacts after benchmark scripts have run."
+    }
+  ]
+}

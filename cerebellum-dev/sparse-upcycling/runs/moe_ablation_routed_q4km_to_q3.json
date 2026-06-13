@@ -1,0 +1,526 @@
+{
+  "tests": {
+    "blk_0_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.0.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 252.6431,
+        "reasoning": 173.5779,
+        "code": 97.8768
+      }
+    },
+    "blk_0_ffn_down_exps": {
+      "gguf_tensor": "blk.0.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 252.5991,
+        "reasoning": 178.218,
+        "code": 97.6861
+      }
+    },
+    "blk_1_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.1.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 255.0843,
+        "reasoning": 175.2957,
+        "code": 97.919
+      }
+    },
+    "blk_1_ffn_down_exps": {
+      "gguf_tensor": "blk.1.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 251.1496,
+        "reasoning": 170.7076,
+        "code": 97.541
+      }
+    },
+    "blk_2_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.2.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 253.0219,
+        "reasoning": 169.9775,
+        "code": 97.9266
+      }
+    },
+    "blk_2_ffn_down_exps": {
+      "gguf_tensor": "blk.2.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 251.2932,
+        "reasoning": 173.4766,
+        "code": 98.4612
+      }
+    },
+    "blk_3_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.3.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 252.3176,
+        "reasoning": 174.551,
+        "code": 96.7308
+      }
+    },
+    "blk_3_ffn_down_exps": {
+      "gguf_tensor": "blk.3.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 252.9157,
+        "reasoning": 174.2571,
+        "code": 96.5772
+      }
+    },
+    "blk_4_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.4.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 251.8453,
+        "reasoning": 170.9304,
+        "code": 97.2139
+      }
+    },
+    "blk_4_ffn_down_exps": {
+      "gguf_tensor": "blk.4.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.9699,
+        "reasoning": 172.8685,
+        "code": 97.6699
+      }
+    },
+    "blk_5_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.5.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 247.8379,
+        "reasoning": 177.2559,
+        "code": 97.8497
+      }
+    },
+    "blk_5_ffn_down_exps": {
+      "gguf_tensor": "blk.5.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 255.4827,
+        "reasoning": 173.0058,
+        "code": 97.4253
+      }
+    },
+    "blk_6_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.6.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 253.6916,
+        "reasoning": 176.6695,
+        "code": 99.1405
+      }
+    },
+    "blk_6_ffn_down_exps": {
+      "gguf_tensor": "blk.6.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 253.5827,
+        "reasoning": 174.2567,
+        "code": 99.5515
+      }
+    },
+    "blk_7_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.7.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.1157,
+        "reasoning": 175.7115,
+        "code": 97.8909
+      }
+    },
+    "blk_7_ffn_down_exps": {
+      "gguf_tensor": "blk.7.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 252.1605,
+        "reasoning": 171.5721,
+        "code": 98.365
+      }
+    },
+    "blk_8_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.8.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.7867,
+        "reasoning": 172.6244,
+        "code": 97.0784
+      }
+    },
+    "blk_8_ffn_down_exps": {
+      "gguf_tensor": "blk.8.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 251.8068,
+        "reasoning": 174.4195,
+        "code": 96.7407
+      }
+    },
+    "blk_9_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.9.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.0407,
+        "reasoning": 171.739,
+        "code": 97.484
+      }
+    },
+    "blk_9_ffn_down_exps": {
+      "gguf_tensor": "blk.9.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.1279,
+        "reasoning": 172.1724,
+        "code": 98.1154
+      }
+    },
+    "blk_10_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.10.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 254.5199,
+        "reasoning": 177.3539,
+        "code": 98.1371
+      }
+    },
+    "blk_10_ffn_down_exps": {
+      "gguf_tensor": "blk.10.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 251.5691,
+        "reasoning": 172.0998,
+        "code": 95.8934
+      }
+    },
+    "blk_11_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.11.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 251.4083,
+        "reasoning": 170.9228,
+        "code": 96.9949
+      }
+    },
+    "blk_11_ffn_down_exps": {
+      "gguf_tensor": "blk.11.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.2579,
+        "reasoning": 173.1087,
+        "code": 97.0086
+      }
+    },
+    "blk_12_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.12.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.4141,
+        "reasoning": 170.8172,
+        "code": 96.0947
+      }
+    },
+    "blk_12_ffn_down_exps": {
+      "gguf_tensor": "blk.12.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.916,
+        "reasoning": 171.8941,
+        "code": 99.3504
+      }
+    },
+    "blk_13_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.13.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 253.3491,
+        "reasoning": 172.9587,
+        "code": 97.5991
+      }
+    },
+    "blk_13_ffn_down_exps": {
+      "gguf_tensor": "blk.13.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 252.5774,
+        "reasoning": 172.774,
+        "code": 97.2767
+      }
+    },
+    "blk_14_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.14.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 257.2931,
+        "reasoning": 180.1522,
+        "code": 100.1121
+      }
+    },
+    "blk_14_ffn_down_exps": {
+      "gguf_tensor": "blk.14.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.0418,
+        "reasoning": 173.0849,
+        "code": 96.2793
+      }
+    },
+    "blk_15_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.15.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 252.1226,
+        "reasoning": 171.8416,
+        "code": 96.6552
+      }
+    },
+    "blk_15_ffn_down_exps": {
+      "gguf_tensor": "blk.15.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.5161,
+        "reasoning": 170.6665,
+        "code": 97.066
+      }
+    },
+    "blk_16_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.16.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 251.4965,
+        "reasoning": 167.53,
+        "code": 96.5203
+      }
+    },
+    "blk_16_ffn_down_exps": {
+      "gguf_tensor": "blk.16.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 251.7733,
+        "reasoning": 171.014,
+        "code": 97.1164
+      }
+    },
+    "blk_17_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.17.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.4036,
+        "reasoning": 172.742,
+        "code": 97.8307
+      }
+    },
+    "blk_17_ffn_down_exps": {
+      "gguf_tensor": "blk.17.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 251.6107,
+        "reasoning": 172.0445,
+        "code": 97.8994
+      }
+    },
+    "blk_18_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.18.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 248.3572,
+        "reasoning": 171.9803,
+        "code": 97.5453
+      }
+    },
+    "blk_18_ffn_down_exps": {
+      "gguf_tensor": "blk.18.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.6839,
+        "reasoning": 170.8653,
+        "code": 97.5627
+      }
+    },
+    "blk_19_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.19.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.9049,
+        "reasoning": 173.9359,
+        "code": 96.7861
+      }
+    },
+    "blk_19_ffn_down_exps": {
+      "gguf_tensor": "blk.19.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.115,
+        "reasoning": 170.5468,
+        "code": 96.889
+      }
+    },
+    "blk_20_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.20.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 249.4908,
+        "reasoning": 171.3241,
+        "code": 97.5594
+      }
+    },
+    "blk_20_ffn_down_exps": {
+      "gguf_tensor": "blk.20.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.5754,
+        "reasoning": 171.9248,
+        "code": 97.0053
+      }
+    },
+    "blk_21_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.21.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 249.0304,
+        "reasoning": 171.0861,
+        "code": 97.4036
+      }
+    },
+    "blk_21_ffn_down_exps": {
+      "gguf_tensor": "blk.21.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.6574,
+        "reasoning": 171.1382,
+        "code": 97.512
+      }
+    },
+    "blk_22_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.22.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.2375,
+        "reasoning": 171.6601,
+        "code": 97.5293
+      }
+    },
+    "blk_22_ffn_down_exps": {
+      "gguf_tensor": "blk.22.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.1511,
+        "reasoning": 172.0336,
+        "code": 97.7494
+      }
+    },
+    "blk_23_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.23.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.8467,
+        "reasoning": 171.502,
+        "code": 97.8895
+      }
+    },
+    "blk_23_ffn_down_exps": {
+      "gguf_tensor": "blk.23.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.2507,
+        "reasoning": 170.4254,
+        "code": 97.3345
+      }
+    },
+    "blk_24_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.24.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 249.5597,
+        "reasoning": 172.2574,
+        "code": 97.268
+      }
+    },
+    "blk_24_ffn_down_exps": {
+      "gguf_tensor": "blk.24.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.1255,
+        "reasoning": 172.0641,
+        "code": 97.5899
+      }
+    },
+    "blk_25_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.25.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 249.3913,
+        "reasoning": 171.4896,
+        "code": 97.4034
+      }
+    },
+    "blk_25_ffn_down_exps": {
+      "gguf_tensor": "blk.25.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.9502,
+        "reasoning": 171.2553,
+        "code": 97.1035
+      }
+    },
+    "blk_26_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.26.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.3679,
+        "reasoning": 171.4861,
+        "code": 97.3447
+      }
+    },
+    "blk_26_ffn_down_exps": {
+      "gguf_tensor": "blk.26.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.19,
+        "reasoning": 171.7739,
+        "code": 97.4509
+      }
+    },
+    "blk_27_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.27.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 248.6327,
+        "reasoning": 170.8287,
+        "code": 96.8999
+      }
+    },
+    "blk_27_ffn_down_exps": {
+      "gguf_tensor": "blk.27.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.1405,
+        "reasoning": 172.0441,
+        "code": 97.108
+      }
+    },
+    "blk_28_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.28.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.7008,
+        "reasoning": 172.0319,
+        "code": 98.1704
+      }
+    },
+    "blk_28_ffn_down_exps": {
+      "gguf_tensor": "blk.28.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.1182,
+        "reasoning": 170.3779,
+        "code": 97.1313
+      }
+    },
+    "blk_29_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.29.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.6985,
+        "reasoning": 171.8168,
+        "code": 97.3096
+      }
+    },
+    "blk_29_ffn_down_exps": {
+      "gguf_tensor": "blk.29.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 249.4679,
+        "reasoning": 171.4866,
+        "code": 97.1555
+      }
+    },
+    "blk_30_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.30.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.3228,
+        "reasoning": 172.0476,
+        "code": 97.5811
+      }
+    },
+    "blk_30_ffn_down_exps": {
+      "gguf_tensor": "blk.30.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.455,
+        "reasoning": 171.1274,
+        "code": 96.9152
+      }
+    },
+    "blk_31_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.31.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.0174,
+        "reasoning": 171.2502,
+        "code": 97.4036
+      }
+    },
+    "blk_31_ffn_down_exps": {
+      "gguf_tensor": "blk.31.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 248.1993,
+        "reasoning": 171.4145,
+        "code": 98.2202
+      }
+    }
+  },
+  "baseline_ppl": {
+    "chat": 249.5304,
+    "reasoning": 171.2806,
+    "code": 97.7624
+  },
+  "corpus_versions": {
+    "chat": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_corpus_v0/cerebellum_calibration_chat.txt",
+    "reasoning": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_corpus_v0/cerebellum_calibration_reasoning.txt",
+    "code": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_corpus_v0/cerebellum_calibration_code.txt"
+  }
+}

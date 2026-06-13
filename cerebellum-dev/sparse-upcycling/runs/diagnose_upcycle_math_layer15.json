@@ -1,0 +1,21 @@
+{
+  "layer": 15,
+  "tokens": 8,
+  "num_experts": 16,
+  "top_k": 2,
+  "selected_experts_for_zero_router_first_token": [
+    1,
+    0
+  ],
+  "relative_l2_error": {
+    "all_experts_sum_vs_dense": 6.763593205505458e-07,
+    "hf_zero_router_plus_half_shared_vs_dense": 0.9317424297332764,
+    "zero_shared_scaled_selected_topk_vs_dense": 1.3522675037384033
+  },
+  "norms": {
+    "dense": 67.67257690429688,
+    "all_experts_sum": 67.67257690429688,
+    "hf_zero_router_plus_half_shared": 22.74889373779297,
+    "zero_shared_scaled_selected_topk": 90.99557495117188
+  }
+}

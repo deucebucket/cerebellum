@@ -1,0 +1,2 @@
+^blk\.0\.ffn_down_exps\.weight$=Q3_K
+^blk\.2\.ffn_gate_up_exps\.weight$=Q3_K

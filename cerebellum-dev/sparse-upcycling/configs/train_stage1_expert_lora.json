@@ -1,0 +1,36 @@
+{
+  "name": "qwen35_9b_moe_stage1_expert_lora",
+  "checkpoint": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0",
+  "router_delta": "/var/home/deucebucket/games/models/cerebellum-qwen35-9b-moe-v0-stage0-router-mixed-256step/router_delta.safetensors",
+  "dataset_manifest": "cerebellum-dev/sparse-upcycling/configs/dataset_manifest_v0.json",
+  "objective": "adapt sliced routed experts after router-only warmup without touching Qwen3.5 attention, linear-attention, SSM, shared expert, embedding, norm, or lm_head tensors",
+  "adapter": {
+    "type": "fused_expert_lora",
+    "rank": 4,
+    "alpha": 8.0,
+    "target": "both"
+  },
+  "trainable_default": [
+    "model.language_model.layers.*.mlp.gate.weight",
+    "model.language_model.layers.*.mlp.shared_expert_gate.weight",
+    "model.language_model.layers.*.mlp.experts.lora_*"
+  ],
+  "frozen_by_default": [
+    "model.visual.*",
+    "model.language_model.embed_tokens.*",
+    "model.language_model.layers.*.linear_attn.*",
+    "model.language_model.layers.*.self_attn.*",
+    "model.language_model.layers.*.input_layernorm.*",
+    "model.language_model.layers.*.post_attention_layernorm.*",
+    "model.language_model.layers.*.mlp.experts.gate_up_proj",
+    "model.language_model.layers.*.mlp.experts.down_proj",
+    "model.language_model.layers.*.mlp.shared_expert.*",
+    "model.language_model.norm.*",
+    "lm_head.*"
+  ],
+  "notes": [
+    "This is the first expert adaptation stage after mixed public router warmup.",
+    "Standard PEFT LoRA does not naturally attach to Qwen3.5 MoE fused expert Parameters, so this uses a local fused-expert forward wrapper.",
+    "Keep public mixed data reuse policy; do not create a bespoke dataset."
+  ]
+}

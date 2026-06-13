@@ -1,0 +1,78 @@
+{
+  "tests": {
+    "blk_0_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.0.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 252.6431,
+        "reasoning": 173.5779,
+        "code": 97.8768
+      }
+    },
+    "blk_0_ffn_down_exps": {
+      "gguf_tensor": "blk.0.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 252.5991,
+        "reasoning": 178.218,
+        "code": 97.6861
+      }
+    },
+    "blk_11_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.11.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 251.2406,
+        "reasoning": 171.323,
+        "code": 96.8944
+      }
+    },
+    "blk_11_ffn_down_exps": {
+      "gguf_tensor": "blk.11.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 250.2579,
+        "reasoning": 173.1087,
+        "code": 97.0086
+      }
+    },
+    "blk_31_ffn_gate_up_exps": {
+      "gguf_tensor": "blk.31.ffn_gate_up_exps.weight",
+      "ppl": {
+        "chat": 250.0174,
+        "reasoning": 171.2502,
+        "code": 97.4036
+      }
+    },
+    "blk_31_ffn_down_exps": {
+      "gguf_tensor": "blk.31.ffn_down_exps.weight",
+      "ppl": {
+        "chat": 248.1993,
+        "reasoning": 171.4145,
+        "code": 98.2202
+      }
+    },
+    "blk_11_ffn_gate_shexp": {
+      "gguf_tensor": "blk.11.ffn_gate_shexp.weight",
+      "ppl": {
+        "chat": 249.9837,
+        "reasoning": 171.2346,
+        "code": 98.01
+      }
+    },
+    "blk_11_ffn_down_shexp": {
+      "gguf_tensor": "blk.11.ffn_down_shexp.weight",
+      "ppl": {
+        "chat": 252.0851,
+        "reasoning": 171.4356,
+        "code": 97.56
+      }
+    }
+  },
+  "baseline_ppl": {
+    "chat": 249.5304,
+    "reasoning": 171.2806,
+    "code": 97.7624
+  },
+  "corpus_versions": {
+    "chat": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_corpus_v0/cerebellum_calibration_chat.txt",
+    "reasoning": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_corpus_v0/cerebellum_calibration_reasoning.txt",
+    "code": "cerebellum-dev/sparse-upcycling/runs/moe_ablation_corpus_v0/cerebellum_calibration_code.txt"
+  }
+}

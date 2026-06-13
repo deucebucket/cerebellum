@@ -1,0 +1,1 @@
+Error: crun: executable file `/var/home/deucebucket/ai-drive/llama.cpp/build/bin/llama-cli` not found: No such file or directory: OCI runtime attempted to invoke a command that was not found

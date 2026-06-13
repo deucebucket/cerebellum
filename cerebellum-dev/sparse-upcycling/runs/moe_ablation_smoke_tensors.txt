@@ -1,0 +1,8 @@
+blk.0.ffn_gate_up_exps.weight
+blk.0.ffn_down_exps.weight
+blk.11.ffn_gate_up_exps.weight
+blk.11.ffn_down_exps.weight
+blk.31.ffn_gate_up_exps.weight
+blk.31.ffn_down_exps.weight
+blk.11.ffn_gate_shexp.weight
+blk.11.ffn_down_shexp.weight

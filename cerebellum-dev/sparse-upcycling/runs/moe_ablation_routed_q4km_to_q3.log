@@ -1,0 +1,403 @@
+Loaded 64 tensors to test
+Existing results: 0 tensors already done
+
+=== Measuring baseline PPL per domain ===
+    chat: 249.5304
+    reasoning: 171.2806
+    code: 97.7624
+Baseline saved: {'chat': 249.5304, 'reasoning': 171.2806, 'code': 97.7624}
+
+Pending tensors: 64 (skipping 0 already done)
+
+=== Pipeline armed: 1 PPL workers, queue_depth=1 ===
+  [producer] quantized blk.0.ffn_gate_up_exps.weight in 188s -> slot 0
+
+[1/64] worker 0 PPL blk.0.ffn_gate_up_exps.weight  (elapsed 188s, rate 0.005/s, eta 197m, q=0)
+    chat: 252.6431
+    reasoning: 173.5779
+    code: 97.8768
+  [producer] quantized blk.0.ffn_down_exps.weight in 191s -> slot 1
+
+[2/64] worker 0 PPL blk.0.ffn_down_exps.weight  (elapsed 378s, rate 0.005/s, eta 195m, q=0)
+    chat: 252.5991
+    reasoning: 178.2180
+    code: 97.6861
+  [producer] quantized blk.1.ffn_gate_up_exps.weight in 193s -> slot 2
+
+[3/64] worker 0 PPL blk.1.ffn_gate_up_exps.weight  (elapsed 572s, rate 0.005/s, eta 194m, q=0)
+    chat: 255.0843
+    reasoning: 175.2957
+    code: 97.9190
+  [producer] quantized blk.1.ffn_down_exps.weight in 191s -> slot 3
+
+[4/64] worker 0 PPL blk.1.ffn_down_exps.weight  (elapsed 762s, rate 0.005/s, eta 191m, q=0)
+    chat: 251.1496
+    reasoning: 170.7076
+    code: 97.5410
+  [producer] quantized blk.2.ffn_gate_up_exps.weight in 189s -> slot 4
+
+[5/64] worker 0 PPL blk.2.ffn_gate_up_exps.weight  (elapsed 951s, rate 0.005/s, eta 187m, q=0)
+    chat: 253.0219
+    reasoning: 169.9775
+    code: 97.9266
+  [producer] quantized blk.2.ffn_down_exps.weight in 195s -> slot 5
+
+[6/64] worker 0 PPL blk.2.ffn_down_exps.weight  (elapsed 1146s, rate 0.005/s, eta 185m, q=0)
+    chat: 251.2932
+    reasoning: 173.4766
+    code: 98.4612
+  [producer] quantized blk.3.ffn_gate_up_exps.weight in 197s -> slot 6
+
+[7/64] worker 0 PPL blk.3.ffn_gate_up_exps.weight  (elapsed 1343s, rate 0.005/s, eta 182m, q=0)
+    chat: 252.3176
+    reasoning: 174.5510
+    code: 96.7308
+  [producer] quantized blk.3.ffn_down_exps.weight in 191s -> slot 7
+
+[8/64] worker 0 PPL blk.3.ffn_down_exps.weight  (elapsed 1534s, rate 0.005/s, eta 179m, q=0)
+    chat: 252.9157
+    reasoning: 174.2571
+    code: 96.5772
+  [producer] quantized blk.4.ffn_gate_up_exps.weight in 193s -> slot 8
+
+[9/64] worker 0 PPL blk.4.ffn_gate_up_exps.weight  (elapsed 1727s, rate 0.005/s, eta 176m, q=0)
+    chat: 251.8453
+    reasoning: 170.9304
+    code: 97.2139
+  [producer] quantized blk.4.ffn_down_exps.weight in 190s -> slot 9
+
+[10/64] worker 0 PPL blk.4.ffn_down_exps.weight  (elapsed 1917s, rate 0.005/s, eta 173m, q=0)
+    chat: 250.9699
+    reasoning: 172.8685
+    code: 97.6699
+  [producer] quantized blk.5.ffn_gate_up_exps.weight in 189s -> slot 10
+
+[11/64] worker 0 PPL blk.5.ffn_gate_up_exps.weight  (elapsed 2106s, rate 0.005/s, eta 169m, q=0)
+    chat: 247.8379
+    reasoning: 177.2559
+    code: 97.8497
+  [producer] quantized blk.5.ffn_down_exps.weight in 189s -> slot 11
+
+[12/64] worker 0 PPL blk.5.ffn_down_exps.weight  (elapsed 2295s, rate 0.005/s, eta 166m, q=0)
+    chat: 255.4827
+    reasoning: 173.0058
+    code: 97.4253
+  [producer] quantized blk.6.ffn_gate_up_exps.weight in 189s -> slot 12
+
+[13/64] worker 0 PPL blk.6.ffn_gate_up_exps.weight  (elapsed 2484s, rate 0.005/s, eta 162m, q=0)
+    chat: 253.6916
+    reasoning: 176.6695
+    code: 99.1405
+  [producer] quantized blk.6.ffn_down_exps.weight in 191s -> slot 13
+
+[14/64] worker 0 PPL blk.6.ffn_down_exps.weight  (elapsed 2675s, rate 0.005/s, eta 159m, q=0)
+    chat: 253.5827
+    reasoning: 174.2567
+    code: 99.5515
+  [producer] quantized blk.7.ffn_gate_up_exps.weight in 189s -> slot 14
+
+[15/64] worker 0 PPL blk.7.ffn_gate_up_exps.weight  (elapsed 2863s, rate 0.005/s, eta 156m, q=0)
+    chat: 250.1157
+    reasoning: 175.7115
+    code: 97.8909
+  [producer] quantized blk.7.ffn_down_exps.weight in 189s -> slot 15
+
+[16/64] worker 0 PPL blk.7.ffn_down_exps.weight  (elapsed 3053s, rate 0.005/s, eta 153m, q=0)
+    chat: 252.1605
+    reasoning: 171.5721
+    code: 98.3650
+  [producer] quantized blk.8.ffn_gate_up_exps.weight in 189s -> slot 16
+
+[17/64] worker 0 PPL blk.8.ffn_gate_up_exps.weight  (elapsed 3242s, rate 0.005/s, eta 149m, q=0)
+    chat: 250.7867
+    reasoning: 172.6244
+    code: 97.0784
+  [producer] quantized blk.8.ffn_down_exps.weight in 189s -> slot 17
+
+[18/64] worker 0 PPL blk.8.ffn_down_exps.weight  (elapsed 3430s, rate 0.005/s, eta 146m, q=0)
+    chat: 251.8068
+    reasoning: 174.4195
+    code: 96.7407
+  [producer] quantized blk.9.ffn_gate_up_exps.weight in 188s -> slot 18
+
+[19/64] worker 0 PPL blk.9.ffn_gate_up_exps.weight  (elapsed 3619s, rate 0.005/s, eta 143m, q=0)
+    chat: 250.0407
+    reasoning: 171.7390
+    code: 97.4840
+  [producer] quantized blk.9.ffn_down_exps.weight in 191s -> slot 19
+
+[20/64] worker 0 PPL blk.9.ffn_down_exps.weight  (elapsed 3809s, rate 0.005/s, eta 140m, q=0)
+    chat: 249.1279
+    reasoning: 172.1724
+    code: 98.1154
+  [producer] quantized blk.10.ffn_gate_up_exps.weight in 189s -> slot 20
+
+[21/64] worker 0 PPL blk.10.ffn_gate_up_exps.weight  (elapsed 3999s, rate 0.005/s, eta 136m, q=0)
+    chat: 254.5199
+    reasoning: 177.3539
+    code: 98.1371
+  [producer] quantized blk.10.ffn_down_exps.weight in 189s -> slot 21
+
+[22/64] worker 0 PPL blk.10.ffn_down_exps.weight  (elapsed 4188s, rate 0.005/s, eta 133m, q=0)
+    chat: 251.5691
+    reasoning: 172.0998
+    code: 95.8934
+  [producer] quantized blk.11.ffn_gate_up_exps.weight in 189s -> slot 22
+
+[23/64] worker 0 PPL blk.11.ffn_gate_up_exps.weight  (elapsed 4377s, rate 0.005/s, eta 130m, q=0)
+    chat: 251.4083
+    reasoning: 170.9228
+    code: 96.9949
+  [producer] quantized blk.11.ffn_down_exps.weight in 189s -> slot 23
+
+[24/64] worker 0 PPL blk.11.ffn_down_exps.weight  (elapsed 4565s, rate 0.005/s, eta 127m, q=0)
+    chat: 250.2579
+    reasoning: 173.1087
+    code: 97.0086
+  [producer] quantized blk.12.ffn_gate_up_exps.weight in 188s -> slot 24
+
+[25/64] worker 0 PPL blk.12.ffn_gate_up_exps.weight  (elapsed 4753s, rate 0.005/s, eta 124m, q=0)
+    chat: 250.4141
+    reasoning: 170.8172
+    code: 96.0947
+  [producer] quantized blk.12.ffn_down_exps.weight in 190s -> slot 25
+
+[26/64] worker 0 PPL blk.12.ffn_down_exps.weight  (elapsed 4944s, rate 0.005/s, eta 120m, q=0)
+    chat: 249.9160
+    reasoning: 171.8941
+    code: 99.3504
+  [producer] quantized blk.13.ffn_gate_up_exps.weight in 189s -> slot 26
+
+[27/64] worker 0 PPL blk.13.ffn_gate_up_exps.weight  (elapsed 5133s, rate 0.005/s, eta 117m, q=0)
+    chat: 253.3491
+    reasoning: 172.9587
+    code: 97.5991
+  [producer] quantized blk.13.ffn_down_exps.weight in 189s -> slot 27
+
+[28/64] worker 0 PPL blk.13.ffn_down_exps.weight  (elapsed 5322s, rate 0.005/s, eta 114m, q=0)
+    chat: 252.5774
+    reasoning: 172.7740
+    code: 97.2767
+  [producer] quantized blk.14.ffn_gate_up_exps.weight in 189s -> slot 28
+
+[29/64] worker 0 PPL blk.14.ffn_gate_up_exps.weight  (elapsed 5510s, rate 0.005/s, eta 111m, q=0)
+    chat: 257.2931
+    reasoning: 180.1522
+    code: 100.1121
+  [producer] quantized blk.14.ffn_down_exps.weight in 189s -> slot 29
+
+[30/64] worker 0 PPL blk.14.ffn_down_exps.weight  (elapsed 5699s, rate 0.005/s, eta 108m, q=0)
+    chat: 249.0418
+    reasoning: 173.0849
+    code: 96.2793
+  [producer] quantized blk.15.ffn_gate_up_exps.weight in 188s -> slot 30
+
+[31/64] worker 0 PPL blk.15.ffn_gate_up_exps.weight  (elapsed 5887s, rate 0.005/s, eta 104m, q=0)
+    chat: 252.1226
+    reasoning: 171.8416
+    code: 96.6552
+  [producer] quantized blk.15.ffn_down_exps.weight in 190s -> slot 31
+
+[32/64] worker 0 PPL blk.15.ffn_down_exps.weight  (elapsed 6077s, rate 0.005/s, eta 101m, q=0)
+    chat: 250.5161
+    reasoning: 170.6665
+    code: 97.0660
+  [producer] quantized blk.16.ffn_gate_up_exps.weight in 188s -> slot 32
+
+[33/64] worker 0 PPL blk.16.ffn_gate_up_exps.weight  (elapsed 6266s, rate 0.005/s, eta 98m, q=0)
+    chat: 251.4965
+    reasoning: 167.5300
+    code: 96.5203
+  [producer] quantized blk.16.ffn_down_exps.weight in 189s -> slot 33
+
+[34/64] worker 0 PPL blk.16.ffn_down_exps.weight  (elapsed 6455s, rate 0.005/s, eta 95m, q=0)
+    chat: 251.7733
+    reasoning: 171.0140
+    code: 97.1164
+  [producer] quantized blk.17.ffn_gate_up_exps.weight in 188s -> slot 34
+
+[35/64] worker 0 PPL blk.17.ffn_gate_up_exps.weight  (elapsed 6643s, rate 0.005/s, eta 92m, q=0)
+    chat: 250.4036
+    reasoning: 172.7420
+    code: 97.8307
+  [producer] quantized blk.17.ffn_down_exps.weight in 189s -> slot 35
+
+[36/64] worker 0 PPL blk.17.ffn_down_exps.weight  (elapsed 6831s, rate 0.005/s, eta 89m, q=0)
+    chat: 251.6107
+    reasoning: 172.0445
+    code: 97.8994
+  [producer] quantized blk.18.ffn_gate_up_exps.weight in 188s -> slot 36
+
+[37/64] worker 0 PPL blk.18.ffn_gate_up_exps.weight  (elapsed 7019s, rate 0.005/s, eta 85m, q=0)
+    chat: 248.3572
+    reasoning: 171.9803
+    code: 97.5453
+  [producer] quantized blk.18.ffn_down_exps.weight in 190s -> slot 37
+
+[38/64] worker 0 PPL blk.18.ffn_down_exps.weight  (elapsed 7209s, rate 0.005/s, eta 82m, q=0)
+    chat: 250.6839
+    reasoning: 170.8653
+    code: 97.5627
+  [producer] quantized blk.19.ffn_gate_up_exps.weight in 188s -> slot 38
+
+[39/64] worker 0 PPL blk.19.ffn_gate_up_exps.weight  (elapsed 7397s, rate 0.005/s, eta 79m, q=0)
+    chat: 250.9049
+    reasoning: 173.9359
+    code: 96.7861
+  [producer] quantized blk.19.ffn_down_exps.weight in 189s -> slot 39
+
+[40/64] worker 0 PPL blk.19.ffn_down_exps.weight  (elapsed 7586s, rate 0.005/s, eta 76m, q=0)
+    chat: 249.1150
+    reasoning: 170.5468
+    code: 96.8890
+  [producer] quantized blk.20.ffn_gate_up_exps.weight in 189s -> slot 40
+
+[41/64] worker 0 PPL blk.20.ffn_gate_up_exps.weight  (elapsed 7775s, rate 0.005/s, eta 73m, q=0)
+    chat: 249.4908
+    reasoning: 171.3241
+    code: 97.5594
+  [producer] quantized blk.20.ffn_down_exps.weight in 189s -> slot 41
+
+[42/64] worker 0 PPL blk.20.ffn_down_exps.weight  (elapsed 7964s, rate 0.005/s, eta 70m, q=0)
+    chat: 249.5754
+    reasoning: 171.9248
+    code: 97.0053
+  [producer] quantized blk.21.ffn_gate_up_exps.weight in 188s -> slot 42
+
+[43/64] worker 0 PPL blk.21.ffn_gate_up_exps.weight  (elapsed 8152s, rate 0.005/s, eta 66m, q=0)
+    chat: 249.0304
+    reasoning: 171.0861
+    code: 97.4036
+  [producer] quantized blk.21.ffn_down_exps.weight in 190s -> slot 43
+
+[44/64] worker 0 PPL blk.21.ffn_down_exps.weight  (elapsed 8342s, rate 0.005/s, eta 63m, q=0)
+    chat: 250.6574
+    reasoning: 171.1382
+    code: 97.5120
+  [producer] quantized blk.22.ffn_gate_up_exps.weight in 190s -> slot 44
+
+[45/64] worker 0 PPL blk.22.ffn_gate_up_exps.weight  (elapsed 8532s, rate 0.005/s, eta 60m, q=0)
+    chat: 250.2375
+    reasoning: 171.6601
+    code: 97.5293
+  [producer] quantized blk.22.ffn_down_exps.weight in 194s -> slot 45
+
+[46/64] worker 0 PPL blk.22.ffn_down_exps.weight  (elapsed 8726s, rate 0.005/s, eta 57m, q=0)
+    chat: 250.1511
+    reasoning: 172.0336
+    code: 97.7494
+  [producer] quantized blk.23.ffn_gate_up_exps.weight in 189s -> slot 46
+
+[47/64] worker 0 PPL blk.23.ffn_gate_up_exps.weight  (elapsed 8915s, rate 0.005/s, eta 54m, q=0)
+    chat: 250.8467
+    reasoning: 171.5020
+    code: 97.8895
+  [producer] quantized blk.23.ffn_down_exps.weight in 189s -> slot 47
+
+[48/64] worker 0 PPL blk.23.ffn_down_exps.weight  (elapsed 9104s, rate 0.005/s, eta 51m, q=0)
+    chat: 250.2507
+    reasoning: 170.4254
+    code: 97.3345
+  [producer] quantized blk.24.ffn_gate_up_exps.weight in 188s -> slot 48
+
+[49/64] worker 0 PPL blk.24.ffn_gate_up_exps.weight  (elapsed 9292s, rate 0.005/s, eta 47m, q=0)
+    chat: 249.5597
+    reasoning: 172.2574
+    code: 97.2680
+  [producer] quantized blk.24.ffn_down_exps.weight in 190s -> slot 49
+
+[50/64] worker 0 PPL blk.24.ffn_down_exps.weight  (elapsed 9482s, rate 0.005/s, eta 44m, q=0)
+    chat: 250.1255
+    reasoning: 172.0641
+    code: 97.5899
+  [producer] quantized blk.25.ffn_gate_up_exps.weight in 188s -> slot 50
+
+[51/64] worker 0 PPL blk.25.ffn_gate_up_exps.weight  (elapsed 9670s, rate 0.005/s, eta 41m, q=0)
+    chat: 249.3913
+    reasoning: 171.4896
+    code: 97.4034
+  [producer] quantized blk.25.ffn_down_exps.weight in 189s -> slot 51
+
+[52/64] worker 0 PPL blk.25.ffn_down_exps.weight  (elapsed 9859s, rate 0.005/s, eta 38m, q=0)
+    chat: 249.9502
+    reasoning: 171.2553
+    code: 97.1035
+  [producer] quantized blk.26.ffn_gate_up_exps.weight in 188s -> slot 52
+
+[53/64] worker 0 PPL blk.26.ffn_gate_up_exps.weight  (elapsed 10047s, rate 0.005/s, eta 35m, q=0)
+    chat: 250.3679
+    reasoning: 171.4861
+    code: 97.3447
+  [producer] quantized blk.26.ffn_down_exps.weight in 189s -> slot 53
+
+[54/64] worker 0 PPL blk.26.ffn_down_exps.weight  (elapsed 10235s, rate 0.005/s, eta 32m, q=0)
+    chat: 249.1900
+    reasoning: 171.7739
+    code: 97.4509
+  [producer] quantized blk.27.ffn_gate_up_exps.weight in 188s -> slot 54
+
+[55/64] worker 0 PPL blk.27.ffn_gate_up_exps.weight  (elapsed 10423s, rate 0.005/s, eta 28m, q=0)
+    chat: 248.6327
+    reasoning: 170.8287
+    code: 96.8999
+  [producer] quantized blk.27.ffn_down_exps.weight in 190s -> slot 55
+
+[56/64] worker 0 PPL blk.27.ffn_down_exps.weight  (elapsed 10613s, rate 0.005/s, eta 25m, q=0)
+    chat: 249.1405
+    reasoning: 172.0441
+    code: 97.1080
+  [producer] quantized blk.28.ffn_gate_up_exps.weight in 188s -> slot 56
+
+[57/64] worker 0 PPL blk.28.ffn_gate_up_exps.weight  (elapsed 10801s, rate 0.005/s, eta 22m, q=0)
+    chat: 250.7008
+    reasoning: 172.0319
+    code: 98.1704
+  [producer] quantized blk.28.ffn_down_exps.weight in 189s -> slot 57
+
+[58/64] worker 0 PPL blk.28.ffn_down_exps.weight  (elapsed 10990s, rate 0.005/s, eta 19m, q=0)
+    chat: 250.1182
+    reasoning: 170.3779
+    code: 97.1313
+  [producer] quantized blk.29.ffn_gate_up_exps.weight in 188s -> slot 58
+
+[59/64] worker 0 PPL blk.29.ffn_gate_up_exps.weight  (elapsed 11178s, rate 0.005/s, eta 16m, q=0)
+    chat: 250.6985
+    reasoning: 171.8168
+    code: 97.3096
+  [producer] quantized blk.29.ffn_down_exps.weight in 190s -> slot 59
+
+[60/64] worker 0 PPL blk.29.ffn_down_exps.weight  (elapsed 11367s, rate 0.005/s, eta 13m, q=0)
+    chat: 249.4679
+    reasoning: 171.4866
+    code: 97.1555
+  [producer] quantized blk.30.ffn_gate_up_exps.weight in 188s -> slot 60
+
+[61/64] worker 0 PPL blk.30.ffn_gate_up_exps.weight  (elapsed 11555s, rate 0.005/s, eta 9m, q=0)
+    chat: 250.3228
+    reasoning: 172.0476
+    code: 97.5811
+  [producer] quantized blk.30.ffn_down_exps.weight in 190s -> slot 61
+
+[62/64] worker 0 PPL blk.30.ffn_down_exps.weight  (elapsed 11745s, rate 0.005/s, eta 6m, q=0)
+    chat: 250.4550
+    reasoning: 171.1274
+    code: 96.9152
+  [producer] quantized blk.31.ffn_gate_up_exps.weight in 188s -> slot 62
+
+[63/64] worker 0 PPL blk.31.ffn_gate_up_exps.weight  (elapsed 11933s, rate 0.005/s, eta 3m, q=0)
+    chat: 250.0174
+    reasoning: 171.2502
+    code: 97.4036
+  [producer] quantized blk.31.ffn_down_exps.weight in 189s -> slot 63
+
+[64/64] worker 0 PPL blk.31.ffn_down_exps.weight  (elapsed 12122s, rate 0.005/s, eta 0m, q=0)
+    chat: 248.1993
+    reasoning: 171.4145
+    code: 98.2202
+  [worker 0] received POISON, exiting
+
+=== Ablation complete ===
+Tensors processed this run: 64
+Total measured: 64/64
+Total time: 12132s
+Output: cerebellum-dev/sparse-upcycling/runs/moe_ablation_routed_q4km_to_q3.json

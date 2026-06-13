@@ -1,0 +1,4 @@
+^blk\.31\.ffn_gate_up_exps\.weight$=Q3_K
+^blk\.11\.ffn_gate_up_exps\.weight$=Q3_K
+^blk\.31\.ffn_down_exps\.weight$=Q3_K
+^blk\.11\.ffn_gate_shexp\.weight$=Q3_K
