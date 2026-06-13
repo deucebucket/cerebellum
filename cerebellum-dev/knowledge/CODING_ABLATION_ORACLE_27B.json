@@ -1,0 +1,13 @@
+{
+  "baseline_humaneval_pct": 75.0,
+  "source": "coding_ablation.log header",
+  "per_group_demote_Q2K": {
+    "attn_output": 42.1,
+    "attn_qkv": 28.7,
+    "attn_v": 30.5,
+    "ffn_down": 70.7,
+    "output": 29.9,
+    "ssm_alpha": 22.6,
+    "ssm_beta": 25.6
+  }
+}
