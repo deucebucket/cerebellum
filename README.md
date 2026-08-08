@@ -11,6 +11,14 @@ The public repository is intentionally scoped to safe release material:
 - public CLI surface documentation
 - release artifact hashes, runtime flags, and links
 
+## Released Models
+
+Public Cerebellum GGUF releases and their reproducibility notes:
+
+| Model | Base | Size | Recipe / Benchmarks |
+|---|---|---|---|
+| [KAT-Coder-V2.5-Dev-Cerebellum-GGUF](https://huggingface.co/deucebucket/KAT-Coder-V2.5-Dev-Cerebellum-GGUF) | Kwaipilot/KAT-Coder-V2.5-Dev (Qwen3.6-35B-A3B) | 12.1 GB | [docs/kat_coder_v25_cerebellum.md](docs/kat_coder_v25_cerebellum.md) |
+
 The private development repository contains the factory: pipeline automation,
 tensor-selection internals, raw ablation traces, experimental scripts, and
 working notes.

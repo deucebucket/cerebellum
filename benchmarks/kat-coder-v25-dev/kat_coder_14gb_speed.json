@@ -1,0 +1,27 @@
+{
+  "model": "KAT-Coder-V2.5-Dev-Cerebellum-14GB-v2",
+  "runtime": "llama.cpp-prism",
+  "hardware": "RTX 3090 24 GB",
+  "server_flags": "-ngl 999 --flash-attn on --ctx-size 65536 --cache-type-k q8_0 --cache-type-v q8_0 --reasoning off --reasoning-budget 0",
+  "measurements": [
+    {
+      "label": "short_1k",
+      "prompt_tokens": 157,
+      "completion_tokens": 1024,
+      "tps": 78.42
+    },
+    {
+      "label": "long_8k",
+      "prompt_tokens": 27,
+      "completion_tokens": 2417,
+      "tps": 83.0
+    },
+    {
+      "label": "batched_6k",
+      "prompt_tokens": 138,
+      "completion_tokens": 5978,
+      "tps": 158.31
+    }
+  ],
+  "timestamp": "2026-08-06"
+}

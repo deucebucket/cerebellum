@@ -1,0 +1,9 @@
+{
+  "benchmark": "bigcodebench",
+  "subset": "hard",
+  "model": "kat_coder_14gb_code_imatrix_ffn_down_late_q3_bcb",
+  "pass_at_1_pct": 28.05,
+  "total_problems": 148,
+  "elapsed_seconds": 526.3,
+  "timestamp": "2026-08-06 16:24"
+}
