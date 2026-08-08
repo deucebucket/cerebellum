@@ -1,0 +1,12 @@
+{
+  "benchmark": "evalplus_humaneval_plus_chat",
+  "model": "kat_coder_14gb_code_imatrix_ffn_down_late_q3_evalplus_chat",
+  "pass_at_1_base": 92.07,
+  "pass_at_1_plus": 89.02,
+  "total_problems": 164,
+  "elapsed_seconds": 250.9,
+  "enable_thinking": false,
+  "thinking_budget_tokens": 0,
+  "max_tokens": 1536,
+  "timestamp": "2026-08-06 16:12"
+}

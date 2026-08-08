@@ -1,0 +1,8 @@
+{
+  "benchmark": "mmlu_redux",
+  "model": "kat_coder_14gb",
+  "accuracy": 74.92,
+  "total": 2400,
+  "elapsed_seconds": 382.3,
+  "timestamp": "2026-08-06 07:37"
+}

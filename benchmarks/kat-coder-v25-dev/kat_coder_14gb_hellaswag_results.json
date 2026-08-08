@@ -1,0 +1,8 @@
+{
+  "benchmark": "hellaswag",
+  "model": "kat_coder_14gb",
+  "accuracy": 90.34,
+  "total": 10042,
+  "elapsed_seconds": 2222.2,
+  "timestamp": "2026-08-06 07:31"
+}

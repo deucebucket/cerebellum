@@ -11,6 +11,14 @@ The Python package is named `cerebellum`. The old `osmosis` import path remains
 as a deprecation shim for existing scripts and old experiment files, and will
 be removed in a future release.
 
+## Released Models
+
+Public Cerebellum GGUF releases and their reproducibility notes:
+
+| Model | Base | Size | Recipe / Benchmarks |
+|---|---|---|---|
+| [KAT-Coder-V2.5-Dev-Cerebellum-GGUF](https://huggingface.co/deucebucket/KAT-Coder-V2.5-Dev-Cerebellum-GGUF) | Kwaipilot/KAT-Coder-V2.5-Dev (Qwen3.6-35B-A3B) | 12.1 GB | [docs/kat_coder_v25_cerebellum.md](docs/kat_coder_v25_cerebellum.md) |
+
 ## Current State
 
 Current private-dev work is centered on visible, resumable Cerebellum
